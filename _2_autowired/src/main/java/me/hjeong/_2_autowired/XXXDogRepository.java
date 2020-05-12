@@ -4,7 +4,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Repository;
 
 @Repository
-@Primary
+//@Primary
 public class XXXDogRepository implements DogRepository {
 }
 // DogRepository 타입으로 빈을 주입받을 때
