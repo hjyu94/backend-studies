@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class DogService {
     @Autowired
@@ -15,6 +17,9 @@ public class DogService {
     @Autowired
     DogRepository XXXDogRepository;
     // 필드명을 빈 이름으로 지정하는 경우 자동으로 XXXDogRepository 타입으로 주입받는다.
+
+    @Autowired
+    List<DogRepository> dogRepositories;
 
     public void printDogRepository() {
         System.out.println(dogRepository.getClass());
