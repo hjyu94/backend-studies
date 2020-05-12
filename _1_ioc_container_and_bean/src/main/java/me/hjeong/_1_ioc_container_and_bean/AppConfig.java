@@ -11,8 +11,28 @@ public class AppConfig {
         return new BookRepository();
     }
 
+    // 의존성 주입하기[1] setter
     @Bean
     public BookService bookService() {
+        BookService bookService = new BookService();
+        bookService.setBookRepository(bookRepository());
+        return new BookService();
+    }
+
+    // 의존성 주입하기[2] argument
+    @Bean
+    public BookService bookService2(BookRepository bookRepository) {
+        BookService bookService = new BookService();
+        bookService.setBookRepository(bookRepository);
         return new BookService();
     }
 }
+// [org.springframework.context.annotation.internalConfigurationAnnotationProcessor
+// , org.springframework.context.annotation.internalAutowiredAnnotationProcessor
+// , org.springframework.context.annotation.internalCommonAnnotationProcessor
+// , org.springframework.context.event.internalEventListenerProcessor
+// , org.springframework.context.event.internalEventListenerFactory
+// , appConfig, bookRepository, bookService, bookService2]
+
+// @Configuration 을 붙이면 기본적인 빈들과 우리가 만든 함수명을 빈 이름으로 한 빈이 만들어진다.
+// @Bean 을 이용해서 직접 빈을 만들 때는 setter, argument 로 의존성을 주입할 수 있다.
