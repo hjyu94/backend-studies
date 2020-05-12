@@ -1,0 +1,151 @@
+11. IoC 컨테이너 8부: ApplicationEventPublisher
+
+이벤트 프로그래밍에 필요한 인터페이스 제공. 옵저버 패턴 구현체.
+
+ApplicationContext extends ApplicationEventPublisher
+    ● publishEvent(ApplicationEvent event)
+
+이벤트 만들기
+    ● ApplicationEvent 상속
+    ● 스프링 4.2 부터는 이 클래스를 상속받지 않아도 이벤트로 사용할 수 있다.
+
+이벤트 발생 시키는 방법
+    ● ApplicationEventPublisher.publishEvent();
+
+이벤트 처리하는 방법
+    ● ApplicationListener<이벤트> 구현한 클래스 만들어서 빈으로 등록하기.
+    ● 스프링 4.2 부터는​@EventListener​를 사용해서 빈의 메소드에 사용할 수 있다.
+    ● 기본적으로는 synchronized.
+    ● 순서를 정하고 싶다면 @Order와 함께 사용.
+    ● 비동기적으로 실행하고 싶다면 @Async와 함께 사용.
+
+스프링이 제공하는 기본 이벤트
+    ● ContextRefreshedEvent: ApplicationContext를 초기화 했더나 리프래시 했을 때 발생.
+    ● ContextStartedEvent: ApplicationContext를 start()하여 라이프사이클 빈들이 시작 신호를 받은 시점에 발생.
+    ● ContextStoppedEvent: ApplicationContext를 stop()하여 라이프사이클 빈들이 정지 신호를 받은 시점에 발생.
+    ● ContextClosedEvent: ApplicationContext를 close()하여 싱글톤 빈 소멸되는 시점에 발생.
+    ● RequestHandledEvent: HTTP 요청을 처리했을 때 발생
+
+
+[실습]
+
+이벤트를 만들고! 이벤트를 발생시키고! 그 이벤트를 받아서 처리하는 핸들러! 를 만들어보자
+
+    이벤트는 빈이 아님.
+    원하는 데이터나 소스를 담아서 전송할 수 있는 것.
+
+    ( ~ 4.2)
+    class MyEvent extends ApplicationEvent {
+        private int data;
+        public MyEvent(Object source) { super(source); }
+        public MyEvent(Object source, int data) { super(source); this.data = data; }
+        public int getData() { return data; }
+    }
+
+    (4.2 ~ ): ApplicationEvent 상속받을 필요 없어짐
+    class MyEvent { ... }
+
+이벤트 발생 시키는 방법
+
+    @Component
+    public class AppRunner implements ApplicationRunner {
+        @Autowired
+        ApplicationEventPublisher publisher;
+
+        @Override
+        public void run(ApplicationArguments args) throws Exception {
+            publisher.publishEvent(new MyEvent(this, 100));
+        }
+    }
+
+이벤트 처리하는 방법
+
+    핸들러가 빈이어야 스프링 프레임워크가 처리해줄 수 있음. 이벤트는 빈이 아니어도 됨
+
+    ( ~ 4.2)
+    ApplicationListener 를 구현한 클래스를 사용한다.
+    @Component
+    class MyEventHandler implements ApplicationListener<MyEvent> {
+        @Override
+        publish void onApplicationEvent(MyEvent event) {
+            System.out.println("받은 이벤트의 데이터: " + event.getData());
+        }
+    }
+
+    (4.2 ~ )
+    ApplicationListener를 구현하지 않아도 된다. 단 핸들러 메소드에 @EventListener를 붙인다.
+    @Component
+    class MyEventHandler {
+        @EventListener
+        publish void handle(MyEvent event) {
+            System.out.println("받은 이벤트의 데이터: " + event.getData());
+        }
+    }
+
+
+* 같은 데이터 타입을 처리하는 이벤트 핸들러가 두개 이상이면?
+
+    A 핸들러 실행 후 B 핸들러가 실행된다. (혹은 B 끝내고 A 실행) (동시에! 하지! 않음!!)
+
+    실행 순서를 주고 싶으면 @Order 사용
+    Order 값이 낮은 순서부터 실행된다.
+
+    @Component
+    class MyEventHandler {
+        @EventListener
+        @Order(Ordered.HIGHEST_PRECEDENCE + 2)
+        publish void handle(MyEvent event) {
+            System.out.println(Thread.currentThread().toString());
+            System.out.println("My Handler");
+        }
+    }
+
+    @Component
+    class AnotherEventHandler {
+        @EventListener
+        @Order(Ordered.HIGHEST_PRECEDENCE)
+        public void handle(MyEvent event) {
+            System.out.println(Thread.currentThread().toString());
+            System.out.println("Another Handler");
+        }
+    }
+
+
+* 핸들러를 비동기적으로 사용하는 방법
+
+    핸들러 함수에 @Async, SpringApplication.run을 수행하는 클래스에 @EnableAsync 사용
+    -> @Order 가 의미가 사라짐
+
+    @Component
+    class MyEventHandler {
+        @EventListener
+        @Async
+        publish void handle(MyEvent event) {
+            System.out.println(Thread.currentThread().toString());
+            System.out.println("My Handler");
+        }
+    }
+
+    @SpringBootApplication @EnableAsync
+    public class ApplicatoineventpublisherApplication {
+        public static void main(String[] args) {
+            SpringApplication.run(ApplicatoineventpublisherApplication.class, args);
+        }
+    }
+
+* 스프링이 제공하는 기본 이벤트
+
+    @Component
+    public class BasicEventHandler {
+        @EventListener
+        public void handle1(ContextRefreshedEvent evnet)
+        {
+            System.out.println(Thread.currentThread().toString());
+        }
+
+        @EventListener
+        public void handle2(ContextClosedEvent evnet)
+        {
+            System.out.println(Thread.currentThread().toString());
+        }
+    }
