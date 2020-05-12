@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <bean id ="bookService" class="me.hjeong._1_ioc_container_and_bean.BookService">
+        <property name="bookRepository" ref="bookRepository"/>
+    </bean>
+
+    <bean id = "bookRepository" class="me.hjeong._1_ioc_container_and_bean.BookRepository">
+    </bean>
+</beans>
+
+<!--
+    빈 설정 파일(xml)
+        bookService, bookRepository 빈을 만들었음
+        bookService 안에서 bookRepository를 주입받아 사용하고 있음.
+-->
