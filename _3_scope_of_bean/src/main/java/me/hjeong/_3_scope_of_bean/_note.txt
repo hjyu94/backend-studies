@@ -1,0 +1,6 @@
+public class AppRunner implements ApplicationRunner
+    애플리케이션이 구동되면 Runner.run()이 실행된다.
+
+Proto, Single -> @Component -> ApplicationContext 안에 Bean 으로 들어있다.
+Proto는 ctx에서 꺼낼때마다 새로운 빈이 반환되고
+Single은 ctx에서 몇번을 꺼내도 같은 빈이 반환된다.
