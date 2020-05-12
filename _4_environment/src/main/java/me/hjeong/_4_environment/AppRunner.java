@@ -26,5 +26,8 @@ public class AppRunner implements ApplicationRunner {
         Environment environment = ctx.getEnvironment();
         System.out.println(Arrays.toString(environment.getDefaultProfiles()));
         System.out.println(Arrays.toString(environment.getActiveProfiles()));
+
+        System.out.println(environment.getProperty("app.name"));
+        System.out.println(environment.getProperty("app.about"));
     }
 }

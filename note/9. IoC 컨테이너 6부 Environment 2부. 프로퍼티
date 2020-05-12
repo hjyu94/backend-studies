@@ -1,0 +1,47 @@
+9. IoC 컨테이너 6부: Environment 2부. 프로퍼티
+
+프로파일과 프로퍼티를 다루는 인터페이스.
+
+ApplicationContext extends EnvironmentCapable
+    ● getEnvironment()
+
+    ApplicationContext 는 BeanFactory 기능 외에도 EnvironmentCapable 인터페이스를 상속받고 있다.
+    이 EnvironmentCapable은 크게 2가지 역할을 한다 (1. Profile, 2. Property)
+
+    Environment가 제공하는 두번째 기능.
+    Application에 등록된 여러 key,value 쌍으로 제공되는 데이터(=프로퍼티)에 접근할 수 있는 기능
+
+    프로퍼티는 여러가지 형태로 제공된다.
+    OS 환경 변수, JVM 옵션 프로퍼티들, 서블릿 매개변수들이 될 수 있다.
+
+    (ex)
+        edit configuration -> VM options: -Dapp.name=spring5 이런식으로 데이터를 설정해서
+        System.out.println(environment.getProperty("app.name"));
+        위와 같이 사용할 수 있다.
+
+    (ex)
+        /resources/app.properties 생성
+        app.name=spring
+
+    @Configuration 이 들어있는 클래스에서 어노테이션 추가
+    @PropertySource("classpath:/app.properties")
+    PropertySource에 의해 값이 Environment에 들어가면 key로 Environment에서 꺼내서 value 값을 사용할 수 있다.
+
+프로퍼티
+    ● 다양한 방법으로 정의할 수 있는 설정값
+    ● Environment​의 역할은 프로퍼티 소스 설정 및 프로퍼티 값 가져오기
+
+프로퍼티에는 우선 순위가 있다. -> 따라서 같은 key 로 여러 value가 있더라도 한 가지 value만 사용된다.
+    ● StandardServletEnvironment의 우선순위
+        ○ ServletConfig 매개변수
+        ○ ServletContext 매개변수
+        ○ JNDI (java:comp/env/)
+        ○ JVM 시스템 프로퍼티 (-Dkey=”value”)
+        ○ JVM 시스템 환경 변수 (운영 체제 환경 변수)
+
+@PropertySource
+    ● Environment를 통해 프로퍼티 추가하는 방법
+
+스프링 부트의 외부 설정 참고
+    ● 기본 프로퍼티 소스 지원 (application.properties)
+    ● 프로파일까지 고려한 계층형 프로퍼티 우선 순위 제공
