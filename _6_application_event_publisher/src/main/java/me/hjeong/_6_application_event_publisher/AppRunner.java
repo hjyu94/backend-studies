@@ -13,6 +13,10 @@ public class AppRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
-        publisher.publishEvent(new Event(this, 100));
+        while(true) {
+            publisher.publishEvent(new Event(this, 100));
+            System.out.println();
+            Thread.sleep(1000l);
+        }
     }
 }
