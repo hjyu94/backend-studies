@@ -4,6 +4,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 // 이벤트 핸들러는 반드시 빈이어야 한다
@@ -25,6 +26,7 @@ class BeforeEventHandler implements ApplicationListener<BeforeEvent> {
 public class MyEventHandler {
     @EventListener
     @Order(Ordered.HIGHEST_PRECEDENCE)
+    @Async
     public void MyHandlerFunc(Event event) {
         System.out.println("My Event Handler");
         System.out.println("받은 이벤트의 데이터: " + event.getData());

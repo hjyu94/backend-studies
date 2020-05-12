@@ -3,12 +3,14 @@ package me.hjeong._6_application_event_publisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AnotherEventHandler {
     @EventListener
     @Order(Ordered.LOWEST_PRECEDENCE)
+    @Async
     public void EventHandlerMethod(Event event)
     {
         System.out.println("Another Event Handler");
