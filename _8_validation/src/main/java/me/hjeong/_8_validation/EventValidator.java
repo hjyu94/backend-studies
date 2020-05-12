@@ -14,5 +14,10 @@ public class EventValidator implements Validator {
     public void validate(Object o, Errors errors) {
         ValidationUtils.rejectIfEmptyOrWhitespace(errors,
                 "title", "notempty", "Empty title is not allowed");
+
+        Event event = (Event) o;
+        if (event.getTitle() == null) {
+            errors.rejectValue("title", "notempty");
+        }
     }
 }
