@@ -1,4 +1,4 @@
-package me.hjeong._9_data_binding;
+package me.hjeong._9_data_binding.PropertyEditor;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
