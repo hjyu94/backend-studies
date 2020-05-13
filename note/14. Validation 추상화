@@ -1,0 +1,166 @@
+14. Validation 추상화
+
+org.springframework.validation.Validator
+
+애플리케이션에서 사용하는 객체 검증용 인터페이스.
+
+특징
+    ● 어떤한 계층과도 관계가 없다. => 모든 계층(웹, 서비스, 데이터)에서 사용해도 좋다.
+    ● 구현체 중 하나로, JSR-303(Bean Validation 1.0)과 JSR-349(Bean Validation 1.1)을 지원한다. (​LocalValidatorFactoryBean​)
+    ● DataBinder에 들어가 바인딩 할 때 같이 사용되기도 한다.
+
+인터페이스
+    ● boolean supports(Class clazz): 어떤 타입의 객체를 검증할 때 사용할 것인지 결정함
+    ● void validate(Object obj, Errors e): 실제 검증 로직을 이 안에서 구현
+        ○ 구현할 때 ValidationUtils 사용하며 편리 함.
+
+스프링 부트 2.0.5 이상 버전을 사용할 때
+    ● LocalValidatorFactoryBean 빈으로 자동 등록
+    ● JSR-380(Bean Validation 2.0.1) 구현체로 hibernate-validator 사용.
+    ● https://beanvalidation.org/
+
+
+[실습]
+
+validation?
+    자바 스펙 중 하나
+    NotEmpty, NotBlank, NotNull, Email, Size 이런 애노테이션들을
+    사용해서 빈에 있는 데이터가 유효한지 살펴보는 기능
+
+[1] Validator 구현하기
+
+* ValidationUtils 사용해서 검증해보기
+
+    public class Event {
+        Integer id;
+        String title;
+        // getter
+        // setter
+    }
+
+    public class EventValidator implements Validator {
+        @Override
+        public boolean supports(Class<?> clazz) {
+            return Event.class.equals(clazz); // 이벤트 클래스여야 검증하겟다.
+        }
+
+        @Override
+        public void validate(Object target, Errors errors) {
+            ValidationUtils.rejectIfEmptyOrWhitespace(errors,
+                "title", "notempty", "Empty title is not allowed.");
+            // 1번째 인자: 에러 타입
+            // 2번째 인자: 검사할 값 (title값이 null 이면 에러로 처리한다.)
+            // 3번째 인자: 키값 (notempty 라는 키값으로 에러 메세지를 가지고 온다.)
+            // 4번째 인자: 디폴트 메세지 (못 찾을 경우 디폴트메세지 매개변수가 출력된다.)
+        }
+    }
+
+    @Component
+    class AppRunner implements ApplicationRunner {
+        @Override
+        public void run(...) {
+            Event event = new Event();
+
+            EventValidator eventValidator = new EventValidator();
+
+            Errors errors = new BeanPropertyBindResult(event, "event");
+            // parameters: target, name
+
+            eventValidator.validate(event, errors);
+            // event 를 검증해서 에러들을 errors 에 담는다.
+
+            System.out.println(errors.hasErrors());
+            errors.getAllErrors().forEach( e -> {
+                System.out.println("====== error code =====");
+                Arrays.stream(e.getCodes()).forEach(System.out::println);
+                System.out.println(e.getDefaultMessage());
+            });
+        }
+    }
+    // Run!
+    // 이 때 이벤트에 타이틀을 주지 않았기 때문에 에러가 생길 것.
+    /*
+        ===== error code =====
+        notempty.event.title
+        notempty.title
+        notempty.java.lang.String
+        notempty
+        Empty title is not allowed.
+    */
+    // notempty 이외에도 여러 에러코드가 자동으로 생긴다.
+
+
+* ValidationUtils 기능을 사용하지 않고 직접 기능을 구현할 수도 있다.
+    public class EventValidator implements Validator {
+        ...
+        @Override
+        public void validate(Object target, Errors errors) {
+            Event event = (Event)target;
+            if (event.getTitle() == null) {
+                errors.reject(...);
+                // 직접 에러코드와 에러 메세지를 담을 수 있다.
+                // reject(): 여러 필드를 종합해서 봤을 때 생기는 에러라면
+                // rejectValue(): 어떤 필드값에 해당하는 에러의 경우 사용
+            }
+        }
+    }
+
+
+[2] 스프링이 제공해주는 LocalValidatorFactoryBean 사용하기
+
+    스프링 부트를 사용하면 LocalValidatorFactoryBean 빈으로 자동 등록해준다.
+    얘를 사용해서 여러 validation annotation 을 사용해서 검증할 수 있어졌다.
+
+    ex)
+    public class Event {
+        Integer id;
+
+        @NotEmpty
+        String title;
+
+        @NotNull @Min(0) @Max(99999)
+        Integer limit;
+
+        @Email
+        String email;
+
+        // getter
+        // setter
+    }
+
+    @Component
+    public class AppRunner implements ApplicationRunner {
+        @Autowired
+        Validator validator;
+
+        @Override
+        public void run(...) {
+            System.out.println(validator.getClass());
+
+            Event event = new Event();
+            event.setLimit(-1);
+            event.setEmail("This is not email");
+
+            Errors errors = new BeanPropertyBindingResult(event, "event");
+            validator.validate(event, errors);
+        }
+    }
+
+    이처럼 간단한 경우는 어노테이션을 쓸 수 있고
+    복잡한 로직, 만들어야 하는 로직이 있는 경우는 Validator 에서 만들어 사용 할 수 있다.
+
+
+* ValidationAutoConfiguration.class
+
+    public class ValidationAutoConfiguration {
+        ...
+        @Bean
+        @Role(2)
+        @ConditionalOnMissingBean({Validator.class})
+        public static LocalValidatorFactoryBean defaultValidator() {
+            LocalValidatorFactoryBean factoryBean = new LocalValidatorFactoryBean();
+            MessageInterpolatorFactory interpolatorFactory = new MessageInterpolatorFactory();
+            factoryBean.setMessageInterpolator(interpolatorFactory.getObject());
+            return factoryBean;
+        }
+    }
