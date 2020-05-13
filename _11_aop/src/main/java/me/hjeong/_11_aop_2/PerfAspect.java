@@ -8,8 +8,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Aspect
 public class PerfAspect {
-//    @Around("execution(* me.hjeong..*.EventService.*(..))")
-    @Around("execution(* me.hjeong._11_aop_2.EventService.*(..))")
+    @Around("@annotation(PerLogging)")
     public Object logPerf(ProceedingJoinPoint pip) throws Throwable {
         long begin = System.currentTimeMillis(); // advise
         Object retVal = pip.proceed();
