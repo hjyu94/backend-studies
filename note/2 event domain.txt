@@ -1,0 +1,95 @@
+2 Event domain 생성
+
+events 패키지 생성
+
+Event 생성
+    public class Event {
+        private Integer id;
+        private String name; private String description;
+        private LocalDateTime beginEnrollmentDateTime;
+        private LocalDateTime closeEnrollmentDateTime;
+        private LocalDateTime beginEventDateTime;
+        private LocalDateTime endEventDateTime;
+        private String location; // (optional) 이게 없으면 온라인 모임
+        private int basePrice; // (optional)
+        private int maxPrice; // (optional)
+        private int limitOfEnrollment;
+        private boolean offline;
+        private boolean free;
+        private EventStatus eventStatus = EventStatus.DRAFT;
+    }
+
+EventStatus enum 추가
+    public enum EventStatus {
+        DRAFT, PUBLISHED, BEGAN_ENROLLMENT;
+    }
+
+
+Event를 빈으로 만들기 위해서
+자바 빈 스펙을 만족해야 한다(기본 생성자, 모든 필드에 getter setter)
+-> 롬복 이용
+
++ builder를 사용해서 편하게 코딩하자
+
+@Builder @AllArgsConstructor @NoArgsConstructor
+@Getter @Setter @EqualsAndHashCode(of = "id")
+// id 값을 가지고 equals, hashcode 판단
+
+테스트 코드 생성 (Ctrl Shift T)
+public class EventTest {
+
+    @Test
+    public void builder() {
+        Event event = Event.builder()
+                .name("Inflearn Spring REST API")
+                .description("REST API development with Spring")
+                .build();
+        assertThat(event).isNotNull();
+    }
+
+    @Test
+    public void javaBean() {
+        // Given
+        String name = "Event";
+        String description = "Spring";
+
+        // When
+        Event event = new Event();
+        event.setName(name);
+        event.setDescription(description);
+
+        // Then
+        assertThat(event.getName()).isEqualTo(name);
+        assertThat(event.getDescription()).isEqualTo(description);
+    }
+
+}
+
+@EqualsAndHashCode(of = "id")
+    기본적으로 equals() hashcode() 를 구현할 때 모든 필드를 다 사용하는데
+    나중에 entity 간에 연간관계가 잇을 때 서로 상호참조하는 관계가 되는 경우
+    equals, hashcode 코드 안에서 스택오버플로우가 발생할 수 있기 때문에
+    정말 필요한 값만 가지고 equals(), hashcode() 를 비교하는 게 좋다.
+    따라서 id 값만 가지고 코드를 만들기 위해 of 값을 준다
+
+@EqualsAndHashCode(of = {"id", "account"}) -> 이 경우 좋지 않음
+    서로 간에 메소드 계속 호출해버리는 스택 오버 플로우가 발생할 가능성이 있음.
+
+애노테이션을 더 줄여서 쓸 수 없나?
+    @Builder @AllArgsConstructor @NoArgsConstructor
+    @Getter @Setter @EqualsAndHashCode(of = "id") 를 포함하는
+    커스텀한 애노테이션을 만들어서 줄여서 쓰면 좋을 텐데
+    롬복 애노테이션이 메타 에노테이션으로 동작하지 않기 때문에 줄일 수 없다.
+
+@Data 는 쓰기 애매한 이유?
+    @EqualsAndHashCode 이 포함되어 있어
+    모든 프로퍼티를 사용해서 equals(), hashcode()를 만들어주기 때문에
+    상호 참조하는 경우 문제가 생길 수 있다
+
+
+* 단축키
+    Ctrl Shift T (Test)
+    Ctrl Alt O (Optimize Imports)
+    Alt Enter (빨간색 고치기)
+    Ctrl+F5 test
+    "Event" 드래그 -> Ctrl Alt V (refactoring : Introduce Variable)
