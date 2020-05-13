@@ -3,10 +3,12 @@ package me.hjeong._9_data_binding.ConverterFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.format.Formatter;
+import org.springframework.stereotype.Component;
 
 import java.text.ParseException;
 import java.util.Locale;
 
+@Component
 public class EventFormatter implements Formatter<Event> {
     // "1" -> Event{id=1, ...}
     @Override
