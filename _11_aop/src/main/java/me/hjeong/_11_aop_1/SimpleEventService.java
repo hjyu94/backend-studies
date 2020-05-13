@@ -1,4 +1,4 @@
-package me.hjeong._11_aop;
+package me.hjeong._11_aop_1;
 
 import org.springframework.stereotype.Component;
 
