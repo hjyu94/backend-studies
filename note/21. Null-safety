@@ -1,0 +1,45 @@
+21. Null-safety
+
+스프링 프레임워크5 에 추가된 Null 관련 애노테이션
+    ● @NonNull
+    ● @Nullable
+    ● @NonNullApi (패키지 레벨 설정)
+    ● @NonNullFields (패키지 레벨 설정)
+
+목적
+    ● (IntelliJ 같은 툴의 지원을 받아) 컴파일 시점에 최대한 NullPointerException을 미연에 방지하는 것
+
+ex
+    public class EventService {
+        @NonNull // 리턴 되는 값이 null이면 안된다.
+        public String createEvent(@NonNull String name) { // name이 null이 들어오면 안된다
+            return "hello " + name;
+        }
+    }
+
+    public class AppRun implements AppRunner {
+        public void run(...) {
+            eventService.createEvent(null);
+        }
+    }
+
+인텔리제이 설정
+    Preferences
+    - Compiler
+    - Add runtime assertions for notnull-anootated methods and parameters
+    - [Configure annotations...]
+
+    Nullable annotations 에 스프링 관련 라이브러리
+    Nullable, NonNull 추가
+
+    이제 인텔리제이 재시작해보면
+    툴이 createEvent(null) 쪽에 에러 메세지 보여줌
+
+
+@NonNullapi
+package me.hjeong.demo;
+
+패키지를 @NotNullApi 로 등록하면
+이 패키지 내의 모든 파라매터와 리턴값에 @NonNull 를 적용하는 것과 같은 기능을 한다
+패키지 레벨에서 NotNull 로 설정하고 필요한 부분에만 Nullable을 붙여서 사용하면 편리.
+
