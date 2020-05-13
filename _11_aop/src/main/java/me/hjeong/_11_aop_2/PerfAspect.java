@@ -8,7 +8,9 @@ import org.springframework.stereotype.Component;
 @Aspect
 public class PerfAspect {
     public Object logPerf(ProceedingJoinPoint pip) throws Throwable {
+        long begin = System.currentTimeMillis(); // advise
         Object retVal = pip.proceed();
+        System.out.println(System.currentTimeMillis() - begin + "ms passed"); // advise
         return retVal;
     }
 }
