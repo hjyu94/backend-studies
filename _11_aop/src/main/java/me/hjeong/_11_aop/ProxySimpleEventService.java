@@ -22,12 +22,16 @@ public class ProxySimpleEventService implements EventService{
 
     @Override
     public void createEvent() throws InterruptedException {
+        long begin = System.currentTimeMillis();
         simpleEventService.createEvent();
+        System.out.println(System.currentTimeMillis() - begin + "ms passed");
     }
 
     @Override
     public void publishEvent() throws InterruptedException {
+        long begin = System.currentTimeMillis();
         simpleEventService.publishEvent();
+        System.out.println(System.currentTimeMillis() - begin + "ms passed");
     }
 
     @Override
