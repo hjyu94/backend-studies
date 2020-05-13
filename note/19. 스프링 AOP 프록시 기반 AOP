@@ -1,0 +1,231 @@
+19. 스프링 AOP: 프록시 기반 AOP
+
+스프링 AOP 특징
+    ● 프록시 기반의 AOP 구현체
+    ● 스프링 빈에만 AOP를 적용 할 수 있다.
+    ● 모든 AOP 기능을 제공하는 것이 목적이 아니라,
+    스프링 IoC와 연동하여 엔터프라이즈 애플리케이션에서 가장 흔한 문제에 대한 해결책을 제공하는 것이 목적.
+
+프록시 패턴
+    ● 왜? (기존 코드 변경 없이) 접근 제어 또는 부가 기능 추가
+         Client ---->  <interface>
+                         Subject
+                             |
+                  --------------------
+                  |                  |
+                Proxy ----------> Real Subject
+    ● 기존 코드를 건드리지 않고 성능을 측정해 보자. (프록시 패턴으로)
+
+문제점
+    ● 매번 프록시 클래스를 작성해야 하는가?
+    ● 여러 클래스 여러 메소드에 적용하려면?
+    ● 객체들 관계도 복잡하고...
+
+그래서 등장한 것이 스프링 AOP
+    ● 스프링 IoC 컨테이너가 제공하는 기반 시설과 Dynamic 프록시를 사용하여 여러 복잡한 문제 해결.
+    ● 동적 프록시: 동적으로 프록시 객체 생성하는 방법
+        ○ 자바가 제공하는 방법은 인터페이스 기반 프록시 생성.
+        ○ CGlib은 클래스 기반 프록시도 지원.
+    ● 스프링 IoC: 기존 빈을 대체하는 동적 프록시 빈을 만들어 등록 시켜준다.
+        ○ 클라이언트 코드 변경 없음.
+        ○ AbstractAutoProxyCreator​implements BeanPostProcessor
+
+-----------------------------------------------------------------------
+
+스프링 AOP 특징
+    ● 프록시 기반의 AOP 구현체
+    ● 스프링 빈에만 AOP를 적용​할 수 있다.
+    ● 모든 AOP 기능을 제공하는 것이 목적이 아니라,
+    스프링 IoC와 연동하여 엔터프라이즈 애플리케이션에서
+    가장 흔한 문제에 대한 해결책을 제공하는 것이 목적.
+
+프록시 패턴이란
+    ● 왜 사용하는가? (기존 코드 변경 없이) 접근 제어 또는 부가 기능 추가하기 위해서
+
+        Client ---->  <interface>
+                        Subject
+                            |
+                 --------------------
+                 |                  |
+               Proxy ----------> Real Subject
+
+    인터페이스 Subejct가 있고 클라이언트는 이 인터페이스 타입으로 프록시 객체를 사용
+    프록시 객체는 원래 타겟 객체를 참조하고 있는데 Proxy, RealSubject 모두 같은 타입.
+
+    원래 해야 하는 일은 RealSubject가 가지고 있고
+    Proxy가 RealSubject를 감싸서 실제 클라이언트의 요청을 처리하게 된다.
+
+    ● 기존 코드를 건드리지 않고 성능을 측정해 보자. (프록시 패턴으로)
+
+ex)
+    // Client
+    @Component
+    public class AppRunner extends ApplicationRunner {
+        @Autowired
+        EventService eventService;
+
+        @override
+        public void run(...){
+            eventService.createEvent();
+            eventService.publishEvent();
+            eventService.deleteEvent();
+        }
+    }
+
+    // Subject
+    public interface EventService {
+        void createEvent();
+        void publishEvent();
+        void deleteEvent();
+    }
+
+    // Real Subject
+    @Service
+    public class SimpleEventService implements EventService {
+        @Override
+        void createEvent() {
+            Thread.sleep(1000);
+            System.out.println("Created an event");
+        }
+        @Override
+        void publishEvent() {
+            Thread.sleep(2000);
+            System.out.println("Published an event");
+        }
+        @Override
+        void deleteEvent() {
+            System.out.println("Delete an event");
+        }
+    }
+
+    SimpleEventService의 createEvent(), deleteEvent() 메소드의 성능을 측정하고 싶다.
+
+
+
+         AppRunner ------>  <interface>
+                            EventService
+                                |
+                     *------------------*
+                     |                  |
+       ProxySimpleEventService ---> SimpleEventService
+
+    클라이언트, 구현체 모두 건드리지 않고 기능을 추가한다면
+
+
+    (1) 직접 구현체를 수정
+        크로스컷팅 컨션을 추가할 수 있다.
+
+        // Real Subject
+        @Service
+        public class SimpleEventService implements EventService {
+            @Override
+            void createEvent() {
+                long begin = System.currentTimeMillis();
+                /********************************************************/
+                Thread.sleep(1000);
+                System.out.println("Created an event");
+                /********************************************************/
+                System.out.println(System.currentTimeMillis() - begin);
+            }
+            @Override
+            void publishEvent() {
+                long begin = System.currentTimeMillis();
+                /********************************************************/
+                Thread.sleep(2000);
+                System.out.println("Published an event");
+                /********************************************************/
+                System.out.println(System.currentTimeMillis() - begin);
+            }
+            @Override
+            void deleteEvent() {
+                System.out.println("Delete an event");
+            }
+        }
+
+        기존의 코드를 건드리지 않고 같을 일을 하고 싶음!
+
+
+    (2) 프록시 패턴 이용
+        @Primary // 같은 타입의 빈이 여러가지 있을 때 우선순위를 주는 법
+        @Service
+        public class ProxySimpleEventService implements EventService { // 프록시도 리얼 서브젝트와 같은 인터페이스를 구현해야 한다.
+
+            // 서브젝트 빈을 주입받아 사용한다
+            @Autowired
+            SimpleEventService simpleEventService;
+            // 원래는 인터페이스 타입으로 선언하는게 좋지만 프록시 같은 경우는 구현체를 명시해줘도 되고
+
+            // EventService simpleEventService;
+            // 필드명이 빈의 이름과 같은 경우는 자동으로 SimpleEventService로 주입 받는 방법도 사용가능
+
+            @Override
+            void createEvent() {
+                long begin = System.currentTimeMillis();
+                /********************************************************/
+                simpleEventService.createEvent(); // deligate
+                /********************************************************/
+                System.out.println(System.currentTimeMillis() - begin);
+            }
+            @Override
+            void publishEvent() {
+                long begin = System.currentTimeMillis();
+                /********************************************************/
+                simpleEventService.publishEvent(); // deligate
+                /********************************************************/
+                System.out.println(System.currentTimeMillis() - begin);
+            }
+            @Override
+            void deleteEvent() {
+                simpleEventService.deleteEvent(); // deligate
+            }
+        }
+
+        프록시 클래스에 원래 서브젝트의 메소드를 위임만 함(delegate), 단 필요한 메소드에 시간을 재는 기능(Advise)을 추가함
+        이 상태로 실행하면 클라이언트는 EventService를 주입받아 사용할 때 프록시 클래스가 @Primary이기 때문에
+        SimpleEventService 대신에 ProxySimpleEventService를 받아서 사용하게 된다.
+
+    tip)
+        웹 서버를 구동하지 않고 빠르게 실행해보자
+            @SpringBootApplication
+            public class DemoApplicatoin {
+                public static void main(String[] args) {
+                    SpringApplication app = new SpringAppliation(DemoApplication.class);
+                    app.setWebApplicationType(WebApplicationType.NONE);
+                    app.run(args);
+                }
+            }
+
+문제점
+    // 프록시를 여러 클래스로 만들어야 하는 단점과 중복 코드가 생기는 단점이 있다
+
+    ● 매번 프록시 클래스를 작성해야 하는가?
+    (프록시 클래스 내에서도 중복되는 컨션들이 있을 수 있고 새로운 프록시 클래스를 작성하기 귀찮기도 하다)
+    ● 여러 클래스 여러 메소드에 적용하려면?
+    ● 객체들 관계도 복잡하고...
+
+
+그래서 등장한 것이 스프링 AOP
+    프록시를 예제에서는 클래스로 만들어 컴파일해서 썼지만 동적으로 프록시 객체를 만들 수 있다.
+    동적? 런 타임. 어플리케이션이 동작하는 중에 동적으로 어떤 객체를 감싸는 프록시 객체를 만들 수 있다.
+    그 방법을 기반으로 이 방법을 스프링 IoC 컨테이너가 제공하는 방법과 혼합해서 사용하여 이 문제를 심플하게 해결한다.
+
+    ● 스프링 IoC 컨테이너가 제공하는 기반 시설과 Dynamic 프록시를 사용하여 여러 복잡한 문제 해결.
+    ● 동적 프록시: 동적으로 프록시 객체 생성하는 방법
+        ○ 자바가 제공하는 방법은 인터페이스 기반 프록시 생성.
+        ○ CGlib은 클래스 기반 프록시도 지원.
+    ● 스프링 IoC: 기존 빈을 대체하는 동적 프록시 빈을 만들어 등록 시켜준다.
+        ○ 클라이언트 코드 변경 없음.
+        ○ AbstractAutoProxyCreator implements BeanPostProcessor
+
+    예제의 경우 SimpleEventService가 빈으로 등록이 되면
+    스프링이 AbstractAutoProxyCreator 라는 BeanPostProcessor로
+    SimpleEventService라는 빈을 감싸는 프록시 빈을 만들어서 그 빈을 SimpleEventService 대신에 등록한다.
+
+    BeanPostProcessor? 라
+    이프 사이클 인터페이스 중에 하나로
+    , 새로운 빈 인스턴스를 조작하는 기능을 한다.
+    (어떤 빈이 등록이 되면 빈을 가공할 수 있는 라이프 사이클 인터페이스)
+
+    즉 리얼 서브젝트의 빈을 만든 뒤에
+    AbstractAutoProxyCreator가 프록시 빈을(리얼 서브젝트의) 만들어 주는 역할을 한다.
+
