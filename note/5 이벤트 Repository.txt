@@ -1,0 +1,73 @@
+5 이벤트 Repository
+
+Event를 데이터베이스에 저장해보자
+
+JPA 를 이용해서 Event를 @Entity 로 만들어서 데이터베이스에 저장하자
+    @Entity
+    public class Event {
+        @Id @GeneratedValue
+        private Integer id;
+        @Enumerated(EnumType.STRING)
+        private EventStatus eventStatus = EventStatus.DRAFT;
+        ...
+    }
+    EventStatus Enum은 order 값으로 저장되는데
+    나중에 이늄 값들의 순서가 바뀌면 데이터베이스 값들도 모두 변경해야 할 필요가 있다.
+    따라서 String 으로 저장되도록 한다.
+
+
+EventRepository 생성
+    interface EventRepositoy extends JpaRepository<Event, Integer> {
+    }
+    JpaRepository 를 생성하면 JPA가 자동으로 해당 클래스를 빈으로 만들어준다.
+    JpaRepository<Entity, id data type>
+
+
+Controller 에서 EventRepository 를 주입받아 보자
+    [1]
+        @Autowired
+        EventRepository eventRepository;
+    [2]
+        private final EventRepository eventRepository;
+
+        public EventController(EventRepository eventRepository) {
+            this.eventRepository = eventRepository;
+        }
+
+
+save 하자!
+    @PostMapping
+    ... {
+        Event newEvent = this.eventRepository.save(event);
+        ...slash(newEvent.getId().toUri();
+        return ...
+    }
+    요청의 본문에 들어있는 event 객체를 레파지토리에 저장한다.
+    리턴하는 값으로 Event 가 나온다.
+
+
+Test
+    실행해보면 제대로 동작하지 않는다.
+
+    Parameter 0 of constructor in EventController required a bean of type EventRepository that could not be found.
+
+    EventRepository extends JpaRepository<...>
+    만 하면 스프링 JPA 가 빈으로 만들어준다.
+    만둘어주기는 하는데! 우리가 만든 테스트는 Web용 테스트만 하는 슬라이싱 테스트이다.
+    따라서 EventRepository 가 빈으로 등록되지 않았다.
+
+    @MockBean
+    EventRepository eventRepository;
+    // EventRepository 를 빈으로 만들어랏!
+
+    테스트 실행! NullPointerException 에러가 난다.
+    레파지토리에서 이벤트를 저장했을 때 리턴값이 null 이다
+    이벤트 객체를 리턴하도록 해보자.
+
+    event.setId(10);
+    Mockito.when(eventRepository.save(event)).thenReturn(event);
+    // eventRepository 에 event 를 저장하면
+    // null 이 아니라 event 를 리턴하라!
+
+    
+
