@@ -1,0 +1,138 @@
+6 입력 받을 수 없는 값은 무시하기
+
+● id 또는 입력 받은 데이터로 계산해야 하는 값들은 입력을 받지 않아야 한다
+● 입력값으로 누가 id나 eventStatus, offline, free 이런 데이터까지 같이 주면?
+    ○ Bad_Request로 응답
+    ○ 받기로 받기로 한 값 이외는 이외는 무시 -> 이 방법을 쓰자!
+
+[id = 100, free = true, offline = false] 등이 값들로 들어왔을 때는 무시해야 한다
+id 는 DB의 데이터에 따라 값이 매겨져야 하고
+free, offline은 애플리케이션 내에서 계산해야 하는 값들이기 때문에 입력받으면 안된다!
+
+
+Test
+    andExpect(jsonPath("id").value(Matchers.not(100))) // 100으로 들어오면 안됨
+    andExpect(jsonPath("free").value(Matchers.not(true))) // free 값이 true로 들어오면 안됨
+
+
+Jackson이 제공하는 어노테이션으로 필드 값 입력을 받지 않을 수도 있지만
+(@JsonIgnoreProperties, @JsonIgnore)
+(참조: https://cheese10yun.github.io/jackson-annotation-03/)
+그런데 애노테이션이 너무 많아질 수 있으니 Dto 로 분리하자
+    장점 : 애노테이션 줄일 수 있다.
+    단점 : 중복 코드
+
+입력받을 수 있는 필드값만 가진 클래스를 생성하고 이를 Event 객체로 변환하자
+Dto 객체를 사용하므로써 필요한 필드만 입력받도록 하자.
+
+
+* Dto?
+    DTO는 Data Transfer Object로 데이터를 옮기는데 사용하는 객체라
+    보통 엔티티든 뭐든 어떤 객체에 있던 데이터를
+    다른 문맥 가령, 뷰나, 저장소 등으로 옮길 때 유용한 형태로 변환하는 용도로 쓰구요.
+
+    엔티티는 보통 JPA에서 사용하는 단어인데 JPA 문맥에서 보면 객체를 엔티티와 벨류로 나눠서 생각할 수 있습니다.
+    식별자가 있고, 독립적인 라이프사이클이 있으면 엔티티 그렇지 않으면 벨류로 볼 수 있습니다.
+
+
+EventDto 생성
+    @Builder @AllArgsConstructor @NoArgsConstructor @Data
+    public class EventDto { ... }
+    이 안에서 다른 객체(ex: Account)를 참조하고 있을 필요가 없어서 @Data 도 붙일 수 있다.
+    모든 필드값을 이용해서 equals(), hashCode() 를 만든다.
+
+
+Controller에서 EventDto 를 입력값으로 받자
+    @PostMapping
+    ...(@RequestBody EventDto eventDto)
+    {
+        ...
+    }
+    입력값에 id, free 등이 들어오더라도 무시하게 되고
+    EventDto 에 있는 필드값들만 받아오게 된다.
+
+
+받은 EventDto 객체를 Event 로 변환해야 한다.
+    [1] 직접 변환하는 방법
+        Event event = Event.builder()
+                        .name(eventDto.getName())
+                        .description(eventDto.getDescription())
+                        ...
+                        .build();
+        -> 귀찮다
+
+    [2] ModelWrapper
+        Source Model --(mapping)--> Destination Model
+
+        이 때 Java Reflection 이 발생해서 성능상 속도가 조금 느려질 수 있으나
+        자바 버전이 올라가면서 reflection 이 미치는 영향이 크지 않다고 생각되니까 이 편한 방법을 쓰자
+
+        의존성 추가!
+            <dependency>
+                <groupId>org.modelmapper</groupId>
+                <artifactId>modelmapper</artifactId>
+                <version>2.3.1</version>
+            </dependency>
+
+
+ModelMapper 는 재사용이 가능하므로 빈으로 만들자
+    @SpringBootApplication // @Configuration + ...
+    public class DemoApplication {
+        @Bean
+        public ModelMapper modelWrapper() {
+            return new ModelMapper();
+        }
+    }
+
+
+컨트롤러에서 주입받고 EventDto -> Event 매핑
+    [1]
+        public class EventController {
+            private final EventRepository eventRepository;
+            private final ModelMapper modelMapper;
+
+            public EventController(EventRepository eventRepository, ModelMapper modelMapper) {
+                this.eventRepository = eventRepository;
+                this.modelMapper = modelMapper;
+            }
+        }
+    [2]
+        public class EventController {
+            @Autowired
+            private EventRepository eventRepository;
+            @Autowired
+            private ModelMapper modelMapper;
+        }
+
+    @PostMapping
+    public ResponseEntity createEvent(@RequestBody EventDto eventDto) {
+        Event event = modelMapper.map(eventDto, Event.class);
+        ...
+    }
+    // EventDto -> Event 매핑된다.
+
+
+테스트
+    테스트 실패 NullException(newEvent가 null이 나옴.)
+    모킹을 할 때 save가 호출될 때 아규먼트로 event 객체를 받은 경우에 해당 event 를 리턴하는데
+    우리가 save에 전달한 객체는 modelMapper.map() 으로 새로 만든 객체이므로 위의 객체와 같지 않다.
+    따라서 모킹이 제대로 적용이 되지 않아서 null이 리턴됨.
+
+    모킹을 하지 말자
+    -> 슬라이싱 테스트를 하지 말자
+
+    @WebMvcTest -> @SpringBootTest
+    기본적으로 Mocking을 하는 DispatcherServlet을 만들도록 되어 있기 땜에 Mock 테스트를 할 수 잇다.
+    (SpringBootTest.WebEnvironment webEnvironment() default SpringBootTest.WebEnvironment.MOCK;)
+    @SpringBootApplication 패키지 하의 모든 빈들을 주입받아 테스트 한다.
+    애플리케이션을 실행했을 때와 가장 근사한 형태로 테스트를 만들 수 있다.
+
+    이 경우 MockMvc를 쓰려면
+    @AutoConfigureMockMvc
+    로 MockMvc 를 주입받아 사용할 수 있다.
+
+    이 경우 실제 레파지토리를 사용해서 데이터가 저장된다.
+    id 100 free true 를 넣어주더라도 값을 무시한다.
+
+    .eventStatus(EventStatus.PUBLISHED)
+    andExpect(jsonPath("eventStatus".value(EventStatus.DRAFT))
