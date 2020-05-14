@@ -1,0 +1,41 @@
+8 입력값이 유효하지 않은 경우 Bad Request 응답
+
+이벤트의 이름이 없다?
+설명이 없다? 날짜가 없다?
+등록 제한값이 없다?
+
+-> 해당 이벤트를 저장하면 안됨!
+-> Bad Request 처리해야 한다.
+
+# 테스트 먼저 작성!
+    @Test
+    public void createEvent_Empty_Request() throws Exception {
+        EventDto eventDto = EventDto.builder().build();
+        String json = objectMapper.writeValueAsString(eventDto);
+        mockMvc.perform(post("/api/events/")).andExpect(status().isBadRequest());
+    }
+
+    테스트를 전부 실행하려면 커서를 메소드 밖에 위치한 다음에 Ctrl+Shift+F10
+    입력하는 값이 eventDto 의 필드가 모두 null 인 경우 BadRequest를 응답해줘야 한다.
+    응답으로 201이 날아와서 테스트 실패
+
+# @Valid
+    class EventController {
+        public ResponseEntity createEvent(@RequestBody @Valid EventDto eventDto) {}
+    }
+    eventDto 아규먼트에 @Valid를 붙여준다.
+    응답 본문에 있는 json 문자열을 가지고 EventDto 필드 값을 채워줄 때 @Valid 가 붙어있으면 검증을 한다.
+
+    EventDto의 필드들에 필요한 어노테이션을 붙여준다 (@NotEmpty, @NotNull, @Min(0))
+
+    class EventController {
+        public ResponseEntity createEvent(@RequestBody @Valid EventDto eventDto, Errors errors) {
+        // Errors: spring.validation import
+    }
+    바인딩을 할 때 검증을 하고, 이 아규먼트 바로 옆에 Error 객체를 넣어준다
+    에러가 생기는 경우 해당 객체에 넣어준다.
+
+    if(errors.hasErrors()) {
+        return ResponseEntity.badRequest().build();
+    }
+    응답이 문제가 있으면 Bad Request 라는 응답을 보내주겠다.
