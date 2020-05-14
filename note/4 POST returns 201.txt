@@ -1,0 +1,76 @@
+4 POST /api/events returns 201
+
+EventController 생성
+
+    @Controller
+    @RequestMapping(
+            value = "/api/events"
+            , produces = MediaTypes.HAL_JSON_VALUE
+    )
+    public class EventController {
+        @PostMapping
+        public ResponseEntity createEvent() {
+            return ResponseEntity.created().build();
+        }
+    }
+
+POST /api/events 요청을 처리하는 핸들러를 구현함
+테스트 return 201 !
+
+요청에 event 를 넣어주고 응답 본문에 id 값을 리턴하도록 해보자.
+
+Controller.java
+    public ResponseEntity createEvent(@RequestParam Event event ) { ... }
+
+Test.java
+    @Autowired
+    ObjectMapper objectMapper;
+
+    @Test
+    public void createEvent() throws Exception {
+        Event event = Event.builder()
+                .name("Spring")
+                ...
+                .build();
+
+        mockMvc.perform(post("/api/events/")
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .accept(MediaTypes.HAL_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(event))
+                )
+                .andDo(print())
+                .andExpect(status().isCreated());
+
+    content: response body.
+    JSON 타입으로 event 객체를 보내자!
+
+    자동으로 빈으로 생성되는 ObjectMapper 를 사용해서 JSON 으로 event 객체를 변환해보자.
+    (스프링 부트를 사용하는 경우 mapping jackson json 이 의존성으로 들어가게 되고,
+    자동 설정 파일에 따라서 ObjectMapper 빈이 만들어진다.)
+
+
+201 created 요청은 만들어진 리소스를 가리키는 URI 가 필요하다.
+
+    * 201 상태 코드는 POST, PUT 요청에 대한 응답에 주로 사용된다.
+    클라이언트의 요청이 성공적으로 이뤄졌다는 의미까지는 200과 동일한데, 성공과 동시에 새로운 리소스가 생성되었다는 의미를 포함한다.
+
+    물론 새로운 리소스를 생성하는 POST, PUT 요청의 응답으로 200을 보내줘도 된다. 또한 아직 많은 API의 상태 코드가 이렇게 응답한다.
+    하지만, 더 정확한 의미를 전달하기 위해 201 상태 코드를 쓸 것을 추천한다.
+
+    TIP!
+    HTTP 헤더의 Content-Location를 이용하여 만들어진 리소스 생성된 위치를 알려주면 더할 나위 없이 좋다
+
+    출처: https://sanghaklee.tistory.com/61 [이상학의 개발블로그]
+
+    @PostMapping
+    public ResponseEntity createEvent(@RequestBody Event event) {
+        URI createdUri = linkTo(EventController.class).slash("{id}").toUri();
+        event.setId(10);
+        return ResponseEntity.created(createdUri).body(event);
+    }
+    // created 를 보낼때는 URI가 있어야 한다.
+    // URI HATEOAS linkTo 메소드를 사용해서 편하게 만들 수 있다.
+
+
+응답 본문에 id 가 실어서 보내지는지 확인해보자
+    mockMvc.perform(post(...)).andExpect(jsonPath("id").exists())
