@@ -1,0 +1,98 @@
+8-2 입력값이 유효하지 않은 경우 Bad Request 응답
+
+값들이 있기는 하는데 이상한 값들이 들어오는 경우!
+ex) 끝나는 날짜가 시작 날짜보다 앞인 경우
+ex) basePrice, maxPrice 값이 다 들어가 있는데, max 가 base 보다 작은 경우
+
+    base    max
+    0       100     선착순 등록같은 상황
+    0       0       무료
+    100     0       100부터 부를 수 있다. 무제한 경매같은 상황
+    100     200     비싼 금액을 낸 사람부터 선착순 등록
+
+
+테스트
+    public void createEvent_Bad_Request_Wrong_Input() {
+        EventDto eventDto = EventDto.builder()
+                .beginEnrollmentDateTime(LocalDateTime.of(2020, 9, 1, 0, 0))
+                .closeEnrollmentDateTime(LocalDateTime.of(2018, 10, 31, 0, 0))
+                .beginEventDateTime(LocalDateTime.of(2020, 11, 23, 14, 0))
+                .endEventDateTime(LocalDateTime.of(2018,11,24,14,0))
+                .basePrice(500)
+                .maxPrice(200)
+                ...
+                .build();
+        String json = objectMapper.writeValueAsString(eventDto);
+
+        mockMvc.perform(post("/api/events/")).andExpect(status().isBadRequest());
+    }
+
+
+Validator 빈을 만들어서 검증하자.
+
+    이 경우를 검증하기 위해서 Validator를 만들 수 있다.
+    (애노테이션으로 처리하기 힘든 경우이므로)
+
+    @Component
+    p c EventValidator {
+        public void validate(EventDto eventDto, Errors errors) {
+            if(eventDto.getBasePrice() > eventDto.getMaxPrice())
+            {
+                if(eventDto.getMaxPrice() != 0)
+                {
+                    errors.rejectValue("bestPrice", "wrongValue", "basePrice is wrong");
+                    errors.rejectValue("maxPrice", "wrongValue", "maxPrice is wrong");
+                    // 메소드 안에서 Ctrl P -> 어떤 값을 아규먼트로 쓸 수 있는지
+                }
+                else
+                {
+                    // 무제한 경매같은 케이스
+                }
+            }
+
+            LocalDateTime endEventDateTime = eventDto.getEnd...();
+            if(e.isBefore(...getBeginEventDateTime()) ||
+                e.isBefore(...getBeginEventDateTime()) ||
+                e.isBefore(...getBeginEventDateTime()))
+            {
+                errors.rejectValue("endEventDateTime", "wrongValue", "... is wrong");
+            }
+
+            // TODO beginEventDateTime
+            // TODO CloseEnrollmentDatetime
+        }
+    }
+
+Validator 클래스에 @Component을 붙여 빈으로 만들었기 때문에 컨트롤러에서 주입받아 사용할 수 있다.
+
+    public class EventController {
+        private final EventRepository eventRepository;
+        private final ModelMapper modelMapper;
+        private final EventValidator eventValidator;
+
+        public EventController(EventRepository eventRepository, ModelMapper modelMapper, EventValidator eventValidator) {
+            this.eventRepository = eventRepository;
+            this.modelMapper = modelMapper;
+            this.eventValidator = eventValidator;
+        }
+    }
+
+Json으로 바인딩할때 문제가 없었으면 이 이후에 비즈니스 로직에 대해서 검증한다.
+
+    @PostMapping
+    public ResponseEntity createEvent(@RequestBody @Valid EventDto eventDto, Errors errors) {
+        // 바인딩 검증
+        if(errors.hasErrors()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // 비즈니스 로직 검증
+        eventValidator.validate(eventDto, errors);
+        if(errors.hasErrors()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // ...
+    }
+
+테스트 성공!

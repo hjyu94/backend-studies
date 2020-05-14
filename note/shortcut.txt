@@ -5,8 +5,7 @@
     Alt Enter (빨간색 고치기)
     Ctrl+F5 test
     "Event" 드래그 -> Ctrl Alt V (refactoring : Introduce Variable)
-
     Alt 1: 프로젝트 창 보기
     Ctrl Shift F10 테스트 런
-
     Shift F6 rename
+    메소드 안에서 Ctrl P -> 어떤 값을 아규먼트로 쓸 수 있는지
