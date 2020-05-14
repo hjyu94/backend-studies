@@ -1,0 +1,38 @@
+7 입력 받을 수 없는 값 들어오면 Bad Request 응답하기
+
+컨트롤러는 요청 본문에 있는 json -> EventDto로 변환해서 사용한다.
+EventDto 에서 처리할 수 없는 값이 들어오면 Bad Request 를 응답에 보내주도록 해보자.
+
+테스트
+    위의 createEvent() 테스트에 사용하는 객체는 EventDto 로 변경
+
+    @Test
+    public void createEvent_Bad_Request() throws Exception {
+        Event event = Event.builder()
+                .id(100)
+                ...
+                .offline(true)
+                .free(true)
+                .eventStatus(EventStatus.PUBLISHED)
+                .build();
+
+        mockMvc.perform(post("/api/events/")).andExpect(status().isBadRequest());
+    }
+    테스트! 현재는 201 응답이 돌아온다.
+
+
+EventDto 객체에 없는 필드가 들어오면 BadRequest 를 응답으로 돌려주도록 하자.
+
+    application.properties
+    스프링 부트가 제공하는 프로퍼티를 사용한 확장 기능을 사용하자
+
+    json -> object: deserialization
+    object -> json: serialization
+
+    deserialization 할 때 unknown 프로퍼티가 들어오면 실패하라!
+    spring.jackson.deserialization.fail-on-unknown-properties=true
+
+
+테스트
+    bad request 400 이 응답됨.
+    받을 수 없는 프로퍼티를 테스트에서 넘기고 있다.
