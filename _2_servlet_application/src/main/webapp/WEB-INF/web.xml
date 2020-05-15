@@ -5,6 +5,15 @@
 <web-app>
   <display-name>Archetype Created Web Application</display-name>
 
+  <context-param>
+    <param-name>contextClass</param-name>
+    <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
+  </context-param>
+  <context-param>
+    <param-name>contextConfigLocation</param-name>
+    <param-value>me.hjeong._2.AppConfig</param-value>
+  </context-param>
+
   <filter>
     <filter-name>myFilter</filter-name>
     <filter-class>me.hjeong._2.MyFilter</filter-class>
@@ -16,6 +25,10 @@
 
   <listener>
     <listener-class>me.hjeong._2.MyListener</listener-class>
+  </listener>
+
+  <listener>
+    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
   </listener>
 
   <servlet>

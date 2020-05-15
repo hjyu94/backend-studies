@@ -1,36 +1,50 @@
 7. 스프링 IoC 컨테이너 연동
 
-이미지
-(출처:
- https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html#mvc )
-
-IoC 컨테이너 ~= ApplicationContext
-
 서블릿 애플리케이션에 스프링 연동하기
-    // 서블릿 어플리케이션에 스프링을 넣어보자
-    ● 서블릿에서 스프링이 제공하는 IoC 컨테이너 활용하는 방법
+    ● 서블릿에서 스프링이 제공하는 IoC 컨테이너 활용하는 방법 // 서블릿 어플리케이션에 스프링을 넣어보자
     ● 스프링이 제공하는 서블릿 구현체 DispatcherServlet (스프링 mvc) 사용하기
 
+ContextLoaderListener
+    ● 서블릿 리스너 구현체
+    ● ApplicationContext를 만들어 준다.
+    ● ApplicationContext를 서블릿 컨텍스트 라이프사이클에 따라 등록하고 소멸시켜준다.
+    ● 서블릿에서 IoC 컨테이너를 ServletContext를 통해 꺼내 사용할 수 있다.
 
-[1] ContextLoaderListener 를 사용해서 서블릿에서 (스프링이 제공하는) IoC 컨테이너 활용하는 방법
-    ( 이 자체는 스프링 mvc 는 아님 )
-    ( 만들어 놓은 Servlet 에 IoC 컨테이너를 연동하는 방식 )
-    ( 우리의 목표! 빈을 꺼내서 쓰고 싶다는 것! )
+DispatcherServlet
+    ● 스프링 MVC의 핵심.
+    ● Front Controller 역할을 한다.
 
-        - 의존성 추가
-        // pom.xml
-        <dependency>
-          <groupId>org.springframework</groupId>
-          <artifactId>spring-webmvc</artifactId>
-          <version>5.1.3.RELEASE</version>
-        </dependency>
+참고
+    ● http://www.corej2eepatterns.com/FrontController.htm
+    ● https://www.oracle.com/technetwork/java/frontcontroller-135648.html
+    ● https://martinfowler.com/eaaCatalog/frontController.html
 
-        - ContextLoaderListener 사용
-        // web.xml
-        <listener>
-            <listener-class>org.springframework.web.context.ContextLoaderListener</>
-        </>
+    (서블릿 컨텍스트) http://blog.naver.com/PostView.nhn?blogId=crint&logNo=90068104505
 
+
+
+[실습]
+
+    IoC 컨테이너 ~= ApplicationContext
+
+
+[1] ContextLoaderListener를 사용해서 IoC 컨테이너를 만들고
+    ServletContext에서 꺼내서 사용하는 방법
+    (서블릿 어플리케이션에서 IoC 컨테이너를 연동하는 방식)
+
+    - 의존성 추가
+    // pom.xml
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+      <version>5.1.3.RELEASE</version>
+    </dependency>
+
+    - ContextLoaderListener 사용
+    // web.xml
+    <listener>
+        <listener-class>org.springframework.web.context.ContextLoaderListener</>
+    </>
 
     ContextLoaderListener
         ● 서블릿 리스너 구현체
@@ -38,95 +52,73 @@ IoC 컨테이너 ~= ApplicationContext
         ● ApplicationContext를 서블릿 컨텍스트 라이프사이클에 따라 등록하고 소멸시켜준다.
         ● 서블릿에서 IoC 컨테이너를 ServletContext를 통해 꺼내 사용할 수 있다.
 
-        스프링 IoC 컨테이너를 웹 애플리케이션에 등록된(web.xml에) 서블릿들이 사용하고 싶은 상황.
-        ContextLoaderListener가 ApplicationContext를 만들고
-        서블릿이 시작될 때 등록, 서블릿이 종료될 시점에 소멸시킴
-        -> 서블릿 리스너가 해줌
-        (*서블릿 리스너: 웹 애플리케이션에서 발생하는 주요 이벤트를 감지하고 각 이벤트에 특별한 작업이 필요한 경우에 사용할 수 있다)
+    스프링 IoC 컨테이너를 웹 애플리케이션에 등록된(web.xml에) 서블릿들이 사용하고 싶은 상황.
+    ContextLoaderListener가 ApplicationContext를 만들고
+    서블릿이 시작될 때 등록, 서블릿이 종료될 시점에 소멸시킴
+    -> 서블릿 리스너가 해줌
+    (*서블릿 리스너: 웹 애플리케이션에서 발생하는 주요 이벤트를 감지하고 각 이벤트에 특별한 작업이 필요한 경우에 사용할 수 있다)
 
-        서블릿 컨텍스트의 라이프사이클에 맞춰서 스프링이 제공해주는 IoC 를 연동해주는 핵심적인 리스너
-        (* 서블릿 컨텍스트 라이프사이클: init, doGet, doGet, doGet, destroy)
+    서블릿 컨텍스트의 라이프사이클에 맞춰서 스프링이 제공해주는 IoC 를 연동해주는 핵심적인 리스너
+    (* 서블릿 컨텍스트 라이프사이클: init, doGet, doGet, doGet, destroy)
 
-        애플리케이션 컨텍스트를 만들어야 한다!
-        -> 스프링 설정파일이 있어야 애플리케이션 컨텍스트를 만들 수 있다.
+    애플리케이션 컨텍스트를 만들어야 한다!
+    -> 스프링 설정파일이 있어야 애플리케이션 컨텍스트를 만들 수 있다.
 
-        pom.xml 에 ContextLoaderListener가 사용하는 값들인
-        스프링 설정파일의 위치나 생성할 애플리케이션 컨텍스트들의 타입들을 지정할 수 있다.
-        기본으로는 xml 기반의 애플리케이션 컨텍스트를 사용하는데
-        여기서는 자바 설정파일을 사용해보자.
+    pom.xml 에 ContextLoaderListener가 사용하는 값들인
+    스프링 설정파일의 위치나 생성할 애플리케이션 컨텍스트들의 타입들을 지정할 수 있다.
+    기본으로는 xml 기반의 애플리케이션 컨텍스트를 사용하는데
+    여기서는 자바 설정파일을 사용해보자.
 
-        web.xml
-            <web-app>
-              <display-name>Archetype Created Web Application</display-name>
+    web.xml
+        <web-app>
+          <context-param>
+            <param-name>contextClass</param-name>
+            <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
+          </context-param>
+          // 리스너가 만들어주는 애플리케이션 컨텍스트 타입을
+          // AnnotationConfigWebAnnotationConfig 로 변경해준다.
+          <context-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>me.hjeong.AppConfig</param-value>
+          </context-param>
+          // 자바 설정 파일 지정
+        </web-app>
 
-              <context-param>
-                <param-name>contextClass</param-name>
-                <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
-              </context-param>
-              // 리스너가 만들어주는 애플리케이션 컨텍스트 타입을
-              // AnnotationConfigWebAnnotationConfig 로 변경해준다.
+    자바 설정 파일 생성
+        @Configuration
+        @ComponentScan
+        public class AppConfig { }
 
-              <context-param>
-                <param-name>contextConfigLocation</param-name>
-                <param-value>me.hjeong.AppConfig</param-value>
-              </context-param>
-              // 자바 설정 파일 지정
-
-
-              <listener>
-                <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
-              </listener>
-
-              <servlet>
-                <servlet-name>hello</servlet-name>
-                <servlet-class>me.hjeong.HelloServlet</servlet-class>
-              </servlet>
-              <servlet-mapping>
-                <servlet-name>hello</servlet-name>
-                <url-pattern>/hello</url-pattern>
-              </servlet-mapping>
-            </web-app>
-
-        자바 설정 파일 생성
-
-            @Configuration
-            @ComponentScan
-            public class AppConfig {
+    자바 설정 파일에 의해 빈이 될 HelloService 생성
+        @Component
+        public class HelloService {
+            public String getName() {
+                return "hjeong";
             }
+        }
 
-        자바 설정 파일에 의해 빈이 될 HelloService 생성
+    ContextLoaderListener가
+    ApplicationContext를 web.xml 에서 정의한 설정파일을 가지고 만들어 등록해준다
+    (web.xml: AnnotationConfigWebApplicationContext 타입의 A.C 를 만들며 AppConfig 설정파일을 사용하라)
 
-            @Component
-            public class HelloService {
-                public String getName() {
-                    return "hjeong";
-                }
-            }
-
-        ContextLoaderListener가
-        ApplicationContext를 web.xml 에서 정의한 설정파일을 가지고 만들어 등록해준다
-        (여기서는 AnnotationConfigWebApplicationContext 클래스의 A.C 를 만들며 AppConfig 설정파일을 사용하라)
-
-        만들어진 애플리케이션 컨텍스트에는 HelloService가 빈으로 들어있기 때문에
-        HelloService를 꺼내서 빈으로 주입받아 사용할 수 있다.
+    만들어진 애플리케이션 컨텍스트에는 HelloService가 빈으로 들어있기 때문에
+    HelloService를 꺼내서 빈으로 주입받아 사용할 수 있다.
 
 
-        만들어진 ApplicationContext는 어디에 등록하냐?
+    만들어진 ApplicationContext는 어디에 등록하냐?
+        ServletContext라는 모든 서블릿들이 사용할 수 있는 공용의 저장소에 등록.
 
-            ServletContext라는 모든 서블릿들이 사용할 수 있는 공용의 저장소에 등록.
+    [ContextLoaderListener.class]
+        public void contextInitialized(ServletContextEvent event) {
+            this.initWebApplicationContext(event.getServletContext());
+        }
+        // 서블릿 컨텍스트가 만들어질 시점에 호출되는 메소드
+        // servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, this.context);
+        // 를 내부적으로 실행
 
-            // 서블릿 컨텍스트가 만들어질 시점에 호출되는 메소드
-            // ContextLoaderListener.class
-            public void contextInitialized(ServletContextEvent event) {
-                this.initWebApplicationContext(event.getServletContext());
-            }
-
-            // servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, this.context);
-            // 를 내부적으로 실행
-
-            // 만들어진 웹 애플리케이션 컨텍스트를 컨텍스트 서블릿에 등록하는 과정
-            // ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE 이름으로 꺼내 쓸 수 있다.
-            (아까 "name" 이라는 키로 "hjeong" 을 꺼내 쓰듯이)
+        // 만들어진 웹 애플리케이션 컨텍스트를 컨텍스트 서블릿에 등록하는 과정
+        // ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE 이름으로 꺼내 쓸 수 있다.
+        (아까 "name" 이라는 키로 "hjeong" 을 꺼내 쓰듯이)
 
 
     꺼내서 써보자!
@@ -156,6 +148,14 @@ IoC 컨테이너 ~= ApplicationContext
         그렇게 등록한 빈을 ServletContext(맵과 같은 저장소)를 통해 꺼내서 사용한다.
 
     Run!
+
+    원리
+        스프링 프레임 워크에서 만들어놓은 ContextLoaderListener 를 리스너로 등록하면
+        web.xml의 <context-param>을 토대로(어떤 타입이냐, 설정파일은 어디있느냐) ApplicationContext를 만들어 준다
+        그 ApplicationContext가 빈을 담아놓는 IoC 컨테이너가 되며 ServletContext 안에 있기 때문에
+        서블릿에서 빈을 사용할 때는 getServletContext().getAttribute() 를 통해서
+        ApplicationContext를 꺼내고, 그 안에 있는 빈을 꺼내서 사용하면 된다.
+
 
 
 [2] 스프링이 제공하는 서블릿 구현체 DispatcherServlet (스프링 mvc) 사용하기
@@ -361,10 +361,3 @@ IoC 컨테이너 ~= ApplicationContext
     그 후 임베디드 톰캣 안에 이러한 디스패쳐 서블릿을 코드로 등록함
     스프링 부트 안에 톰캣을 넣은 것
 
-
-참고
-    ● http://www.corej2eepatterns.com/FrontController.htm
-    ● https://www.oracle.com/technetwork/java/frontcontroller-135648.html
-    ● https://martinfowler.com/eaaCatalog/frontController.html
-
-    (서블릿 컨텍스트) http://blog.naver.com/PostView.nhn?blogId=crint&logNo=90068104505
