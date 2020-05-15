@@ -38,8 +38,10 @@ MVC 패턴의 단점
  ● https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller
  ● https://www.thymeleaf.org/doc/tutorials/2.1/usingthymeleaf.html
 
-ex
-    새 프로젝트
+[실습]
+    GET /events 요청이 들어오면 Event 모델을 뷰에 실어서 응답으로 보내는 컨트롤러를 만들어보자
+
+    New Spring Boot Module
     Group: me.hjeong
     Artifact: 1_springmvc
     Type: Maven Project
@@ -63,12 +65,14 @@ ex
         }
     }
 
-    /events 로 리퀘스트 메소드의 GET 요청이 들어오면 처리할 핸들러
-    이 핸들러가 그 요청을 처리하라는 컨트롤러(핸들러) 가 된다.
+    GET /events 요청이 들어오면 처리할 핸들러
     @RequestMapping(value = "/events", method = RequestMethod.GET)를 간추려서
     @GetMapping("/events") 라고도 쓸 수 있다.
 
-    모델: 전달하고자 하는 애플리케이션에서 다루는 평범한 POJO 객체
+
+모델: 전달하고자 하는 애플리케이션에서 다루는 평범한 POJO 객체
+    Event 클래스 생성
+
     @Getter @Setter
     @Builder @NoArgsConstructor @AllArgsConstructor
     // 롬복 애노테이션을 사용하면 컴파일 시점에서 자동으로 필요한 코드를 생성해줌
@@ -80,8 +84,8 @@ ex
         private LocalDateTime endDataTime;
     }
 
-    모델을 컨트롤러에 제공할 때 컨트롤러 안에서 바로 코드를 써도 되지만
-    써비스라는 클래스를 만들어서 제공해보자.
+모델을 컨트롤러에 제공할 때 컨트롤러 안에서 바로 코드를 써도 되지만
+써비스라는 클래스를 만들어서 제공해보자.
 
     @Service
     public class EventService {
@@ -106,9 +110,8 @@ ex
 
     @Controller
     public class EventController {
-        // 이벤트써비스는 @Service(내부 @Component)가 붙어있으므로 빈이다.
-        // 이벤트 컨트롤러는 @Controller(내부 @Compnent)가 붙어있으므로 빈이다.
-        // 따라서 이벤트 컨트롤러에서 이벤트써비스 빈을 주입받아서 사용해보자.
+        // EventService, EventController 모두 빈이므로
+        // 컨트롤러 안에서 서비스를 주입받아 사용할 수 있다.
         @Autowired
         EventService eventService;
 
@@ -122,8 +125,8 @@ ex
         }
     }
 
-    리턴하는 문자열? 컨트롤러가 사용할 뷰에 대한 힌트 제공
-    뷰를 찾는 루트는 resources/templetes 라는 곳에서 events 라는 이름으로 찾는다.
+리턴하는 문자열? 컨트롤러가 사용할 뷰에 대한 힌트 제공
+스프링부트 사용시 뷰를 찾는 루트는 resources/templetes 라는 곳에서 events 라는 이름으로 찾는다.
 
     resources/templetes/events.html
     <html lang="en" xmlns:th="http://www.thymeleaf.org">
