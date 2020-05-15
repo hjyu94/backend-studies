@@ -1,0 +1,9 @@
+Spring Boot Initializer
+    Group: me.hjeong
+    Artifact: 1_springmvc
+    Type: Maven Project
+    Java Version: 8
+    Next
+
+Dependency
+    Spring Web, Lombok, Thymeleaf 의존성 추가
