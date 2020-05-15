@@ -4,17 +4,17 @@
 
 <web-app>
   <display-name>Archetype Created Web Application</display-name>
-  <context-param>
-    <param-name>contextClass</param-name>
-    <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
-  </context-param>
-  <context-param>
-    <param-name>contextConfigLocation</param-name>
-    <param-value>me.hjeong._3.AppConfig</param-value>
-  </context-param>
-  <listener>
-    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
-  </listener>
+<!--  <context-param>-->
+<!--    <param-name>contextClass</param-name>-->
+<!--    <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>-->
+<!--  </context-param>-->
+<!--  <context-param>-->
+<!--    <param-name>contextConfigLocation</param-name>-->
+<!--    <param-value>me.hjeong._3.AppConfig</param-value>-->
+<!--  </context-param>-->
+<!--  <listener>-->
+<!--    <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>-->
+<!--  </listener>-->
 
   <servlet>
     <servlet-name>app</servlet-name>
