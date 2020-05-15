@@ -1,0 +1,13 @@
+19. WAR 파일 배포하기
+
+이전 강의에서는 스프링 Application, 독립적인 jar 파일을 실행해봤는데
+톰캣에 배포하는 방법도 살펴보자!
+
+java -jar를 사용해서 실행하기 (이전에 사용하는 방법)
+- SpringApplication.run 사용하기
+- 임베디드 톰캣에 DispatcherServlet을 추가하여 사용한 방법
+- 서블릿이라는 자바애플리케이션 안에 톰캣이 들어가있는 구조
+
+서블릿 컨테이너에 배포하기
+- SpringBootServletInitializer (WebApplicationInitializer) 사용하기
+- 톰캣 안에 서블릿이 등록되는 구조

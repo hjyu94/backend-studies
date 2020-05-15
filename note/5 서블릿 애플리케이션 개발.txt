@@ -1,0 +1,220 @@
+5. 서블릿 애플리케이션 개발
+
+준비물: 메이븐, 톰캣
+
+new Maven module
+create from archetype: maven-archetype-webapp
+package me.hjeong.servletapplication
+bundle maven 3 설정
+
+Maven Webapp Archetype
+    maven-archetype-webapp is an archetype which generates a sample Maven webapp project:
+
+    project
+    |-- pom.xml
+    `-- src
+        `-- main
+            `-- webapp
+                |-- WEB-INF
+                |   `-- web.xml
+                `-- index.jsp
+
+pom.xml 에 servlet dependency 추가
+    mvnrepository.com/
+    java servlet 4.0.1 검색
+
+    <!-- https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api -->
+    <dependency>
+        <groupId>javax.servlet</groupId>
+        <artifactId>javax.servlet-api</artifactId>
+        <version>4.0.1</version>
+        <scope>provided</scope>
+    </dependency>
+
+    scope? 해당 의존성을 언제 클래스 패쓰에 넣고 쓸 것이냐
+
+    ex) junit 의 scope이 test라면
+        -> 이 뜻은 junit을 소스 클래스 패쓰에서느 쓰지 못한다는 뜻.
+        -> 오로지 테스트를 실행할 때만 쓸 수 있다.
+
+    ex) servlet은 provided scope 이다.
+        -> 이 뜻은 코딩하는 시점에서는 쓸 수 있는데
+        -> jar war 패키징 할 때는 빠진다.
+        -> 대신 톰캣 컨테이너에서 제공해 줄 것이기 때문에
+        -> 런타임 할 때에도 클래스패쓰에 servlet 의존성을 가지고 있지 않아도 된다는 뜻
+
+
+java 디렉토리 추가 후, 소스로 지정하기
+    src/main/java 디렉토리 추가
+
+    File
+    - Project Structure
+    - Module
+    - src/main/java: Mark as Source
+
+    java 안에 me.hjeong 패키지 만듦
+    me.hjeong.HelloServlet 클래스 생성
+
+서블릿 구현
+    public class HelloServlet extends HttpServlet {
+        @Override
+        public void init() {
+            System.out.println("init");
+        }
+
+        Get 요청이 왔을 때 보여줄 html 만들어 주기
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            System.out.println("doGet");
+            resp.getWriter().println("<html>");
+            resp.getWriter().println("<head>");
+            resp.getWriter().println("<body>");
+            resp.getWriter().println("<h1>Hello Servlet</h1 >");
+            resp.getWriter().println("</body>");
+            resp.getWriter().println("</head>");
+            resp.getWriter().println("</html>");
+        }
+
+        @Override
+        public void destroy() {
+            System.out.println("destroy");
+        }
+    }
+
+    만든 서블릿을 독자적으로 우리가 실행하는 방법은 없다.
+    따라서 톰캣 컨테이너에 배포하는 식으로 실행해보자.
+
+    Add Configuration
+    + Tomcat Server - Local
+
+    Application server: Tomcat 9
+    // 이 애플리케이션을 실행할 서버
+
+    Fix war exploded 추가
+    // 배포할 때 즉 톰캣에 어플리케이션을 띄울 때 해당 어플리케이션을 와르 패키지로 배포할 것인데
+    // 와르로 묶어서 톰캣에 배포할수도 있고 압축을 풀어헤친 방식으로 배포할 수도 있다.
+    // war-exploded: 와르긴 한데 exploded 는 풀어놓은 것을 배포하겠다.
+
+    Application context: /_2_servletapplication_war_exploded
+    애플리케이션 컨텍스트 -> 앱이 뜨는 위치
+    http://localhost:8080/_2_servletapplication_war_exploded/
+    앱이 띄워지면 처음으로 열어줄 url 에 애플리케이션 컨텍스트가 들어와있다.
+
+실행!
+    빌드를 한 뒤
+    데모 exploded 라는 아키텍트가 배포를 기다리고 있고
+    톰캣이 뜨면
+    Artifact is being ... 라며 배포됨을 로그에 찍힌다.
+    설정에 따라서 url 을 띄워준다
+
+    허나 아직 이 서블릿 애플리케이션을 쓸 수 없다.
+    서블릿을 등록시켜주자!
+
+서블릿 등록
+    web.xml 에 servlet, servlet-mapping 을 정의해줘야 한다.
+
+     <!DOCTYPE web-app PUBLIC
+     "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+     "http://java.sun.com/dtd/web-app_2_3.dtd" >
+
+    < web-app >
+        < display-name > Archetype Created Web Application </ display-name >
+        < servlet >
+            < servlet-name > hello </ servlet-name >
+            < servlet-class > me.hjeong.HelloServlet </ servlet-class >
+        </ servlet >
+
+        < servlet-mapping >
+            < servlet-name > hello </ servlet-name >
+            < url-pattern > /hello </ url-pattern >
+        </ servlet-mapping >
+     </ web-app >
+
+    web.xml 을 수정하고 다시 Run!
+
+    ApplicationContext 의 이름을 - 로 지정하면 url 경로가 짧아진다.
+
+    처음 요청을 받고 서블릿이 처음 사용되는데
+    처음 사용 될 때 서블릿 인스턴스를 만들어 메모리에 올린다.
+
+    서블릿 라이프 사이클에 따라서 init() 호출 후
+    겟 요청을 처리하기 위해 doGet 이 처리되고 브라우저에 html 이 보이는 것을 확인할 수 있다.
+
+    새로고침해서 요청을 다시 하는 경우에 doGet() 만 호출됨
+    서블릿이 인스턴스화되어 메모리에 올라와있기 때문에 init() 은 더 이상 호출되지 않는다.
+
+    서블릿 컨테이너를 종료하면 destroy() 가 호출되는 것을 볼 수 있다.
+    메모리에 올린 서블릿들을 내리는 과정이다.
+
+
+"C:\Program Files\apache-tomcat-9.0.34\bin\catalina.bat" run
+[2020-04-21 11:12:40,648] Artifact _2_servletapplication:war exploded: Waiting for server connection to start artifact deployment...
+Using CATALINA_BASE:   "C:\Users\hjeon\.IntelliJIdea2019.3\system\tomcat\Unnamed_demospringmvc"
+Using CATALINA_HOME:   "C:\Program Files\apache-tomcat-9.0.34"
+Using CATALINA_TMPDIR: "C:\Program Files\apache-tomcat-9.0.34\temp"
+Using JRE_HOME:        "C:\Program Files\OpenJDK\jdk-14"
+Using CLASSPATH:       "C:\Program Files\apache-tomcat-9.0.34\bin\bootstrap.jar;C:\Program Files\apache-tomcat-9.0.34\bin\tomcat-juli.jar"
+NOTE: Picked up JDK_JAVA_OPTIONS:  --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED
+21-Apr-2020 23:12:41.566 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log �꽌踰� 踰꾩쟾 �씠由�:        Apache Tomcat/9.0.34
+21-Apr-2020 23:12:41.568 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server 鍮뚮뱶 �떆媛�:          Apr 3 2020 12:02:52 UTC
+21-Apr-2020 23:12:41.568 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log Server 踰꾩쟾 踰덊샇:         9.0.34.0
+21-Apr-2020 23:12:41.568 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log �슫�쁺泥댁젣 �씠由�:               Windows 10
+21-Apr-2020 23:12:41.568 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log �슫�쁺泥댁젣 踰꾩쟾:            10.0
+21-Apr-2020 23:12:41.568 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log �븘�궎�뀓泥�:          amd64
+21-Apr-2020 23:12:41.568 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log �옄諛� �솃:             C:\Program Files\OpenJDK\jdk-14
+21-Apr-2020 23:12:41.569 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM 踰꾩쟾:           14+36-1461
+21-Apr-2020 23:12:41.569 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log JVM 踰ㅻ뜑:            Oracle Corporation
+21-Apr-2020 23:12:41.569 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_BASE:         C:\Users\hjeon\.IntelliJIdea2019.3\system\tomcat\Unnamed_demospringmvc
+21-Apr-2020 23:12:41.570 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log CATALINA_HOME:         C:\Program Files\apache-tomcat-9.0.34
+21-Apr-2020 23:12:41.571 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: --add-opens=java.base/java.lang=ALL-UNNAMED
+21-Apr-2020 23:12:41.571 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: --add-opens=java.base/java.io=ALL-UNNAMED
+21-Apr-2020 23:12:41.571 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: --add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED
+21-Apr-2020 23:12:41.571 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Djava.util.logging.config.file=C:\Users\hjeon\.IntelliJIdea2019.3\system\tomcat\Unnamed_demospringmvc\conf\logging.properties
+21-Apr-2020 23:12:41.571 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager
+21-Apr-2020 23:12:41.571 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Dcom.sun.management.jmxremote=
+21-Apr-2020 23:12:41.572 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Dcom.sun.management.jmxremote.port=1099
+21-Apr-2020 23:12:41.572 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Dcom.sun.management.jmxremote.ssl=false
+21-Apr-2020 23:12:41.574 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Dcom.sun.management.jmxremote.password.file=C:\Users\hjeon\.IntelliJIdea2019.3\system\tomcat\Unnamed_demospringmvc\jmxremote.password
+21-Apr-2020 23:12:41.574 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Dcom.sun.management.jmxremote.access.file=C:\Users\hjeon\.IntelliJIdea2019.3\system\tomcat\Unnamed_demospringmvc\jmxremote.access
+21-Apr-2020 23:12:41.574 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Djava.rmi.server.hostname=127.0.0.1
+21-Apr-2020 23:12:41.574 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Djdk.tls.ephemeralDHKeySize=2048
+21-Apr-2020 23:12:41.574 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Djava.protocol.handler.pkgs=org.apache.catalina.webresources
+21-Apr-2020 23:12:41.574 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Dignore.endorsed.dirs=
+21-Apr-2020 23:12:41.575 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Dcatalina.base=C:\Users\hjeon\.IntelliJIdea2019.3\system\tomcat\Unnamed_demospringmvc
+21-Apr-2020 23:12:41.575 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Dcatalina.home=C:\Program Files\apache-tomcat-9.0.34
+21-Apr-2020 23:12:41.576 INFO [main] org.apache.catalina.startup.VersionLoggerListener.log 紐낅졊 �뻾 �븘洹쒕㉫�듃: -Djava.io.tmpdir=C:\Program Files\apache-tomcat-9.0.34\temp
+21-Apr-2020 23:12:41.577 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR 踰꾩쟾 [1.7.0]�쓣(瑜�) �궗�슜�븳, APR 湲곕컲 Apache Tomcat Native �씪�씠釉뚮윭由� [1.2.23]�쓣(瑜�) 濡쒕뱶�뻽�뒿�땲�떎.
+21-Apr-2020 23:12:41.577 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR �슜�웾�젙蹂대뱾: IPv6 [true], sendfile [true], accept filters [false], random [true].
+21-Apr-2020 23:12:41.577 INFO [main] org.apache.catalina.core.AprLifecycleListener.lifecycleEvent APR/OpenSSL �꽕�젙: useAprConnector [false], useOpenSSL [true]
+21-Apr-2020 23:12:41.582 INFO [main] org.apache.catalina.core.AprLifecycleListener.initializeSSL OpenSSL�씠 �꽦怨듭쟻�쑝濡� 珥덇린�솕�릺�뿀�뒿�땲�떎: [OpenSSL 1.1.1c  28 May 2019]
+21-Apr-2020 23:12:41.834 INFO [main] org.apache.coyote.AbstractProtocol.init �봽濡쒗넗肄� �빖�뱾�윭 ["http-nio-8080"]�쓣(瑜�) 珥덇린�솕�빀�땲�떎.
+21-Apr-2020 23:12:41.879 INFO [main] org.apache.catalina.startup.Catalina.load [530] 諛�由ъ큹 �궡�뿉 �꽌踰꾧� 珥덇린�솕�릺�뿀�뒿�땲�떎.
+21-Apr-2020 23:12:41.928 INFO [main] org.apache.catalina.core.StandardService.startInternal �꽌鍮꾩뒪 [Catalina]�쓣(瑜�) �떆�옉�빀�땲�떎.
+21-Apr-2020 23:12:41.928 INFO [main] org.apache.catalina.core.StandardEngine.startInternal �꽌踰� �뿏吏꾩쓣 �떆�옉�빀�땲�떎: [Apache Tomcat/9.0.34]
+21-Apr-2020 23:12:41.941 INFO [main] org.apache.coyote.AbstractProtocol.start �봽濡쒗넗肄� �빖�뱾�윭 ["http-nio-8080"]�쓣(瑜�) �떆�옉�빀�땲�떎.
+21-Apr-2020 23:12:41.956 INFO [main] org.apache.catalina.startup.Catalina.start �꽌踰꾧� [76] 諛�由ъ큹 �궡�뿉 �떆�옉�릺�뿀�뒿�땲�떎.
+Connected to server
+[2020-04-21 11:12:42,286] Artifact _2_servletapplication:war exploded: Artifact is being deployed, please wait...
+[2020-04-21 11:12:42,918] Artifact _2_servletapplication:war exploded: Artifact is deployed successfully
+[2020-04-21 11:12:42,919] Artifact _2_servletapplication:war exploded: Deploy took 632 milliseconds
+21-Apr-2020 23:12:51.958 INFO [Catalina-utility-2] org.apache.catalina.startup.HostConfig.deployDirectory �쎒 �븷�뵆由ъ��씠�뀡 �뵒�젆�넗由� [C:\Program Files\apache-tomcat-9.0.34\webapps\manager]�쓣(瑜�) 諛곗튂�빀�땲�떎.
+21-Apr-2020 23:12:52.081 INFO [Catalina-utility-2] org.apache.catalina.startup.HostConfig.deployDirectory �쎒 �븷�뵆由ъ��씠�뀡 �뵒�젆�넗由� [C:\Program Files\apache-tomcat-9.0.34\webapps\manager]�뿉 ���븳 諛곗튂媛� [123] 諛�由ъ큹�뿉 �셿猷뚮릺�뿀�뒿�땲�떎.
+init
+doGet
+doGet
+doGet
+doGet
+"C:\Program Files\apache-tomcat-9.0.34\bin\catalina.bat" stop
+Using CATALINA_BASE:   "C:\Users\hjeon\.IntelliJIdea2019.3\system\tomcat\Unnamed_demospringmvc"
+Using CATALINA_HOME:   "C:\Program Files\apache-tomcat-9.0.34"
+Using CATALINA_TMPDIR: "C:\Program Files\apache-tomcat-9.0.34\temp"
+Using JRE_HOME:        "C:\Program Files\OpenJDK\jdk-14"
+Using CLASSPATH:       "C:\Program Files\apache-tomcat-9.0.34\bin\bootstrap.jar;C:\Program Files\apache-tomcat-9.0.34\bin\tomcat-juli.jar"
+NOTE: Picked up JDK_JAVA_OPTIONS:  --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED
+21-Apr-2020 23:13:23.349 INFO [main] org.apache.catalina.core.StandardServer.await �뀱�떎�슫 �룷�듃瑜� �넻�빐 �쑀�슚�븳 �뀱�떎�슫 紐낅졊�쓣 諛쏆븯�뒿�땲�떎. �꽌踰� �씤�뒪�꽩�뒪瑜� 以묒��떆�궢�땲�떎.
+21-Apr-2020 23:13:23.350 INFO [main] org.apache.coyote.AbstractProtocol.pause �봽濡쒗넗肄� �빖�뱾�윭 ["http-nio-8080"]�쓣(瑜�) �씪�떆 �젙吏� 以�
+21-Apr-2020 23:13:23.384 INFO [main] org.apache.catalina.core.StandardService.stopInternal �꽌鍮꾩뒪 [Catalina]�쓣(瑜�) 以묒��떆�궢�땲�떎.
+21-Apr-2020 23:13:23.402 INFO [main] org.apache.coyote.AbstractProtocol.stop �봽濡쒗넗肄� �빖�뱾�윭 ["http-nio-8080"]�쓣(瑜�) 以묒��떆�궢�땲�떎.
+21-Apr-2020 23:13:23.403 INFO [main] org.apache.coyote.AbstractProtocol.destroy �봽濡쒗넗肄� �빖�뱾�윭 ["http-nio-8080"]�쓣(瑜�) �냼硫몄떆�궢�땲�떎.
+destroy
+Disconnected from server

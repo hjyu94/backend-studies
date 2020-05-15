@@ -1,0 +1,111 @@
+11. DispatcherServlet 동작 원리 3부: 커스텀 ViewResolver
+
+
+ViewResolver
+    ● InternalResourceViewResolver
+
+InternalResourceViewResolver
+    ● Prefix
+    ● Suffix
+
+
+우리 프로젝트에서는 DispatcherServlet을 쓰고 있고
+DispatcherServlet이 제공하는 HandlerMapping, HandlerAdapter, ViewResolver 등을 이용해서
+여태껏 컨트롤러를 만들어 사용할 수 있었다.
+
+디스팻쳐 서블릿이 제공한다는 그런 핸들러 매핑, 핸들러 어댑터, 뷰 리졸버는 어디서 오느냐?
+
+    // DispatcherServlet.class
+    protected void initStrategies(ApplicationContext context) {
+        this.initMultipartResolver(context);
+        this.initLocaleResolver(context);
+        this.initThemeResolver(context);
+        this.initHandlerMappings(context);
+        this.initHandlerAdapters(context);
+        this.initHandlerExceptionResolvers(context);
+        this.initRequestToViewNameTranslator(context);
+        this.initViewResolvers(context);
+        this.initFlashMapManager(context);
+    }
+
+    initStrategies()가 서블릿 생명주기의 init() 에서 호출되는데
+    이 과정에서 필요한 얘들을 init 해서 사용한다.
+
+
+initViewResolver() 살펴보기
+
+    private void initViewResolvers(ApplicationContext context) {
+        this.viewResolvers = null;
+
+        if (this.detectAllViewResolvers) {
+            // detectAllViewResolvers는 flag 값이다. (기본값 true)
+
+            Map<String, ViewResolver> matchingBeans = BeanFactoryUtils.beansOfTypeIncludingAncestors(context, ViewResolver.class, true, false);
+
+            if (!matchingBeans.isEmpty()) {
+                this.viewResolvers = new ArrayList(matchingBeans.values());
+                AnnotationAwareOrderComparator.sort(this.viewResolvers);
+                // 빈에서 ViewResolver 타입의 빈들을 모두 찾아와서 this.viewResolvers 에 넣어둔다
+            }
+
+        } else {
+            try {
+                ViewResolver vr = (ViewResolver)context.getBean("viewResolver", ViewResolver.class);
+                this.viewResolvers = Collections.singletonList(vr);
+                // 특별히 flag 값을 false인 경우 ViewResolver.class 타입의 빈"만" 찾아온다.
+                // 더 빠른 방식
+            } catch (NoSuchBeanDefinitionException var3) {
+            }
+        }
+
+        // viewResolver 빈이 없는 경우에는 기본 전략을 가지고 온다.
+        // 여기서 기본적인 viewResolver 를 만들어 사용한다.
+        if (this.viewResolvers == null) {
+            this.viewResolvers = this.getDefaultStrategies(context, ViewResolver.class);
+            if (this.logger.isTraceEnabled()) {
+                this.logger.trace("No ViewResolvers declared for servlet '" + this.getServletName() + "': using default strategies from DispatcherServlet.properties");
+            }
+        }
+
+    }
+
+
+
+Custom 빈을 등록 해보자!
+(InternalResourceViewResolver를 만들어보자!)
+
+    @Configuration
+    @ComponentScan
+    public class WebConfig {
+        @Bean
+        public InternalResourceViewResolver viewResolver() {
+            InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
+            viewResolver.setPrefix( "/WEB-INF/" );
+            viewResolver.setSuffix( ".jsp" );
+
+            return viewResolver;
+        }
+    }
+
+    @org.springframework.stereotype.Controller("/simple")
+    public class SimpleController implements Controller {
+        @Override
+        public ModelAndView handleRequest(...) {
+            // return new ModelAndView("/WEB-INF/simple.jsp");
+            return new ModelAndView("simple");
+            // viewResolver 빈을 만들었기 때문에 simple 로 확 줄여서 써도 된다.
+            // prefix 때문에 앞에 /WEB-INF/ 가 붙고
+            // suffix 때문에 뒤에 .jsp 가 붙어서
+            // "/WEB-INF/simple.jsp" 를 찾아온다
+        }
+    }
+
+
+디버깅
+    서블릿을 초기화하는 부분에서 initStrategies 를 호출함.
+
+    initStrategies() 을 잡아서 확인해보자
+    initViewResolvers()에서
+        this.detectAllViewResolvers 의 기본값은 true
+        viewResolvers[0] 에 우리가 정의한 빈을 등록 된다.
+        그리고 viewResolvers가 null이 아니기 때문에 기본 뷰리졸버를 쓸 수 없다.

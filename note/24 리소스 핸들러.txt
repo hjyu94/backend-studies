@@ -1,0 +1,115 @@
+24. 리소스 핸들러
+https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/servl et/config/annotation/WebMvcConfigurer.html#addResourceHandlers-org.springframework.web. servlet.config.annotation.ResourceHandlerRegistry-
+
+
+리소스 핸들러??
+    이미지, 자바스크립트, CSS 그리고 HTML 파일과 같은 정적인 리소스를 처리하는 핸들러
+    서블릿 컨테이너(톰캣, 제티, 언더토우)가 기본으로 제공하는 디폴트 서블릿이 있다.
+
+
+디폴트(Default) 서블릿
+    ● 서블릿 컨테이너가 기본으로 제공하는 서블릿으로 정적인 리소스를 처리할 때 사용한다.
+    ● https://tomcat.apache.org/tomcat-9.0-doc/default-servlet.html
+
+
+스프링 MVC 리소스 핸들러 맵핑 등록
+    ● 가장 낮은 우선 순위로 등록.
+        ○ 다른 핸들러 맵핑이 “/” 이하 요청을 처리하도록 허용하고
+        ○ 최종적으로 리소스 핸들러가 처리하도록.
+    ● DefaultServletHandlerConfigurer
+
+    스프링은 등록된 디폴트 서블릿에 들어오는 요청을 위임해서 요청을 처리한다.
+
+    여러 요청을 처리할 수 있는 핸들러 매핑들이 있을텐데
+    디폴트 서블릿이 요청을 모두 가로채면 우리가 만든 핸들러들을 사욯알 수 없기 대문에
+    스프링 mvc 리소스 핸들러가 우선순위가 가장 낮아야 한다.
+
+
+리소스 핸들러 설정
+    ● 어떤 요청 패턴을 지원할 것인가
+    ● 어디서 리소스를 찾을 것인가
+    ● 캐싱
+    ● ResourceResolver: 요청에 해당하는 리소스를 찾는 전략
+        ○ 캐싱, 인코딩(gzip, brotli), WebJar, ...
+    ● ResourceTransformer: 응답으로 보낼 리소스를 수정하는 전략
+        ○ 캐싱, CSS 링크, HTML5 AppCache, ...
+
+
+스프링 부트
+    ● 기본 정적 리소스 핸들러와 캐싱 제공
+
+    스프링 부트를 사용하고 있다면 정적 리소스 핸들러를 사용하고 있다.
+    resources/static이 스프링 부트 앱을 만들면 자동으로 만들어져 있다.
+
+
+실습)
+
+[1] 스프링 부트가 제공하는 리소스 핸들러 사용해보기
+    src/main/resources/static/index.html
+        <body>
+        <h1>hello index</>
+        </>
+
+    test/java/패키지/SampleControllerTest.java
+        public void helloStatic() throws Exception {
+            this.mockMvc.perform(get("/index.html"))
+                    .addDo(print()) // 콘솔에 출력하고
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(Matchers.containsString("hello index")))
+            ;
+        }
+
+    @Test
+    public void helloStatic() throws Exception {
+        mockMvc.perform(get("/index.html"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().string("hello index"));
+    }
+    테스트! 성공!
+
+
+[2] 스프링 부트가 기본적으로 제공하는 리소스 핸들러 말고 임의로 설정하고 싶으면
+    리소스 핸들러를 설정하면 된다.
+
+    resources/mobile/mobile 밑에서 index.html을 찾아오도록 해보자.
+
+    src/main/java/패키지/WebConfig.java
+        @Override
+        public void addResourceHandlers(...) {
+            registry.addResourceHandler("/mobile/**")
+                // 어떠한 패턴의 요청을 처리할지
+
+                .addResourceLocations("classpath:/mobile/")
+                // 리소스를 어디서 찾아야할지 classpathroot(java, resources) 밑의 mobile 경로에서 찾는다
+
+                .setCacheControl(CacheControl.maxAge(10, TimeUnit.MINUTES));
+                // 여러가지 설정을 할 수 있는데 캐시만 설정해보자
+                // 해당 요청에서 리턴하는 리소스들은 기본적으로 캐시에 관련된 헤더가 응답헤더에 추가되고
+                // 이 응답 헤더는 10분동안 캐싱 (리소스가 변하지 않았더라면, 리소스가 변하면 다시 받아오겠지)
+        }
+
+    src/main/resources/mobile/index.html
+        <body>
+        <h1>hello mobile!</>
+        </>
+
+    test/java/패키지/SampleControllerTest.java
+       @Test
+       public void helloStatic() throws Exception {
+           mockMvc.perform(get("/mobile/index.html"))
+                   .andDo(print())
+                   .andExpect(status().isOk())
+                   .andExpect(content().string("hello mobile"))
+                   .andExpect(header().exists(HttpHeaders.CACHE_CONTROL))
+           ;
+       }
+    테스트! 성공!
+    localhost:8080/mobile/index.html
+
+    스프링 부트가 기본으로 제공하는 리소스 핸들러에도 캐시 기능이 제공이 된다.
+    그 캐시는 application.properties 에서 사용할지 말지 설정할 수 있다.
+
+
+참고
+    ● https://www.slideshare.net/rstoya05/resource-handling-spring-framework-41

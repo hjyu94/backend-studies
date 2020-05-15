@@ -1,0 +1,97 @@
+27. HTTP 메시지 컨버터 3부: XML
+
+
+우리가 xml용 HTTP 메세지 컨버터를 WebMvcConfigurer에 직접 등록하는게 아니라
+의존성을 추가해서 자동으로 기본 메세지 컨버터에 추가되게끔 하여 사용해보자.
+
+
+OXM(Object-XML Mapper) 라이브러리 중에 스프링이 지원하는 의존성 추가
+    ● JacksonXML
+    ● JAXB
+
+
+스프링 부트를 사용하는 경우
+    ● 기본으로 XML 의존성 추가해주지 않음.
+
+
+JAXB 의존성 추가
+    // 인터페이스
+    < dependency >
+        < groupId > javax.xml.bind </ groupId >
+        < artifactId > jaxb-api </ artifactId >
+    </ dependency >
+
+    // 구현체
+    < dependency >
+        < groupId > org.glassfish.jaxb </ groupId >
+        < artifactId > jaxb-runtime </ artifactId >
+    </ dependency >
+
+    // xml을 객체로 변환하고 객체를 xml로 변환하는 것을 마샬링 언마샬링 이라고 부르는데
+    // 얘를 추상해놓은 API (스프링이 제공)
+    // 마샬러를 사용해서 객체<->xml 변환한다.
+    < dependency >
+        < groupId > org.springframework </ groupId >
+        < artifactId > spring-oxm </ artifactId >
+        < version > ${spring-framework.version} </ version > // 스프링 부트가 사용하는 버전
+    </ dependency >
+
+
+Marshaller 등록
+    @Configuration
+    public class WebConfig implements WebMvcConfigurer {
+        @Bean
+        public Jaxb2Marshaller marshaller() {
+            Jaxb2Marshaller jaxb2Marshaller = new Jaxb2Marshaller();
+            jaxb2Marshaller.setPackagesToScan(Person.class.getPackageName());
+            // Person 클래스가 들어있는 패키지의 이름을 지정
+            // 이 패키지 중에 @XmlRootElement가 붙은 클래스가 뭐가 있는지 알려줘야 한다.
+            return jaxb2Marshaller;
+        }
+    }
+
+
+도메인 클래스에 @XmlRootElement 애노테이션 추가
+    @XmlRootElement
+    public class Person { ... }
+
+
+테스트
+    @Autowired
+    Marshaller marshaller;
+    // 등록한 Jaxb2Marshaller 빈을 Marshaller로 받아온다
+    // Jaxb2Marshaller implements Marshaller 이기 때문에 받아올 수 있다.
+
+    @Test
+    public void xmlMessage() throws Exception {
+        Person person = new Person();
+        person.setId(2019l);
+        person.setName("hjeong");
+
+        StringWriter stringWriter = new StringWriter();
+        Result result = new StreamResult(stringWriter);
+        marshaller.marshal(person, result);
+        String xmlString = stringWriter.toString();
+        // person 이란 객체를 xml으로 받아옴
+
+        this.mockMvc.perform(get("/jsonMessage")
+                    .contentType(MediaType.APPLICATION_XML)
+                    .accept(MediaType.APPLICATION_XML)
+                    .content(xmlString)) // json 문자열을 본문에 주자
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(xpath("person/name").string("hjeong"))
+                .andExpect(xpath("person/id").string("2019"))
+                // xpath 문법
+        ;
+    }
+
+    테스트! 성공!
+
+
+
+참고
+    ● Xpath 문법
+    ● https://www.w3schools.com/xml/xpath_syntax.asp
+    ● https://www.freeformatter.com/xpath-tester.html
+

@@ -1,0 +1,32 @@
+39. 핸들러 메소드 2부: URI 패턴
+
+@PathVariable
+    ● 요청 URI 패턴의 일부를 핸들러 메소드 아규먼트로 받는 방법.
+    ● 타입 변환 지원.
+    ● (기본)값이 반드시 있어야 한다.
+    ● Optional 지원.
+
+
+@MatrixVariable
+    ● 요청 URI 패턴에서 키/값 쌍의 데이터를 메소드 아규먼트로 받는 방법
+    ● 타입 변환 지원.
+    ● (기본)값이 반드시 있어야 한다.
+    ● Optional 지원.
+    ● 이 기능은 기본적으로 비활성화 되어 있음. 활성화 하려면 다음과 같이 설정해야 함.
+
+    @Configuration
+    public class WebConfig implements WebMvcConfigurer {
+        @Override
+        public void configurePathMatch(PathMatchConfigurer configurer) {
+            UrlPathHelper urlPathHelper = new UrlPathHelper();
+            urlPathHelper.setRemoveSemicolonContent(false);
+            configurer.setUrlPathHelper(urlPathHelper);
+        }
+        // 세미콜론을 없애지 않는 urlPathHelper를 추가하여
+        // @MatrixVariable 을 사용할 수 있다.
+        // 없으면 Missing matrix variable 'name' for method parameter of type String 에러가 난다.
+    }
+
+참고:
+    https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html#mvc-ann-typeco nversion
+    https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html#mvc-ann-matrix -variables

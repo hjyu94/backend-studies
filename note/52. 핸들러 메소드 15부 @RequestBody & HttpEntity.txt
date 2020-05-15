@@ -1,0 +1,170 @@
+52. 핸들러 메소드 15부: @RequestBody & HttpEntity
+
+@RequestBody
+    ● 요청 본문(body)에 들어있는 데이터를 HttpMessageConveter를 통해 변환한 객체로 받아올 수 있다.
+    ● @Valid 또는 @Validated를 사용해서 값을 검증 할 수 있다.
+    ● BindingResult 아규먼트를 사용해 코드로 바인딩 또는 검증 에러를 확인할 수 있다.
+
+HttpMessageConverter
+    ● 스프링 MVC 설정 (WebMvcConfigurer)에서 설정할 수 있다.
+    ● configureMessageConverters: 기본 메시지 컨버터 대체
+    ● extendMessageConverters: 메시지 컨버터에 추가
+    ● 기본 컨버터
+        ○ WebMvcConfigurationSupport.addDefaultHttpMessageConverters
+
+HttpEntity
+    ● @RequestBody와 비슷하지만 추가적으로 요청 헤더 정보를 사용할 수 있다.
+
+참고
+    ● https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html#mvc-ann -requestbody
+    ● https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html#mvc-ann -httpentity
+
+
+[실습]
+
+[1] @RequestBody
+
+    요청 body 에 들어있는 데이터를 HttpMessageConverter를 사용해서
+    변환한 타입으로 받을 수 있는 아규먼트
+
+    @RestController // @Controller + @Responsebody
+    @RequestMapping("/api/events")
+    public class EventApi {
+        @PostMapping
+        public Event createEvent(@RequestBody Event event)
+        {
+            return event;
+        }
+    }
+
+    요청 본문에 들어있는 데이터를 Event 객체로 변환하여 응답 body에 보내주려고 한다
+    컨버팅 하는 단계에서 필요한게 HttpMessageConverter
+
+    빈 설정파일에 @EnableWebMvc를 추가하면
+    스프링 웹 MVC에서 제공하는 기본 컨버터를 쓸 수 있다.
+    (WebMvcConfigurationSupport.addDefaultHttpMessageConverters() 참조)
+
+    컨버터들을 사용하는 주체는?
+        1) 핸들러 매핑
+        2) 핸들러 어댑터
+        3) 뷰 리졸버
+
+    답은 핸들러 어댑터!
+        핸드러 어댑터가 아규먼트를 리졸빙할 때
+        핸들러 어댑터에 등록되어있는 여러 컨버터들 중
+        현재 요청에 들어있는 컨버팅할 수 있는 컨버터를 골라서 사용한다.
+
+    예를들어 컨텐트 타입이 json 인 요청이 들어온 경우
+    json -> Event 할 수 있는 컨버터를 찾아서 아규먼트를 리졸빙한다.
+
+
+    * 테스트 코드 작성
+
+        @RunWith(SpringRunner.class)
+        @SpringBootTest
+        @AutoConfigureMockMvc
+        public class EventApiTest {
+            @Autowired
+            ObjectMapper objectMapper;
+
+            @Autowired
+            MockMvc mockMvc;
+
+            @Test
+            public void createEvent() throws Exception {
+                Event event = new Event();
+                event.setName("hjeong");
+                event.setLimit(200);
+
+                String json = objectMapper.writeValueAsString(event);
+
+                mockMvc.perform(post("/api/events")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(json))
+                        .andDo(print())
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("name").value("hjeong"))
+                        .andExpect(jsonPath("limit").value(200))
+                ;
+            }
+        }
+
+        ObjectMapper objectMapper;
+        // json 문자열 <-> 객체
+        // 스프링부트 자동설정에 의해 얘를 빈으로 등록해줬음
+        // JacksonAutoXXX.java (자동 설정 파일) 참조하자!
+
+    테스트 성공!
+
+
+[2] HttpEntity<T>
+
+    @RequestBody는 body의 데이터만 참조할 수 있지만
+    HttpEntity<T> 는 요청정보의 헤더도 참조 가능하다.
+
+    @RestController
+    @RequestMapping("/api/events")
+    public class EventApi {
+        @PostMapping
+        public Event createEvent2(HttpEntity<Event> request)
+        {
+            MediaType contentType = request.getHeaders().getContentType();
+            System.out.println(contentType);
+            return request.getBody();
+        }
+    }
+
+    Generic Type으로(여기서는 Event 타입) body가 컨버팅되어 나온다
+    이 방식은 헤더정보도 가지고 올 수 있다.
+
+    * 테스트!
+
+
+# 검증(@Valid)도 가능
+
+    @Post
+    public Event createEvent(@Valid @RequestBody Event event, BindingResult bindingResult)
+    {
+        // save event process
+        if(bindingResult.hasErrors()){
+            bindingResult.getAllErrors().forEach(error -> {
+                System.out.println(error);
+            });
+        }
+        return event;
+    }
+
+    매개변수로 없으면 BindingResult이 없는데 바인딩에 실패하는 경우에는
+        binding exception : 400 에러 메세지가 응답으로 날아오지만
+
+    매개변수로 있다면
+        바인딩 에러가 있어도 200으로 리턴됨.
+        에러에 관련해서 우리가 원하는 처리를 할 수 있다.
+
+    * 테스트
+        @Test
+        public void createEvent() throws Exception {
+            Event event = new Event();
+            event.setName("hjeong");
+            event.setLimit(-200); // @Min(0) field -> 바인딩 에러남
+            ...
+        }
+
+
+# WebConfig에 등록
+
+    만약 원하는 컨버터가 없는 경우 WebConfig 에 등록하면 된다.
+
+    @Configuration
+    @EnableWebMvc
+    public class WebConfig implements WebMvcConfigurer {
+        @Override
+        public void configureMessageConverters(List<HttpMessageConverter<?>> converters) {
+        }
+        // 기본 메세지 컨버터를 아예 안씀
+
+        @Override
+        public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+        }
+        // 기본 메세지 컨버터 + 커스텀 메세지 컨버터(추가)
+    }

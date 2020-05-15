@@ -1,0 +1,105 @@
+57. 예외 처리 핸들러: @ExceptionHandler
+
+특정 예외가 발생한 요청을 처리하는 핸들러 정의
+    ● 지원하는 메소드 아규먼트 (해당 예외 객체, 핸들러 객체, ...)
+    ● 지원하는 리턴 값
+    ● REST API의 경우 응답 본문에 에러에 대한 정보를 담아주고, 상태 코드를 설정하려면 ResponseEntity를 주로 사용한다.
+
+참고
+    ● https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html#mvc-ann -exceptionhandler
+
+
+[실습]
+
+    @ExceptionHandler
+        에러를 직접 만들었거나 자바에서 기본적으로 제공하는 예외가 발생했을 때
+        가지고 있는 핸들러로 그 예외를 처리해서 응답을 어떻게 만들어서 보여줄 수 있는지 핸들러로 정의할 수 있다.
+        cf) @RequestMapping 핸들러와 굉장히 비슷하게 생겼지만
+        추가적으로 사용할 수 있는 메소드 아규먼트가 좀 다르고리턴타입은 거의 비슷하다.
+
+    RuntimeException 을 상속받는 EventException 클래스 생성
+        public class EventException extends RuntimeException {
+        }
+        unchecked exception 이니까 굳이 메소드 시그너쳐를 변경하거나 try catch 필요 없이 그냥 던지면 됨
+
+    에러를 캐치하는 핸들러 추가!
+        @Controller
+        public class ExceptionHandler {
+            @ExceptionHandler
+            public String eventErrorHandler(EventException exception, Model model)
+            {
+                model.addAttribute("message", "event error");
+                return "error";
+            }
+        }
+
+    에러 페이지 (resources/templates/error.html)
+        <!DOCTYPE html>
+        <html lang="en" xmlns:th="http://www.thymeleaf.org">
+        <head>
+            <meta charset="UTF-8"/>
+            <title>Exception Handler</title>
+        </head>
+        <body>
+            <div th:if="${message}">
+                <h2 th:text="${message}"/>
+            </div>
+        </body>
+        </html>
+
+    에러 발생시키기
+        @Controller
+        public class ExceptionHandler {
+            @GetMapping("/events")
+            public String getEvents()
+            {
+                throw new EventException();
+            }
+        }
+
+    예외를 던지면 eventErrorHandler가 얘를 캐치해서 error.html 뷰를 보여주게 된다
+
+
+* 중복되는 에러 캐치 핸들러가 있다면?
+
+    가장 구체적인 핸들러를 사용한다
+
+    @ExceptionHandler
+    public String eventErrorHandler(EventException exception, Model model)
+    {
+        model.addAttribute("message", "event error");
+        return "error";
+    }
+
+    @ExceptionHandler
+    public String runtimeErrorHandler(RuntimeException exception, Model model)
+    {
+        model.addAttribute("message", "runtime error");
+        return "error";
+    }
+
+    EventException 이 발생했지만 runtime error가 아니라 event error 가 표시됨
+
+
+* 여러 에러를 처리하고 싶으면
+
+    @ExceptionHandler({EventException.class, RuntimeException.class})
+    public String runtimeErrorHandler(RuntimeException exception, Model model)
+    {
+        model.addAttribute("message", "runtime error");
+        return "error";
+    }
+    이때 아규먼트는 더 상위 클래스의 에러 타입으로 지정해야 한다.
+
+
+* REST API의 경우
+
+    응답 본문에 에러에 대한 정보를 담아주고, 상태 코드를 설정하려 할 때 ResponseEntity를 주로 사용한다.
+
+    @ExceptionHandler
+    public String runtimeErrorHandler(RuntimeException exception, Model model)
+        return ResponseEntity.badRequest() // 400
+                    .body("can't create event as ...") // 에러발생이유
+    }
+
+

@@ -1,0 +1,145 @@
+35. HTTP 요청 맵핑하기 5부: HEAD와 OPTIONS 요청 처리
+
+우리가 구현하지 않아도 스프링 웹 MVC에서 자동으로 처리하는 HTTP Method
+
+● HEAD
+● OPTIONS
+
+
+HEAD
+    ● GET 요청과 동일하지만 응답 본문을 받아오지 않고 응답 헤더만 받아온다.
+
+    요청하는 uri랑 동일한 GET 요청을 보낸다.
+    그러나 응답이 본문을 빼고 보낸다. 응답 헤더만 보낸다.
+
+OPTIONS
+    ● 사용할 수 있는 HTTP Method 제공
+    ● 서버 또는 특정 리소스가 제공하는 기능을 확인할 수 있다.
+    ● 서버는 Allow 응답 헤더에 사용할 수 있는 HTTP Method 목록을 제공해야 한다.
+
+
+참고
+    ● https://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
+    ● https://github.com/spring-projects/spring-framework/blob/master/spring-test/src/test/java/ org/springframework/test/web/servlet/samples/standalone/resultmatchers/HeaderAsserti onTests.java
+
+
+[실습]
+
+[1-1]
+    @RequestMapping(value = "/hello")
+    @ResponseBody
+    public String hello() {
+        return "hello";
+    }
+
+    mockMvc.perform(get("/hello")).andExpect(status().isOk());
+
+    결과!
+        MockHttpServletRequest:
+              HTTP Method = GET
+              Request URI = /hello
+               Parameters = {}
+                  Headers = []
+                     Body = <no character encoding set>
+            Session Attrs = {}
+
+        MockHttpServletResponse:
+                   Status = 200
+            Error message = null
+                  Headers = [Content-Type:"text/plain;charset=UTF-8", Content-Length:"5"]
+             Content type = text/plain;charset=UTF-8
+                     Body = hello
+            Forwarded URL = null
+           Redirected URL = null
+                  Cookies = []
+        2020-05-03 18:24:31.335  INFO 1896 --- [extShutdownHook] o.s.s.concurrent.ThreadPoolTaskExecutor  : Shutting down ExecutorService 'applicationTaskExecutor'
+
+    본문이 옴
+
+[1-2]
+    mockMvc.perform(head("/hello")).andExpect(status().isOk());
+
+    결과!
+    MockHttpServletRequest:
+          HTTP Method = HEAD
+          Request URI = /hello
+           Parameters = {}
+              Headers = []
+                 Body = <no character encoding set>
+        Session Attrs = {}
+
+    MockHttpServletResponse:
+               Status = 200
+        Error message = null
+              Headers = [Content-Type:"text/plain;charset=UTF-8", Content-Length:"5"]
+         Content type = text/plain;charset=UTF-8
+                 Body =
+        Forwarded URL = null
+       Redirected URL = null
+              Cookies = []
+    2020-05-03 18:26:10.326  INFO 19104 --- [extShutdownHook] o.s.s.concurrent.ThreadPoolTaskExecutor  : Shutting down ExecutorService 'applicationTaskExecutor'
+
+    body가 없음
+
+
+[2] options
+    해당 서버가 살아있는지,
+    해당 리소스에 대한 요청을 처리할 수 있는지 확인하는 핑을 보내는 식으로 확인 가능
+    (응답이 200으로 나오느지, 특정 http 메소드들의 응답 헤더 중에 allowed가 들어있는지 확인하는 등)
+
+    @GetMapping("/hello")
+    @ResponseBody
+    public String hello() {
+        return "hello";
+    }
+
+    @PostMapping("/hello")
+    @ResponseBody
+    public String helloPost() {
+        return "hello";
+    }
+
+    @Test
+    public void helloOptionTest() throws Exception {
+        mockMvc.perform(options("/hello"))
+                .andExpect(status().isOk())
+                ;
+    }
+
+    결과!
+        MockHttpServletRequest:
+              HTTP Method = OPTIONS
+              Request URI = /hello
+               Parameters = {}
+                  Headers = []
+                     Body = <no character encoding set>
+            Session Attrs = {}
+
+        MockHttpServletResponse:
+                   Status = 200
+            Error message = null
+                  Headers = [Allow:"GET,HEAD,POST,OPTIONS"]
+             Content type = null
+                     Body =
+            Forwarded URL = null
+           Redirected URL = null
+                  Cookies = []
+
+    응답에 Allow:"GET,HEAD,POST,OPTIONS"
+    처리할 수 있는 요청목록을 보여줌
+    POST, OPTION은 스프링 웹 MVC 가 제공함
+
+    @Test
+        public void helloOptionTest() throws Exception {
+            mockMvc.perform(options("/hello"))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(header().stringValues(HttpHeaders.ALLOW,
+                            hasItems(
+                                    containsString("GET"),
+                                    containsString("POST"),
+                                    containsString("HEAD"),
+                                    containsString("OPTION")
+                            )))
+                    ;
+        }

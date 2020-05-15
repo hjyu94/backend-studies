@@ -1,0 +1,92 @@
+53. 핸들러 메소드 16부: @ResponseBody & ResponseEntity
+
+@ResponseBody
+    ● 데이터를 HttpMessageConverter를 사용해 응답 본문 메시지로 보낼 때 사용한다.
+    ● @RestController 사용시 자동으로 모든 핸들러 메소드에 적용 된다.
+
+ResponseEntity
+    ● 응답 헤더 상태 코드 본문을 직접 다루고 싶은 경우에 사용한다.
+
+참고
+    ● https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html#mvc-ann -responsebody
+    ● https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html#mvc-ann -responseentity
+
+
+[실습]
+
+[1] @ResponseBody
+
+    @ResponseBody 이 붙어있으면 메소드에서 리턴하는 Event 객체를
+    HttpMessageConverter를 사용해 응답 본문 메시지로 보내준다. (@RequeestBody와 유사)
+
+    @PostMapping
+    @ResponseBody
+    public Event createEvent(@Valid @RequestBody Event event, BindingResult bindingResult)
+    {
+        // save event process
+        if(bindingResult.hasErrors())
+        {
+            bindingResult.getAllErrors().forEach(error -> {
+                System.out.println(error);
+            });
+        }
+        return event;
+    }
+
+    요청의 accept 헤더를 보고 event 를 컨버팅한다
+    (accept? 해당 요청에 대한 응답을 어떤 미디어 타입으로 받을지에 대한 정보)
+
+    기본적으로 스프링 부트는
+    (html과 같이) 브라우저 같은곳에서 보낸 요청은 accept 헤더값이 html, xml이고
+    그렇지 않은 경우 (콘솔에서 curl을 쓰거나 postman을 사용하는 경우) json으로 응답이 보내진다
+
+    * 테스트
+        @Test
+        public void createEvent_ResponseTest() throws Exception {
+            Event event = new Event();
+            event.setName("@ResponseBody & ResponseEntity");
+            event.setLimit(-200);
+
+            String json = objectMapper.writeValueAsString(event);
+
+            mockMvc.perform(post("/api/events/ex1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json)
+                        .accept(MediaType.APPLICATION_JSON))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("name").value("hjeong"))
+                    .andExpect(jsonPath("limit").value(-200))
+            ;
+        }
+
+    @RestController (Composite Annotation)
+    = @controller + @ResponseBody + ...
+
+[2] ResponseEntity<T>
+
+    응답 헤더 정보도 줄 수 있다.
+
+    1) ResponseEntity res... = new ResponseEntity(..); // 생성자에 header, body, status 주기
+    2) 자주쓰는 응답같은 경우는 static factory method 를 사용할 수 있다.
+        ResponseEntity.ok(), ResponseEntity.badRequest().build(), ...
+
+    @PostMapping()
+    public ResponseEntity<Event> createEvent2(HttpEntity<Event> request, BindingResult bindingResult)
+    {
+        // save event process
+        if(bindingResult.hasErrors()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Event event = request.getBody();
+        // return ResponseEntity.ok().build();
+        // return ResponseEntity.ok(event);
+        // return ResponseEntity.ok().body(event);
+        return new ResponseEntity<Event>(event, HttpStatus.CREATED);
+    }
+
+
+테스트
+andExpect(status().isBadRequest())
+

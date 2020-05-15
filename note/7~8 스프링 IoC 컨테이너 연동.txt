@@ -1,0 +1,370 @@
+7. 스프링 IoC 컨테이너 연동
+
+이미지
+(출처:
+ https://docs.spring.io/spring/docs/current/spring-framework-reference/web.html#mvc )
+
+IoC 컨테이너 ~= ApplicationContext
+
+서블릿 애플리케이션에 스프링 연동하기
+    // 서블릿 어플리케이션에 스프링을 넣어보자
+    ● 서블릿에서 스프링이 제공하는 IoC 컨테이너 활용하는 방법
+    ● 스프링이 제공하는 서블릿 구현체 DispatcherServlet (스프링 mvc) 사용하기
+
+
+[1] ContextLoaderListener 를 사용해서 서블릿에서 (스프링이 제공하는) IoC 컨테이너 활용하는 방법
+    ( 이 자체는 스프링 mvc 는 아님 )
+    ( 만들어 놓은 Servlet 에 IoC 컨테이너를 연동하는 방식 )
+    ( 우리의 목표! 빈을 꺼내서 쓰고 싶다는 것! )
+
+        - 의존성 추가
+        // pom.xml
+        <dependency>
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-webmvc</artifactId>
+          <version>5.1.3.RELEASE</version>
+        </dependency>
+
+        - ContextLoaderListener 사용
+        // web.xml
+        <listener>
+            <listener-class>org.springframework.web.context.ContextLoaderListener</>
+        </>
+
+
+    ContextLoaderListener
+        ● 서블릿 리스너 구현체
+        ● ApplicationContext를 만들어 준다.
+        ● ApplicationContext를 서블릿 컨텍스트 라이프사이클에 따라 등록하고 소멸시켜준다.
+        ● 서블릿에서 IoC 컨테이너를 ServletContext를 통해 꺼내 사용할 수 있다.
+
+        스프링 IoC 컨테이너를 웹 애플리케이션에 등록된(web.xml에) 서블릿들이 사용하고 싶은 상황.
+        ContextLoaderListener가 ApplicationContext를 만들고
+        서블릿이 시작될 때 등록, 서블릿이 종료될 시점에 소멸시킴
+        -> 서블릿 리스너가 해줌
+        (*서블릿 리스너: 웹 애플리케이션에서 발생하는 주요 이벤트를 감지하고 각 이벤트에 특별한 작업이 필요한 경우에 사용할 수 있다)
+
+        서블릿 컨텍스트의 라이프사이클에 맞춰서 스프링이 제공해주는 IoC 를 연동해주는 핵심적인 리스너
+        (* 서블릿 컨텍스트 라이프사이클: init, doGet, doGet, doGet, destroy)
+
+        애플리케이션 컨텍스트를 만들어야 한다!
+        -> 스프링 설정파일이 있어야 애플리케이션 컨텍스트를 만들 수 있다.
+
+        pom.xml 에 ContextLoaderListener가 사용하는 값들인
+        스프링 설정파일의 위치나 생성할 애플리케이션 컨텍스트들의 타입들을 지정할 수 있다.
+        기본으로는 xml 기반의 애플리케이션 컨텍스트를 사용하는데
+        여기서는 자바 설정파일을 사용해보자.
+
+        web.xml
+            <web-app>
+              <display-name>Archetype Created Web Application</display-name>
+
+              <context-param>
+                <param-name>contextClass</param-name>
+                <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
+              </context-param>
+              // 리스너가 만들어주는 애플리케이션 컨텍스트 타입을
+              // AnnotationConfigWebAnnotationConfig 로 변경해준다.
+
+              <context-param>
+                <param-name>contextConfigLocation</param-name>
+                <param-value>me.hjeong.AppConfig</param-value>
+              </context-param>
+              // 자바 설정 파일 지정
+
+
+              <listener>
+                <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+              </listener>
+
+              <servlet>
+                <servlet-name>hello</servlet-name>
+                <servlet-class>me.hjeong.HelloServlet</servlet-class>
+              </servlet>
+              <servlet-mapping>
+                <servlet-name>hello</servlet-name>
+                <url-pattern>/hello</url-pattern>
+              </servlet-mapping>
+            </web-app>
+
+        자바 설정 파일 생성
+
+            @Configuration
+            @ComponentScan
+            public class AppConfig {
+            }
+
+        자바 설정 파일에 의해 빈이 될 HelloService 생성
+
+            @Component
+            public class HelloService {
+                public String getName() {
+                    return "hjeong";
+                }
+            }
+
+        ContextLoaderListener가
+        ApplicationContext를 web.xml 에서 정의한 설정파일을 가지고 만들어 등록해준다
+        (여기서는 AnnotationConfigWebApplicationContext 클래스의 A.C 를 만들며 AppConfig 설정파일을 사용하라)
+
+        만들어진 애플리케이션 컨텍스트에는 HelloService가 빈으로 들어있기 때문에
+        HelloService를 꺼내서 빈으로 주입받아 사용할 수 있다.
+
+
+        만들어진 ApplicationContext는 어디에 등록하냐?
+
+            ServletContext라는 모든 서블릿들이 사용할 수 있는 공용의 저장소에 등록.
+
+            // 서블릿 컨텍스트가 만들어질 시점에 호출되는 메소드
+            // ContextLoaderListener.class
+            public void contextInitialized(ServletContextEvent event) {
+                this.initWebApplicationContext(event.getServletContext());
+            }
+
+            // servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, this.context);
+            // 를 내부적으로 실행
+
+            // 만들어진 웹 애플리케이션 컨텍스트를 컨텍스트 서블릿에 등록하는 과정
+            // ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE 이름으로 꺼내 쓸 수 있다.
+            (아까 "name" 이라는 키로 "hjeong" 을 꺼내 쓰듯이)
+
+
+    꺼내서 써보자!
+        @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            System.out.println("doGet");
+            resp.getWriter().println("<html>");
+            resp.getWriter().println("<head>");
+            resp.getWriter().println("<body>");
+            resp.getWriter().println("<h1>Hello " + getName() +"</h1>");
+            resp.getWriter().println("</body>");
+            resp.getWriter().println("</head>");
+            resp.getWriter().println("</html>");
+        }
+
+        private Object getName() {
+            ApplicationContext context = (ApplicationContext) getServletContext()
+                    .getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+            HelloService helloService = (HelloService) context.getBean(HelloService.class);
+            return helloService.getName();
+        }
+
+        // 직접 helloService 를 new 해서 사용하는게 아니라
+        // 스프링이 제공해주는 IoC 컨테이너에 들어있는 빈을 꺼내서 사용하는 것.
+
+        ContextLoaderListener를 사용해서 빈으로 등록한 HelloService가 IoC 컨테이너에 들어가 있을 거고
+        그렇게 등록한 빈을 ServletContext(맵과 같은 저장소)를 통해 꺼내서 사용한다.
+
+    Run!
+
+
+[2] 스프링이 제공하는 서블릿 구현체 DispatcherServlet (스프링 mvc) 사용하기
+
+    DispatcherServlet
+        ● 스프링 MVC의 핵심.
+        ● Front Controller 역할을 한다.
+
+    url 하나당 하나의 서블릿을 만들 때 여러 서블릿에서 공통적으로 처리해야 할 일이 있다며
+    필터로 기능을 만들어서 필요한 서블릿에 필터를 적용하면 되지만
+    FrontContainer 패턴을 이용한 (스프링이 만들어놓은) DispatcherServlet 을 사용하는 방법도 있다.
+
+    FrontContainer 패턴에서는 모든 요청을 받는 컨트롤러가 하나 존재하고
+    이 컨트롤러가 해당 요청을 처리할 핸들러에게 분배해주는 패턴(분배하는 과정을 dispatch라고 한다)이다.
+
+    이미 만들어진 DispatcherServlet이라는 얘가 요청들을 처리할 놈들에게 요청을 분배(dispatch) 해 줄 수 있다.
+    (일해라 노예야!)
+
+    DispatcherServlet이 RootWebApplicationContext 를 상속 받은 ApplicationContext를 하나 만든다
+
+    RootWebApplicationContext : ServletContext에 등록되어있는 ApplicationContext.
+            ^                 : 여러 다른 서블릿에서 공유하게 된다.
+            |                 : Service, Repository (ex. HelloService)
+            |
+    ApplicationContext : DispatcherServlet이 얘를 만든다!
+                       : 얘를 만든 DispatcherServlet에 한정되어있다.
+                         (다른 DispatcherServlet끼리 ApplicationContext는 공유하지 않음)
+                       : 부모인 RootWebAppllicationContext의 빈을 꺼내 사용할 수 있다.
+                       : Controller ...
+
+    (서블릿 컨텍스트에 등록되어 있는 애플리케이션 컨텍스트들이 Root WebApplicationContext 임 우리의 경우 HelloService 빈)
+    이미 기존에 있는 서블릿 컨텍스트들에 들어있는 애플리케이션 컨텍스트를 부모로 삼아서 만든다.
+
+    이러한 상속관계를 만드는 이유는 ServletContext에서 쓰는 빈을
+    (LoaderContextListener가 만든 컨텍스트들을)
+    여러 다른 (Dispatcher)서블릿에서 공유해서 쓸 수 있기 때문
+
+    디스패쳐 서블릿이 만들 ApplicationContext는 그 dispatcher 안에서만 scope이 한정되어 있는 것.
+    다른 DispatcherServlet 끼리는 서로 공유하지 못함.
+
+    혹시라도 디스패쳐 서블릿을 여러가지 만들어야 하고 그 디스패쳐 서블릿이 공용으로 사용해야 하는 빈들이 있는 경우를 커버하기 위해서
+    그 빈들이 들어있는 Root WebApplicationContext를 "상속"받은 Servlet WebApplicationContext를 디스패쳐가 만들어서 사용하는 것
+    상속 받았기 때문에 여러 디스패쳐에서는 이 안에서 사용하는 공통적인 빈을 꺼내 사용할 수 있다.
+
+    루트에는 서비스와 리파지토리 관련 클래스들만 있다. (웹 관련 클래스들이 없다)
+    왜? 서비스와 리파지토리는 다른 디스패쳐 서블릿들도 공용으로 쓸 수 있기 때문에
+    다른 웹과 관련된 클래스들이 들어있을 필요가 없다.
+    디스패쳐 서블릿이 만드는 서블릿 웹 애플리케이션 컨텍스트에는 웹과 관련된 클래스들이 들어있다.
+    -> 해당 디스패쳐 서블릿에서만 사용될 한정적인 얘들
+
+    pom.xml
+        HelloServlet, Filter 삭제
+
+    우리의 목표는 @GetMapping("/hello") 요청이 들어 왔을 때
+    HelloService 빈을 사용하는 HelloController 를 사용하고 싶은 것!
+
+    @RestController
+    public class HelloController {
+
+        @Autowired
+        HelloService helloService;
+
+        @GetMapping("/hello")
+        public String hello(){
+            return "Hello " + helloService.getName();
+        }
+    }
+    이러한 응답을 HttpResponse로 만들어줄 수 있는 DispatcherService를 쓰고 싶다.
+    -> web.xml 에 등록
+
+    <servlet>
+        <servlet-name>app</>
+        <servlet-class>DispatcherServlet</>
+        <init-param>
+            <param-name></>
+            <param-value></>
+        </>
+    </>
+    app 이라는 서블릿은 DispatcherServlet 타입이라는 의미
+
+    cf)
+    <servlet>
+        <servlet-name>hello</servlet-name>
+        <servlet-class>me.hjeong.HelloServlet</servlet-class>
+    </servlet>
+    hello 라는 서블릿은 HelloServlet 타입이라는 의미
+
+    HelloService, HelloController 두 빈이 있는데
+    서비스는 ContextLoaderListener가 만들어주는 애플리케이션 컨텍스트에 등록 -> RootWebApplicationContext
+    컨트롤러는 DispatcherServlet이 만드는 애플리케이션 컨텍스트에 등록 -> ApplicationContext
+
+    자식에서는 부모에 있는 빈을 참조할 수 있기 때문에
+    컨트롤러들이 서비스 빈을 참조할 수 있다.
+    (DispatcherServlet이 만든 AC 가 ContextLoaderListener가 만든 AC 를 상속받는다)
+    (부모의 멤버변수를 가져다가 쓸 수 있는 상황)
+
+    [ContextLoaderListener가 만들어줄 ApplicationContext 설정]
+        컨트롤러는 빼고 서비스와 리파지토리만 빈으로 가진다.
+
+        컴포넌트스캔에 옵션을 사용해야 한다.
+        기본 컴포넌트 어노테이션을 빈으로 등록해주는데 컨트롤러만 걸러낸다.
+        컨트롤러를 빈으로는 등록하지 않겠다는 뜻
+        @ComponentScan(excludeFilters = @ComponentScan.Filter(Controller.class))
+        public class AppConfig { ... }
+
+        AppConfig 를 컨텍스트 로더 리스너가 사용했기 때문에 컨트롤러 빼고 서비스만 빈으로 등록해줄 것
+
+    [DispatcherServlet이 만들어줄 ApplicationContext 설정]
+        컨트롤러만 빈으로 가진다.
+
+        @Configuration
+        @ComponentScan(useDefaultFilters = false, includeFilters = @ComponentScan.Filter(Controller.class))
+        public class WebConfig { ... }
+        디폴트 스캐너를 사용하지 않고 오직 컨트롤러만 빈으롣 등록하겠다고 하는 설정 파일을
+        디스패쳐 서블릿이 만들어주는 애플리케이션 컨텍스트가 사용해야 한다.
+
+
+        <web-app>
+          <display-name>Archetype Created Web Application</display-name>
+
+          <context-param>
+            <param-name>contextClass</param-name>
+            <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
+          </context-param>
+          <context-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>me.hjeong.AppConfig</param-value>
+          </context-param>
+
+          <listener>
+            <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+          </listener>
+
+          <servlet>
+            <servlet-name>app</servlet-name>
+            <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+            <init-param>
+              <param-name>contextClass</param-name>
+              <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
+            </init-param>
+            <init-param>
+              <param-name>contextConfigLocation</param-name>
+              <param-value>me.hjeong._5.WebConfig</param-value>
+            </init-param>
+          </servlet>
+
+          <servlet-mapping>
+            <servlet-name>app</servlet-name>
+            <url-pattern>/app/*</url-pattern>
+          </servlet-mapping>
+        </web-app>
+
+    app/ 으로 시작하는 url 이 들어오는 경우 app 서블릿을 매핑한다.
+    -> 해당 요청들은 DispatcherServlet 으로 들어온다
+    -> DispatcherServlet은 pom.xml 에 따라서 WebConfig 를 보고 AnnotationConfigWebApplicationContext 를 만듦
+    -> 이 ApplicationContext는 컨트롤러만을 빈으로 가지고 있다. (서비스, 리파지토리 X)
+    -> 그 중 HelloService가 /hello Get 요청을 처리할 수 있는 HelloController::hello() 핸들러(메소드)를 갖고 있다.
+    -> 디스팻쳐 서블릿은 현재 서블릿 컨텍스트에 들어있는 ContextLoaderListener가 만들어준
+    애플리케이션 컨텍스트들을 Root로 사용할 것이라서 Root 에 있는 빈을 꺼내 쓸 수 있다.
+    -> 이 Root 애플리케이션 컨텍스트는 AppConfig 를 이용해서 만들어진다
+    -> 이 Appconfig는 Controller 를 뺀 나머지 컴포넌트를 빈으로 만들라고 되어있기 때문에
+    -> HelloService 빈이 들어있고 따라서 HelloController가 HelloService를 사용할 수 있다.
+
+    Run!
+        localhost:8080/app/hello
+
+    그런데 web.xml이 너무 복잡하다.
+    나는 DispatcherServlet을 여러개 등록하지 않을 거다
+    상속받을 부모 없이 (RootApplicationContext 만들지 말고)
+    DispatcherServlet이 만드는 애플리케이션 컨텍스트에 모든 빈을 넣어줄 수도 있다.
+
+    pom.xml
+        <web-app>
+            <servlet>
+                ...
+                <init-param>
+                    ...
+                    <param-value>WebConfig</>
+                </>
+            </>
+            <servlet-mapping>
+                ...
+            </>
+        </>
+
+    WebConfig에서 빈 스캔을 전부 한다
+        @Configuration
+        @ComponentScan
+        public class WebConfig {}
+        // HelloController와 HelloService가 모두 WebConfig 에 의해서 등록이 될 것.
+
+    Run!
+        localhost:8080/app/hello
+
+
+스프링 vs 스프링부트
+    스프링은 서블릿 컨테이너가 먼저 뜨고 그 안에 등록되는 앱 에프리케이션에 스프링을 연동하는 방식
+    (서블릿 리스너를 등록하다던가 디스패쳐 서블릿을 등록한다던가)
+    톰캣 안에 스프링을 넣은 형태
+
+    스프링 부트는 스프링 부트 애플리케이션이 먼저 뜨고
+    그 안에 톰캣이 내장서버로 뜬다.
+    그 후 임베디드 톰캣 안에 이러한 디스패쳐 서블릿을 코드로 등록함
+    스프링 부트 안에 톰캣을 넣은 것
+
+
+참고
+    ● http://www.corej2eepatterns.com/FrontController.htm
+    ● https://www.oracle.com/technetwork/java/frontcontroller-135648.html
+    ● https://martinfowler.com/eaaCatalog/frontController.html
+
+    (서블릿 컨텍스트) http://blog.naver.com/PostView.nhn?blogId=crint&logNo=90068104505

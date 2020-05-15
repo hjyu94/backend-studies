@@ -1,0 +1,27 @@
+44. 핸들러 메소드 7부: 폼 서브밋 (에러 처리)
+
+
+바인딩 에러 발생 시 Model에 담기는 정보
+    ● Event
+    ● BindingResult.event
+
+
+타임리프 사용시 바인딩 에러 보여주기
+    ● https://www.thymeleaf.org/doc/tutorials/2.1/thymeleafspring.html#field-errors
+    <p th:if="${#fields.hasErrors('limit')}" th:errors="*{limit}">Incorrect date</p>
+
+
+Post / Redirect / Get 패턴
+    ● https://en.wikipedia.org/wiki/Post/Redirect/Get
+    ● Post 이후에 브라우저를 리프래시 하더라도 폼 서브밋이 발생하지 않도록 하는 패턴
+
+
+타임리프 목록 보여주기
+    ● https://www.thymeleaf.org/doc/tutorials/2.1/thymeleafspring.html#listing-seed-starter-dat a
+
+    <a th:href="@{/events/form}">Create New Event</a>
+    <div th:unless="${#lists.isEmpty(eventList)}">
+        <ul th:each="event: ${eventList}">
+            <p th:text="${event.Name}">Event Name</p>
+        </ul>
+    </div>

@@ -1,0 +1,117 @@
+10. DispatcherServlet 동작 원리 2부: SimpleController
+
+
+DispatcherServlet 동작 순서
+    1. 요청을 분석한다. (로케일, 테마, 멀티파트 등)
+
+    2. (핸들러 맵핑에게 위임하여-통하여) 요청을 처리할 핸들러를 찾는다.
+        기본적으로 DispatcherService는 2개의 핸들러 매핑이 등록되어 있다.
+        -> BeanNameUrlHandlerMapping이, RequestMappingHandlerMapping
+        이처럼 어떤 핸들러매핑을 만드는 등의 일을 하지 않아도
+        기본 핸들러 매핑이 등록되어 있기 때문에 애노테이션으로 핸들러를 작성하는게 가능하다.
+        애노테이션: @GetMapping("/sample") 을 이용해서
+
+    3. (등록되어 있는 핸들러 어댑터 중에)
+        해당 핸들러를 실행할 수 있는 “핸들러 어댑터”를 찾는다.
+
+    4. 찾아낸 “핸들러 어댑터”를 사용해서 핸들러의 응답을 처리한다.
+        ● 핸들러의 리턴값을 보고 어떻게 처리할지 판단한다.
+            리턴 값에 따라 아래 두 가지 경우로 나뉜다.
+            1) 뷰 이름에 해당하는 뷰를 찾아서 모델 데이터를 랜더링한다.
+            2) @ResponseEntity가 있다면 Converter를 사용해서 응답 본문을 만들고.
+            //
+                리턴 타입을 보고 처리하는 과정에 있는데
+                리턴타입이 @ResponseBody 라는 애노테이션을 가지고 있는 메소드에서 리턴했다면
+                    응답에 바로 쓰고 ModelAndView 는 null이 된다.
+                그렇지 않은 경우는
+                    ModelAndView null이 아닌데(View가 있고 View에 렌더링할 Model은 있을수도 있고 없을수도 있다.)
+                    뷰에 모델 데이터를 렌더링(바인딩)해서 뷰를 완성하고 뷰를 응답에서 실어서 보내준다.
+            //
+
+    5. (부가적으로) 예외가 발생했다면, 예외 처리 핸들러에 요청 처리를 위임한다.
+    6. 최종적으로 응답을 보낸다.
+
+
+
+ex) 뷰가 있는 경우를 살펴보자.
+
+    @Controller
+    public class HelloController {
+        @Autowired
+        HelloService helloService;
+
+        @GetMapping("/hello")
+        @ResponseBody // (@Controlelr+@ResponseBody = @RestController)
+        public String hello() {
+            return "Hello, " + helloService.getName();
+        }
+
+        @GetMapping("/sample")
+        public String sample() {
+            return "/WEB-INF/sample.jsp";
+        }
+        이 경우에는 ResponseBody 를 사용한 return이 아니라
+        그냥 문자열만 리턴한 경우임.
+    }
+
+    create WEB-INF/sample.jsp
+
+    <html>
+    <body>
+    <h2>Hello Spring MVC!</h2>
+    </body>
+    </html>
+
+
+디버깅
+    localhost:8080/app/sample
+
+    mv = ha.handle(...) // not null
+    @ResponseBody가 없는 경우 문자열을 리턴하는 경우에
+    문자열을 뷰의 이름으로 인식해서, 뷰 객체를 찾기 때문에
+    ModelAndView(mv)의 return값이 null이 아님
+
+    모델 객체를 바인딩해서 뷰를 렌더링하게 된다.
+    (jsp 파일을 response 에 실어서 보낸다는 이야기)
+
+
+
+BeanNameHandlerMapping 핸들러 매핑을 사용하는 경우?
+
+    // Controller라는 애노테이션을 사용해서 빈으로 등록할 때
+    // 빈의 이름에 "/simple" 이라고 주면
+    // "/simple"이라는 요청을 처리하는 핸들러가 된다.
+
+    @org.springframework.stereotype.Controller("/simple")
+    public class SimpleController implements Controller {
+
+        @Override
+        public ModelAndView handleRequest(...) {
+            return new ModelAndView("/WEB-INF/simple.jsp");
+            // 모델과 뷰에 대한 정보를 넣어줄 수 있다.
+        }
+
+    }
+
+    // 이때는 SimpleController.class 자체가 핸들러가 된다.
+    (cf) 첫번째 예제에서는 HelloController.hello()가 핸들러임.
+
+/WEB-INF/simple.jsp 작성
+
+
+디버깅!
+    BeanNameUrlHandlerMapping이 SimpleController를 찾아준다!
+
+    그런데 얘는 누가 실행해주냐?
+
+    SimpleControllerHandlerAdapter가
+    컨트롤러 인터페이스를 구현해서 만든 컨트롤러를 처리할 수 있는 핸들러 어댑터이다.
+    (getHandlerAdapter() 에서 확인 가능)
+
+    얘를 사용해서 응답을 처리하게 된다.
+
+    응답을 처리하고 나면 ModelAndView(mv)가 null이 아니다.
+
+    이 mv를 InternalResourceViewResolver가
+    뷰 이름에 해당하는 실제 리소스(simple.jsp)를 찾아내는 일을 해준다.
+    (뷰 리졸버: 뷰 이름 --> 실제 뷰)

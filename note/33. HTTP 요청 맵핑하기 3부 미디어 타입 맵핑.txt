@@ -1,0 +1,103 @@
+33. HTTP 요청 맵핑하기 3부: 미디어 타입 맵핑
+
+
+특정한 타입(json, xml, ...)의 데이터를 담고 있는 요청만 처리하는 핸들러
+    ● @RequestMapping(consumes=MediaType.APPLICATION_JSON_UTF8_VALUE)
+    ● Content-Type 헤더로 필터링
+      그 http 요청의 바디 타입을 알려줌
+    ● 매치 되는 않는 경우에 415 Unsupported Media Type 응답
+
+    //
+        보내는 요청의 바디부분이 json인 경우만 처리하겠다
+
+        @Controller
+        public class SampleController {
+            @RequestMapping(value = "/hello", consumes = MediaType.APPLICATION_JSON_UTF8)
+            @ResponseBody
+            public String hello() {
+                return "hello";
+            }
+        }
+
+        mockMvc.perform(get("/hello")).andExpect(status().isOk());
+        테스트! 바디에 아무것도 없기 때문에 이 미디어 타입은 지원하지 않는다는 에러 응답(415) 뜬다.
+
+        mockMvc.perform(get("/hello").contentType(MediaType.APPLICATION_JSON_VALUE)).andExpect(status().isOk());
+        컨텐츠 타입이 JSON 이라고 헤더에 알려주는 상황. 요청을 처리할 수 있어졌다!
+    //
+
+
+특정한 타입의 응답을 만드는 핸들러
+    ● @RequestMapping(produces =”application/json”)
+    ● Accept 헤더로 필터링 (하지만 살짝... 오묘함)
+    ● 매치 되지 않는 경우에 406 Not Acceptable 응답
+
+    //
+        요청을 보낼 때 난 어떠한 응답을 원한다!
+
+        @RequestMapping(value = "/hello", consumes = MediaType.APPLICATAION_JSON_UTF_8)
+        @ResponseBody
+        public String hello() {
+            return "hello";
+        }
+
+        mockMvc.perform(get("/hello")
+            .contentType(MediaType.APPLICATION_JSON_VALUE)
+            .accept(MediaType.APPLICATION_JSON_VALUE))
+        ...status().isOk()
+
+        응답으로 JSON 을 달라고 요청!
+        테스트 성공!
+        컨트롤러에서 필터로 걸리는게 없으니까
+
+        @RequestMapping(
+            value = "/hello",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.TEXT_PLAIN_VALUE,
+        )
+        @ResponseBody
+        public String hello() {
+            return "hello";
+        }
+
+        플레인 텍스트로 응답하겠다!
+        따라서 테스트가 실패한다
+
+        만약
+
+        perform(get("hello")
+            .contentType(MediaType.APPLICATION_JSON_UTF8))
+        ...status().isOk()
+
+        accept 헤더가 없으면 아무거나 달라고 함. 그러면 응답으로 PLAIN_TEXT가 나온다.
+        매핑은 된다! -> 오묘하다고 한 부분이 이 부분
+        (아무거나 달라고 했으니 내가 TEXT 타입으로 줘도 괜찮은 것!)
+    //
+
+
+- 문자열을 입력하는 대신 MediaType을 사용하면 상수를 (IDE에서) 자동 완성으로  사용할 수 있다.
+
+- 클래스에 선언한 @RequestMapping에 사용한 것과 조합이 되지 않고 메소드에 사용한 @RequestMapping의 설정으로 덮어쓴다.
+//
+    따라서 클래스에 선언한 옵션값(consumes, produces)이 들어가지 않는다.
+
+    @RequestMapping(consumes = XXX)
+    public class SampleControlelr {
+
+         @RequestMapping(
+            value = "/hello",
+            consumes = MediaType.APPLICATAION_JSON_UTF_8_VALUE,
+            produces = MediaType.TEXT_PLAIN_VALUE,
+        )
+        @RequestBody
+        public String hello() {
+            return "hello";
+        }
+
+    }
+
+    http url 매핑의 경우는 클래스+메소드 합쳐서 쓰지만 /api/hello처럼
+    consumes, produces는 같이 지원한다는 표시가 아니라 덮어쓰기 된다.
+//
+
+Not (!)을 사용해서 특정 미디어 타입이 아닌 경우로 맵핑 할 수도 있다.

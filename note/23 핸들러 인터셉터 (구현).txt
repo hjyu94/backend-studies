@@ -1,0 +1,84 @@
+23. 핸들러 인터셉터 2부: 만들고 등록하기
+
+HandlerInterceptor 인터페이스를 구현하면 된다!
+
+● 특정 패턴에 해당하는 요청에만 적용할 수도 있다.
+● 순서를 지정할 수 있다.
+
+
+핸들러 인터셉터 구현하기
+    public class GreetingInterceptor implements HandlerInterceptor {
+        @Override
+        public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+            System.out.println("preHandle 1");
+            return true;
+        }
+
+        @Override
+        public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+            System.out.println("postHandle 1");
+        }
+
+        @Override
+        public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+            System.out.println("afterCompletion 1");
+        }
+    }
+
+    public class AnotherInterceptor implements HandlerInterceptor {
+        ...
+    }
+
+
+핸들러 인터셉터 등록하기
+    @Configuration
+    public class WebConfig implements WebMvcConfigurer {
+
+        @Override
+        public void addInterceptors(InterceptorRegistry registry) {
+           registry.addInterceptor(new GreetingInterceptor());
+           registry.addInterceptor(new AnotherInterceptor());
+        }
+    }
+
+    테스트 실행
+        preHandle 1
+        preHandle 2
+        p.. 1
+        p.. 2
+        a.. 1
+        a.. 2
+
+
+
+    우선순위를 줄수도 있다.
+    낮을수록 우선순위가 높아서 먼저 호출된다
+        @Override
+        public void addInterceptors(InterceptorRegistry registry) {
+           registry.addInterceptor(new GreetingInterceptor()).order(0);
+           registry.addInterceptor(new AnotherInterceptor()).order(-1);
+        }
+
+    테스트 실행
+        preHandle 2
+        preHandle 1
+        p.. 2
+        p.. 1
+        a.. 2
+        a.. 1
+
+
+
+    특정 패턴에만 적용시킬수도 있다.
+        @Override
+        public void addInterceptors(InterceptorRegistry registry) {
+           registry.addInterceptor(new GreetingInterceptor()).order(0);
+           registry.addInterceptor(new AnotherInterceptor())
+                    .addPathPatterns("/hi")
+                    .order(-1);
+        }
+
+    테스트 실행
+        preHandle 1
+        p.. 1
+        a.. 1

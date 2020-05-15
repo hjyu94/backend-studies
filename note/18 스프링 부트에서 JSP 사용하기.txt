@@ -1,0 +1,103 @@
+18. 스프링 부트에서 JSP 사용하기
+
+“ If possible, JSPs should be avoided. There are several
+ known limitations
+ when using them with embedded servlet containers.”
+    - https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#boot-feature s-spring-mvc-template-engines
+
+
+제약 사항
+    ● JAR 프로젝트로 만들 수 없음, WAR 프로젝트로 만들어야 함
+    ● Java -JAR로 실행할 수는 있지만 “실행가능한 JAR 파일”은 지원하지 않음
+    ● 언더토우(JBoss에서 만든 서블릿 컨테이너)는 JSP를 지원하지 않음
+    ● Whitelabel 에러 페이지를 error.jsp로 오버라이딩 할 수 없음.
+
+
+참고
+    ● https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#boot-features-jsp-li mitations
+    ● https://github.com/spring-projects/spring-boot/tree/v2.1.1.RELEASE/spring-boot-samples /spring-boot-sample-web-jsp
+    (샘플 프로젝트)
+
+
+실습
+    새 프로젝트 - SpringInitializer, war 패키징, Spring web 추가
+
+    의존성 추가
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>jstl</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-jasper</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+    이전 강의의 스프링부트 프로젝트는 Application만 있었는데
+    war 패키징으로 프로젝트를 만들면 ServletInitializer.class가 하나 더 추가되어 있다.
+
+    이 어플리케이션을 패키징 한 다음 독립적인 jar로 실행할수도 있긴 한데
+    와르파일을 서블릿 컨테이너에 배포해서 사용할수도 있다.
+
+    독립적인 와르파일로 실행할때는 Application가 실행되고
+    톰캣 등의 서비스엔진에 배포해서 실행할때는 ServletInitializer 실행되는 것
+
+
+    src/java/package/EventController.java
+        @Controller
+        public class EventController {
+            @GetMapping("/events")
+            public String getEvents(Model model){
+                Event event1 = new Event("스프링 스터디1", LocalDateTime.of(...));
+                Event event2 = new Event("스프링 스터디2", LocalDateTime.of(...));
+                List<Event> events = List.of(event1, event2);
+
+                model.addAttribute("events", events); // 모델에 events 객체를 넣어주기
+                model.addAttribute("message", "임의 메세지!"); // 모델에 임의의 스트링 메세지를 넣어주기
+                return "events/list";
+            }
+        }
+
+    src/java/package/Event.java
+        public class Event{
+            private String name;
+            private LocalDateTime starts;
+        }
+
+    src/main/webapp/WEB-INF/jsp/events/list.jsp
+        <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+        <%@ taglib prefix ="c" uri ="http://java.sun.com/jsp/jstl/core"%>
+        <html>
+        <head>
+            <title>Title</title>
+        </head>
+        <body>
+            <h1>이벤트 목록</h1>
+            <h1>${message}</h1>
+            <table>
+                <tr>
+                    <th>이름</th>
+                    <th>시작</th>
+                </tr>
+                <c:forEach items="${events}" var="event">
+                    <tr>
+                        <td>${event.name}</td>
+                        <td>${event.starts}</td>
+                    </tr>
+                </c:forEach>
+            </table>
+        </body>
+        </html>
+
+
+    application.properties
+        spring.mvc.view.prefix = /WEB-INF/jsp/
+        spring.mvc.view.suffix = .jsp
+
+    DemoJspApplication 실행
+
+    패키징 해보기!
+        [Terminal] ./mvnw package (빌드 후 와르파일이 생김)
+        [Terminal] java -jar target/*.war (실행)
+        와르파일을 톰캣에 배포하는것도 가능(ServletInitializer 가 있기 대문에)

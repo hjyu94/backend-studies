@@ -1,0 +1,130 @@
+21. 도메인 클래스 컨버터 자동 등록
+
+
+스프링 데이터 JPA는 스프링 MVC용 도메인 클래스 컨버터를 제공합니다.
+
+
+도메인 클래스 컨버터
+    ● 스프링 데이터 JPA가 제공하는 Repository를 사용해서 ID에 해당하는 엔티티를 읽어옵니다.
+
+
+의존성 설정
+    < dependency >
+     < groupId > org.springframework.boot </ groupId >
+     < artifactId > spring-boot-starter-data-jpa </ artifactId >
+    </ dependency >
+    < dependency >
+     < groupId > com.h2database </ groupId >
+     < artifactId > h2 </ artifactId >
+    </ dependency >
+
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+
+    <dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
+    </dependency>
+
+
+엔티티 맵핑
+    @Entity
+    public class Person {
+        @Id @GeneratedValue
+        private Long id;
+
+        private String name;
+
+        ...
+    }
+
+
+리파지토리 추가
+    public interface PersonRepository extends JpaRepository<Person, Long> {
+    }
+    // 스프링 데이터 JPA 강의 참고
+    // JpaRepository<Entity, id>: PersonRepository가 자동으로 빈으로 만들어진다.
+
+
+테스트 코드 수정
+    ● 테스트용 이벤트 객체 생성
+    ● 이벤트 리파지토리에 저장
+    ● 저장한 이벤트의 ID로 조회 시도
+
+
+실습)
+    도메인 클래스 컨버터를 사용해보자!
+
+    이 경우에는 포매터나 컨버터를 직접 만들 필요는 없고
+    스프링 데이터 JPA의 도움을 받아서
+    JPA가 만들어주는 컨버터를 사용하는 것.
+
+    id에 해당하는 도메인 클래스로 변환해주는 컨버터를 자동 등록 해준다.
+    (어디에 등록? FormatterRegistry에 포매터/컨버터가 등록된다)
+
+    @RestController
+    public class SampleController {
+
+        @GetMapping("/domain-converter")
+        public String domainConverterFunc(@RequestParam("id") Person person){
+            return "hello " + person.getName();
+        }
+
+    }
+    // Person 의 주키인 id 를 파라미터로 넘겨서 person 도메인 객체로 변환하고자 한다.
+
+
+    @RunWith(SpringRunner.class)
+    @SpringBootTest
+    @AutoConfigureMockMvc
+    public class SampleControllerTest {
+
+        @Autowired
+        MockMvc mockMvc;
+
+        @Autowired
+        PersonRepository personRepository;
+
+        @Test
+        public void domainConverterFunc() throws Exception {
+            mockMvc.perform(get("/domain-converter")
+                           .param("id", String.valueOf(1)))
+                    .andDo(print())
+                    .andExpect(content().string("hello hjeong"));
+
+        }
+    }
+
+    테스트 실패!
+    MethodArgumentConversionNotSupportedException !
+    -> 아직 컨버터를 사용하지 못해서
+    -> 스프링 데이터 JPA가 제공하는 Repository를 사용해보자!
+
+    의존성 설정, 엔티티 매핑, 레파지토리 추기(테스트 클래스에서)가 필요하다
+
+    테스트 실행!
+        -> 실패!
+        컨버전은 되는데 NullPointerException 이 발생한다.
+        findById() 를 사용해서 Person 가지고 올텐데 걔가 null 이다
+        테스트에서 사용한 id 1 에 해당하는 Person 데이터가 없기 때문
+
+    public class SampleControllerTest{
+        ...
+
+        @Test
+        public void domainConverterFunc() throws Exception {
+            Person person = new Person();
+            person.setName("hjeong");
+            Person savedPerson = personRepository.save(person);
+
+            mockMvc.perform(get("/domain-converter")
+                           .param("id", savedPerson.getId().toString()))
+                    .andDo(print())
+                    .andExpect(content().string("hello hjeong"));
+        }
+    }
+
+    테스트 실행!
+    성공!

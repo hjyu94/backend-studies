@@ -1,0 +1,82 @@
+15. @EnableWebMvc
+
+애노테이션 기반 스프링 MVC를 사용할 때 편리한 웹 MVC 기본 설정
+
+ex
+    @Configuration
+    @EnableWebMvc
+    public class WebConfig {}
+
+@Configuration이 붙은 클래스에 @EnableWebMvc를 붙여줌
+
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ElementType.TYPE})
+    @Documented
+    @Import({DelegatingWebMvcConfiguration.class})
+    public @interface EnableWebMvc {
+    }
+
+
+EnableWebMvcs를 붙이면 DelegatingWebMvcConfiguration.class를 import 하게 된다.
+DelegatingWebMvcConfiguration.class 도 설정파일(@Configuration)
+    @Configuration
+    public class DelegatingWebMvcConfiguration extends WebMvcConfigurationSupport {
+        ...
+    }
+
+얘의 부모인 WebMvcConfigurationSupport 클래스에 실질적으로 빈들이 등록되어 있다.
+ex. 어노테이션을 지원하는 핸들러 매핑, 핸들러 매핑에 추가할 기본적인 인터셉터
+
+
+[1] @EnableWevMvc 사용하지 않고 실행하면
+    WebConfig 를 사용해서 등록했던 viewResolver 빈과
+    + 기본 요소들(DispatcherServlet.properties)
+    이 빈으로 등록이 된다.
+
+    현재 어떤 빈들이 등록되는지 확인하려면
+    DispatcherServlet initFlashMapmanager() 부분에 중단점 찍고 한 줄 내리기
+    DispatcherServlet 의 멤버값들을 확인해보면
+    어노테이션 기반 mvc을 사용할 때
+    handlerMapping(2개)-RequestMappingHandlerMapping-interceptor 아무것도 없음
+    handlerAdapter(3개)-RequestMappingHandlerAdpater-messageConverters(4개)-...
+    viewResolver(1개)-우리가 등록한거 prefix, suffix,
+    이와 같은 빈들이 만들어져 있음을 볼 수 있다.
+
+
+[2] @EnableWebMvc 사용하는 경우
+
+    이 경우에 WebApplicationContext.onStartup 에서 WebApplicationContext에 ServletContext를 등록해야 한다.
+
+    public class WebApplication implements WebApplicationInitializer {
+        @Override
+        public void onStartup(ServletContext servletContext) {
+            AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
+            context.setServletContext(servletContext);
+            // EnableMvc 가 불러오는 DelegatingWebMvcConfiguration를 사용할 때
+            // 서블릿 컨텍스트를 종종 참조함.
+            // 따라서 서블릿 컨텍스트를 등록해놓지 않으면 제대로 설정이 되지 않는다.
+
+            context.register(WebConfig.class); // 빈 설정 등록
+            context.refresh();
+
+            DispatcherServlet dispatcherServlet = new DispatcherServlet();
+            ServletRegistration.Dynamic app = servletContext.addServlet("app", dispatcherServlet);
+            app.addMapping("/app/*"); // "app/" 으로 들어온 요청은 모두 DispatcherServlet 이 받도록!
+        }
+    }
+
+    handlerMapping(2개, order가 전이랑 다름)-RequestMappingHandlerMapping-interceptor(2개 설정되어있음)
+    // WebMvcConfigurationSupport.class 에 있는대로 만들어 놓음
+
+    handlerAdapter(3개 order가 달라짐)-RequestMappingHandlerAdpater-messageConverters(4개+2개//클래스패쓰에 뭐가있느냐에 따라 더 늘어날 수 있음. 객체 변환)-...
+    // order 가 달라졌는데 order가 높은 애부터 하면 성능이 좋아짐
+
+    viewResolver(1개+1개)-우리가 등록한거 prefix, suffix,
+
+
+@WebMvc를 사용하면
+    DelegatingWebMvcConfiguration를 읽어오는데 얘가 delegate 구조(다른데로 위임해서 읽어오자)라서
+    손쉽게 기존의 빈(WebMvcConfigurationsupport.class이 등록하는 핸들러 매핑 등등)에
+    인터셉트를 추가한다던가 메세지컨버터를 추가한다던가 등등의 기능이 손쉽게 된다.
+    (맨땅에 핸들러매핑등을 구현할 필요 없이 아니라 기본값으로 만들어주는 빈+알파 구조,
+    @WebMvc를 붙이면 기본적으로 만들어지는 빈 그 위에 알파를 좀 더 덧붙여줄수있다)

@@ -1,0 +1,7 @@
+14. 스프링 MVC 구성 요소 직접 빈으로 등록하기
+
+@Configuration을 사용한 자바 설정 파일에 직접 @Bean을 사용해서 등록하기(가장 low한 레벨의 등록방법임)
+
+ex)
+    "/WEB-INF/"를 Prefix로 ".jsp" 를 Suffix로 사용하는 ViewResolver 만들어서 등록
+

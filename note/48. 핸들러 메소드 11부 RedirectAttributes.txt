@@ -1,0 +1,119 @@
+48. 핸들러 메소드 11부: RedirectAttributes
+
+리다이렉트 할 때 기본적으로 Model에 들어있는 primitive type 데이터는 URI 쿼리 매개변수에 추가된다.
+    ● 스프링 부트에서는 이 기능이 기본적으로 비활성화 되어 있다.
+    ● Ignore-default-model-on-redirect 프로퍼티를 사용해서 활성화 할 수 있다.
+
+원하는 값만 리다이렉트 할 때 전달하고 싶다면 RedirectAttributes에 명시적으로 추가할 수 있다.
+리다이렉트 요청을 처리하는 곳에서 쿼리 매개변수를 @RequestParam 또는 @ModelAttribute로 받을 수 있다.
+
+
+[실습]
+
+[1] Model 객체 이용
+
+    @GetMapping("/redirect-attribute/ex/model")
+    public String ex1(Model model)
+    {
+        Event event = new Event();
+        event.setName("hjeong");
+        event.setLimit(1000);
+
+        // primitive type 은 붙는다
+        model.addAttribute("name", event.getName());
+        model.addAttribute("limit", event.getLimit());
+
+        return "redirect:/redirect-attribute/model/redirected-page";
+    }
+    // 두개의 primitive type 은 (string, integer)
+    // uri 경로 뒤에 쿼리 파라미터로 붙는다 (...?name=XXX&limit=XXX)
+
+    이 기능이 WebMvc 에서는 켜져 있는데 스프링 부트에서는 꺼져 있다.
+
+    [스프링 부트 자동 설정 파일]
+        WebMvcAutoConfiguration.java
+
+        requestMappingHandlerAdapter 를 보면
+        isIgnoreDefaultModelOnRedirect 가 기본적으로 true임
+        그러면 리다이렉트할 때 primitive type이 쿼리로 자동으로 붙지 않는다.
+
+    [설정 값 변경]
+        우리는 스프링 부트를 사용중이기 때문에 파라미터들이 자동으로 붙지는 않는다.
+
+        application.properties
+        spring.mvc.ignore-default-model-on-redirect=false
+
+    앱 재실행
+    모델에 있던 primitive parameter들이 url 에 붙는 걸 볼 수 있다.
+    그러면 리다이렉트해서 받는 곳에서 @RequestParam 이나 @ModelAttribute를 이용해서 가져다 쓸 수 있다.
+
+
+[2] RedirectAttributes
+
+    spring.mvc.ignore-default-model-on-redirect=false를 지우고 (스프링 부트 기본 설정값)
+    필요한 애트리뷰트만 넘겨줄 수 있다.
+
+    @GetMapping("/redirect-attribute/ex/2")
+    public String ex2(RedirectAttributes attributes)
+    {
+        Event event = new Event();
+        event.setName("RedirectAttributes를 이용해보자!");
+        event.setLimit(1000);
+
+        // attributes.addAttribute("event", event);
+        // // Event->String 컨버터가 없어서 에러 페이지가 표시된다.
+
+        attributes.addAttribute("name", event.getName());
+        attributes.addAttribute("limit", event.getLimit());
+
+        return "redirect:/redirect-attribute/ex/2/redirected-page";
+    }
+    이후 앱 구동해보면 리다이렉트 어트리뷰트에서 명시한 것들만 쿼리 파라미터로 넘어온다.
+    events/list?name=XXX&limit=XXX
+
+    이번에는 리다이렉트 한 쪽에서 @RequestParam이 아니라 @ModelAttribute로 받아보자
+
+    @GetMapping("/redirect-attribute/ex/2/redirected-page")
+    @ResponseBody
+    public String redirected_ex2(@ModelAttribute Event event)
+    {
+        return event.toString();
+    }
+
+*주의
+
+    이 때 모델어트리뷰트에서 쓰는 이름과 세션에서 가져오겠다고 한 이름이 같으면
+    세션에서 찾아보고 에러를 뿜는다! 주의!
+    Expected session attribute 'event'
+
+    @Controller
+    @SessionAttributes("event")
+    // -> 이후 "event"라는 이름으로 @ModelAttribute 를 가져오려는 경우 세션에서 event 를 찾는다
+    class RedirectAttributeExController {
+
+        @GetMapping("/redirect-attribute/ex/2")
+        public String ex2(RedirectAttributes attributes)
+        {
+            ...
+            attributes.addAttribute("name", event.getName());
+            attributes.addAttribute("limit", event.getLimit());
+
+            return "redirect:/redirect-attribute/ex/2/redirected-page";
+        }
+
+        @GetMapping("/redirect-attribute/ex/2/redirected-page")
+        @ResponseBody
+        public String redirected_ex2(@ModelAttribute Event event)
+        {
+            return event.toString();
+        }
+    }
+    Expected session attribute 'event' 에러!
+
+    세션이 아니라 쿼리 파라미터로 받아오고 싶으면 이름을 변경하면 됨!
+    @GetMapping("/redirect-attribute/ex/2/redirected-page")
+    @ResponseBody
+    public String redirected_ex2(@ModelAttribute("newEvent") Event event)
+    {
+        return event.toString();
+    }

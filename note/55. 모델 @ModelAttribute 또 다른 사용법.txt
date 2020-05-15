@@ -1,0 +1,57 @@
+55. 모델: @ModelAttribute 또 다른 사용법
+
+@ModelAttribute의 다른 용법
+    ● @RequestMapping을 사용한 핸들러 메소드의 아규먼트에 사용하기 (이미 살펴 봤습니다.)
+    ● @Controller 또는 @ControllerAdvice (이 애노테이션은 뒤에서 다룹니다.)를 사용한 클래스에서 모델 정보를 초기화 할 때 사용한다.
+    ● @RequestMapping과 같이 사용하면 해당 메소드에서 리턴하는 객체를 모델에 넣어 준다.
+        ○ RequestToViewNameTranslator
+
+
+[실습]
+
+[1] 메소드 아규먼트에 사용
+
+[2] 여러 핸들러에서 사용할 모델 정보 초기화
+어떤 종류의 이벤트인지 매번 모든 요청에 카테고리 정보를 model에 실어 전달하고 싶다
+
+    // @ModelAttribute는 @Controller 또는 @ControllerAdvice 를 사용한 클래스에서
+    // 모델 정보를 초기화 할 때 사용한다.
+    // (@ModelAttribute 를 메소드 위에 붙이는 경우)
+
+    // 해당 컨트롤러에 해당하는 모든 메소드의 모델에 넣어준다
+
+    @ModelAttribute
+    public void subjects(Model model)
+    {
+        model.addAttribute("subjects", List.of("study", "seminar", "hobby", "social"));
+    }
+
+    @ModelAttribute
+    public List<String> categories(Model model)
+    {
+        return List.of("study", "seminar", "hobby", "social");
+    }
+
+
+    @Test
+    .andExpect(model().attributeExists("categories");
+
+
+[3] 메소드에서 리턴하는 객체를 모델에 넣어 주는데 사용
+    
+    @GetMapping("events/list")
+    @ModelAttribute
+    public Event eventsFormName() {
+        return new Event();
+    }
+    // 모델에 Event 객체가 들어간다
+    // 사실 생략해도 됨
+
+    @GetMapping("events/list")
+    public Event eventsFormName() {
+        return new Event();
+    }
+
+    뷰는 어떻게 찾느냐?
+    RequestToViewNameTranslator가 요청의 이름과 일치하는 뷰 이름을 리턴한다.
+    (events/list 가 뷰 이름인 것을 찾는다)

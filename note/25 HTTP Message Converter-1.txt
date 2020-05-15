@@ -1,0 +1,101 @@
+25. HTTP 메시지 컨버터 1부: 개요
+
+https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/servl et/config/annotation/WebMvcConfigurer.html#configureMessageConverters-java.util.List-
+https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/web/servl et/config/annotation/WebMvcConfigurer.html#extendMessageConverters-java.util.List-
+
+
+HTTP 메시지 컨버터도 역시 WebMvcConfigurer를 통해 설정할 수 있다.
+
+
+HTTP 메시지 컨버터?
+    ● 요청 본문에서 메시지를 읽어들이거나(@RequestBody), 응답 본문에 메시지를 작성할 때(@ResponseBody) 사용한다.
+    (메세지, JSON, xml, ...)
+
+    우리가 만든 컨트롤러에서 여러가지 애노테이션을 설정할 수 있는데
+
+        @GetMapping("/message")
+        @ResponseBody
+        public String message(@RequestBody String body) {
+            return body;
+        }
+
+        @GetMapping("/message")
+        public @ResponseBody String message(@RequestBody String body) {
+        // 리턴하는 값이 body 에 들어간다는 의미로 강조하기 위해 리턴타입 앞에 붙일수도 있기는 한데
+        // 사실 리턴타입에 붙여주는 @는 없고 메소드에 붙이는 거임
+            return body;
+        }
+
+    // @RequestBody? 요청 본문에 들어있는 메세지를 HTTP 메세지 컨버터를 사용해서 컨버젼을 한다
+    // @ResponseBody? 해당 핸들러에서 리턴하는 값을 응답의 본문에 넣어준다
+    // @RestController를 클래스에 붙이면 모든 메소드에서 @ResponseBody를 갖고 있는 것과 마찬가지
+    // @Controller라면 @ResponseBody는 직접 붙여줘야 한다.
+
+
+        @Test
+        public void stringMessage() throws Exception {
+            this.mockMvc.perform(get("/message")
+                        .content("hello"))
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andExpect(content().string("hello"))
+            ;
+        }
+
+    기본적으로 문자열 컨버터가 등록이 되기 때문에 요청 본문에 들어있는 문자열을 그대로 문자열로 받거나
+    핸들러에서 매핑하는 문자열을 그대로 응답 메세지에 쓰는게 가능하다
+
+    테스트 실행! 성공!
+
+
+기본 HTTP 메시지 컨버터
+    ● 바이트 배열 컨버터
+    ● 문자열 컨버터
+    ● Resource 컨버터
+    ● Form 컨버터 (폼 데이터 to/from MultiValueMap<String, String>)
+    ● (JAXB2 컨버터)
+    ● (Jackson2 컨버터)
+    ● (Jackson 컨버터)
+    ● (Gson 컨버터)
+    ● (Atom 컨버터)
+    ● (RSS 컨버터)
+    ● ...
+
+    여러가지 Http 메세지 컨버터가 있고 기본적으로 등록되는 컨버터들이 있다.
+    () 는 pom.xml 에 해당 dependency 가 있는 경우에만 기본적으로 등록된다.
+
+
+설정 방법
+    ● 기본으로 등록해주는 컨버터에 새로운 컨버터 추가하기: extendMessageConverters
+    ● 기본으로 등록해주는 컨버터는 다 무시하고 새로 컨버터 설정하기: configureMessageConverters
+    ● 의존성 추가로 컨버터 등록하기 (추천)
+        ○ 메이븐 또는 그래들 설정에 의존성을 추가하면 그에 따른 컨버터가 자동으로 등록 된다.
+        ○ WebMvcConfigurationSupport
+        ○ (이 기능 자체는 스프링 프레임워크의 기능임, 스프링 부트 아님.)
+
+
+    추가적으로 Http 메세지 컨버터를 등록하는 방법!
+    @Configuration
+    public class WebConfig implements WebMvcConfigurer {
+        @Override
+        public void configureMessageConverters(...){
+        }
+        // 기본으로 등록해주는 컨버터들은 등록하지 않는 방법
+
+        @Override
+        public void extendMessageConverters(...){
+        }
+        // 기본으로 등록해주는 컨버터 + 새로운 컨버터 추가
+    }
+
+
+참고
+    ● https://www.baeldung.com/spring-httpmessageconverter-rest
+
+
+
+
+
+
+
+

@@ -1,0 +1,145 @@
+32. HTTP 요청 맵핑하기 2부: URI 패턴 맵핑
+
+URI 패턴으로 맵핑하는 방법!
+
+URI, URL, URN 햇갈린다
+    ● https://stackoverflow.com/questions/176264/what-is-the-difference-between-a-uri-a-url-a nd-a-urn
+
+
+요청 식별자로 맵핑하기
+    ● @RequestMapping은 다음의 패턴을 지원합니다.
+    ● ?: 한 글자 (“/author/???” => “/author/123”)
+    ● *: 여러 글자 (“/author/*” => “/author/keesun”)
+    ● **: 여러 패스 (“/author/** => “/author/keesun/book”)
+
+
+클래스에 선언한 @RequestMapping과 조합
+    ● 클래스에 선언한 URI 패턴뒤에 이어 붙여서 맵핑합니다.
+
+
+정규 표현식으로 맵핑할 수도 있습니다.
+    ● /{name:정규식}
+
+
+패턴이 중복되는 경우에는?
+    ● 가장 구체적으로 맵핑되는 핸들러를 선택합니다.
+
+
+URI 확장자 맵핑 지원
+    ● 이 기능은 권장하지 않습니다. (스프링 부트에서는 기본으로 이 기능을 사용하지 않도록 설정 해 줌)
+        ○ 보안 이슈 (RFD Attack)
+        ○ URI 변수, Path 매개변수, URI 인코딩을 사용할 때 할 때 불명확 함.
+
+RFD Attack
+    ● https://www.trustwave.com/en-us/resources/blogs/spiderlabs-blog/reflected-file-downloa d-a-new-web-attack-vector/
+    ● https://www.owasp.org/index.php/Reflected_File_Download
+    ● https://pivotal.io/security/cve-2015-5211
+
+
+[실습]
+
+    @Controller
+    @RequestMapping(method = RequestMethod.GET)
+    public class SampleController {
+
+        @RequestMapping({"/hello", "/hi"})
+        @ResponseBody
+        public String hello() {
+            return "hello";
+        }
+    }
+
+    @Test
+    public void helloTest() throws Exception {
+        mockMvc.perform(get("/hi"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().string("hello"))
+                ;
+    }
+
+    테스트 성공
+
+    /hello/?
+    hello/ 뒤에 아무글자나 한 글자 와야 함 (hello/1, hello/2, ...)
+
+    /hello/*
+    hello/ 뒤에 어떤 문자나 와도 된다. (hello/123, hello/aaa, ...)
+    단 / 는 또 오면 안됨 (hello/1/1 은 안됨)
+
+    /hello/**
+    hello/1/1 도 됨
+
+
+* 클래스 매핑 + 메소드 매핑을 사용하는 경우
+
+    @Controller
+    @RequestMapping(value = "/hello", method = RequestMethod.GET)
+    public class SampleController {
+        @RequestMapping("/**")
+        @ResponseBody
+        public String hello() {
+            return "hello";
+        }
+    }
+    --> 클래스의 uri + 메소드의 uri 둘 다 사용
+    --> /hello/**
+
+
+* 정규표현식도 사용 가능
+
+    @RequestMapping("/{name:[a-z]+}")
+    public String hello2(@PathVariable String name) {
+        return "hello " + name;
+    }
+    // uri 패쓰에 들어있는 변수를 name 스트링으로 받겠다.
+
+    테스트
+    @Test
+    public void helloTest() throws Exception {
+        mockMvc.perform(get("/abcde"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().string("hello abcde"))
+                ;
+    }
+    실행! 성공!
+
+    /hello/124 은 안됨. 매핑을 못 찾음 -> 404 에러
+
+
+* 패턴이 중복되는 경우
+
+    @RequestMapping("/keesun")
+    @ResponseBody
+    helloKeesun() { return "hello keesun"; }
+
+    @RequestMapping("/**")
+    @ResponseBody
+    hello() { return "hello"; }
+
+    테스트
+    /hello/keesun -> "hello keesun" 이 나옴
+
+
+* URI 확장자 맵핑 지원
+
+    -> accept 헤더에 내가 원하는 리소스 확장자 타입을 붙여서 요청하면 된다 (json, xml, ... )
+    -> 헤더를 쓰기 어려우면 요청 매개변수를 사용할 수도 있다. @RequestMapping(/keesun?type=xml)
+
+    핸들러 메소드에 @RequestMapping("/keesun")이 붙어있으면
+    스프링 웹 mvc 가 암묵적으로 ({"/keesun", "keesun.*"} 매핑을 해준다
+    .json, .html, .xml을 처리할 수 있도록 암묵적으로 매핑해준다.
+
+    스프링 부트는 이 기능을 사용하지 않도록 설정해뒀음.
+
+    [1] 스프링 mvc 를 쓰는 경우 확인해보자
+        의존성? junit(test) javax.servlet, spring-webmvc
+        톰캣으로 실행해보자!
+        이 경우 hello.json, hello.html, hello.zip -> 브라우저가 파일을 다운받게 됨
+        RFD(Reflected File Download) Attack이 들어올 가능성이 있다.
+
+    [2] 스프링 부트를 쓰는 경우
+        404. 그러한 매핑이 없다고 응답이 옴 (RequestMapping ** 에서 걸리지 않도록 주의)
+        .andExpect(status().isNotFound())
+

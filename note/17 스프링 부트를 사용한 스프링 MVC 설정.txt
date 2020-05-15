@@ -1,0 +1,90 @@
+17. 스프링 부트의 스프링 MVC 설정
+
+스프링 부트가 제공하는 스프링 MVC 설정 살펴보기
+
+
+스프링 부트의 “주관”이 적용된 자동 설정이 동작한다.
+    ● JSP 보다 Thymeleaf 선호
+    ● JSON 지원
+    ● 정적 리소스 지원 (+ 웰컴 페이지, 파비콘 등 지원)
+
+
+자동 설정 파일은 어디에서 오는가?
+    spring-boot-autoconfigure/META-INF/spring.factories를 보면 여러 자동 설정 파일들을 볼 수 있고
+    해당 자동 설정 파일들은 프로젝트가 어떤 특징을 가지는지에 따라서 선별되어 사용된다.
+    이 중 스프링 부트가 자동으로 만들어주는 스프링 MVC 설정을 확인해보려면
+    org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration,\
+    를 보면 된다!
+
+        @Configuration( proxyBeanMethods = false )
+        @ConditionalOnWebApplication( type = Type.SERVLET )
+        @ConditionalOnClass({Servlet.class, DispatcherServlet.class, WebMvcConfigurer.class})
+        @ConditionalOnMissingBean({WebMvcConfigurationSupport.class})
+        @AutoConfigureOrder(-2147483638)
+        @AutoConfigureAfter({DispatcherServletAutoConfiguration.class, TaskExecutionAutoConfiguration.class, ValidationAutoConfiguration.class})
+        public class WebMvcAutoConfiguration {
+            ...
+        }
+
+    @ConditionalOnMissingBean({WebMvcConfigurationSupport.class}) -> WebMvcConfigurationSupport 빈이 없을 때 사용된다.
+    따라서 스프링 부트가 자동으로 추가하는 MVC 설정을 쓰지 않으려면 @EnableWebMvc 를 붙여주면 된다.
+    (@EnableWebMvc는 DelegatingWebMvcConfiguration를 import해주는데 걔가 WebMvcConfigurationSupport를 상속받기 때문!)
+    (public class DelegatingWebMvcConfiguration extends WebMvcConfigurationSupport { ... } )
+
+
+스프링 MVC 커스터마이징
+    ● application.properties
+        자동 설정 파일내에서는 properties 를 사용하는데
+        properties를 더 찾아가보면 prefix로 어떤 값을 사용하는지 알 수 있다.
+
+        ex)
+            @ConfigurationProperties(
+                prefix = "spring.mvc"
+            )
+            public class ResourceProperties { ... }
+
+        그 prefix를 사용한 값들을 application.properties 에서 변경해주면
+        스프링 MVC를 커스터마이징해서 쓸 수 있다.
+
+        ex)
+            spring.mvc.XXX = XXX
+
+    ● @Configuration + Implements WebMvcConfigurer
+        : 스프링 부트의 스프링 MVC 자동설정 + 추가 설정
+
+    ● @Configuration + @EnableWebMvc + Imlements WebMvcConfigurer
+        : 스프링 부트 스프링 MVC 자동설정 사용하지 않음.
+
+
+ex)
+    첫 시간에 만들었던 프로젝트
+    * 의존성: 스프링 부트, 롬복
+
+    이벤트 컨트롤러를 만들어서
+    타임리프 뷰로 모델 데이터를 보내고
+    모델 데이터를 뷰에 출력하는 프로젝트
+
+    이 때 기본 설정을 살펴보려면
+    DispatcherServlet 에 디버깅을 걸어서 살펴 볼 수있다.
+
+    핸들러 매핑
+        [0] SimpleUrlHandlerMapping - "faviconHandlerMapping"
+        [1] RequestMappingHandlerMapping - 어노테이션
+        [2] BeanNameUrlHandlerMapping
+        [3] simpleUrlHandlerMapping - "resourceHandlerMapping"
+        (스프링 부트가 지원하는 정적 리소스 기능 resources-static)
+        [4] WelcomePageHandlerMapping
+
+    핸들러 어댑터
+        [0] RequestMappingHandler - 어노테이션 기반
+        [1] ...
+        [2] ...
+
+    뷰 리졸버
+        [0] ContentNegotiatingViewResolver
+        - 얘가 뷰 이름에 해당하는 뷰를 직접 찾아주진 않고 뷰 리졸버 [1]~[4]에게 일을 위임해 줌
+        - 따라서 우선 순위가 제일 높아야 한다.
+        [1] BeanNameViewResolver
+        [2] ThymeleafViewResolver (의존성에서 thymeleaf 를 추가해서 생겨남)
+        [3] ...
+        [4] ...

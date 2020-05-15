@@ -1,0 +1,90 @@
+36. HTTP 요청 맵핑하기 6부: 커스텀 애노테이션
+
+
+@RequestMapping 애노테이션을 메타 애노테이션으로 사용하기
+    ● @GetMapping 같은 커스텀한 애노테이션을 만들 수 있다.
+
+
+메타(Meta) 애노테이션
+    ● 애노테이션에 사용할 수 있는 애노테이션
+    ● 스프링이 제공하는 대부분의 애노테이션은 메타 애노테이션으로 사용할 수 있다.
+
+
+조합(Composed) 애노테이션
+    ● 한개 혹은 여러 메타 애노테이션을 조합해서 만든 애노테이션
+    ● 코드를 간결하게 줄일 수 있다.
+    ● 보다 구체적인 의미를 부여할 수 있다.
+
+
+[어노테이션 EX]
+
+    @Retention
+        ● 해당 애노테이션 정보를 언제까지 유지할 것인가.
+        ● Source: 소스 코드까지만 유지. 즉, 컴파일 하면 해당 애노테이션 정보는 사라진다는 이야기.
+        ● Class: 컴파인 한 .class 파일에도 유지. 즉 런타임 시, 클래스를 메모리로 읽어오면 해당 정보는 사라진다.
+        ● Runtime: 클래스를 메모리에 읽어왔을 때까지 유지! 코드에서 이 정보를 바탕으로 특정 로직을 실행할 수 있다.
+
+
+    @Target
+        ● 해당 애노테이션을 어디에 사용할 수 있는지 결정한다.
+
+
+    @Documented
+        ● 해당 애노테이션을 사용한 코드의 문서에 그 애노테이션에 대한 정보를 표기할지 결정한다.
+
+
+메타 애노테이션
+    ● https://docs.spring.io/spring/docs/current/spring-framework-reference/core.html#beans- meta-annotations
+    ● https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/co re/annotation/AliasFor.html
+
+
+[실습]
+
+    // @GetMapping // 메타 애노테이션이 아니므로 여기엔 붙일 수 없다.
+    @RequestMapping(method = RequestMethod.GET, value = "/hello")
+    public @interface GetHelloMapping {}
+
+    @GetHelloMapping
+    @ResponseBody
+    public String hello() { return "hello"; }
+
+    @Test
+    public void helloTest() throws Exception {
+        mockMvc.perform(get("/hello"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                ;
+    }
+
+    테스트 실패
+    404 not found
+    get 요청이고 /hello인데 왜 안될까?
+
+    런타임시에 @GetHelloMapping 이 사라짐.
+    Retention! 이 애노테이션 정보를 언제까지 유지할 것인가?
+
+    기본값이 class로 컴파일이 되어도 .class 파일에 애노테이션이 남아있지만
+    해당 클래스를 로딩하는 런타임때는 사라짐.
+
+    @RequestMapping(method = RequestMethod.GET, value = "/hello")
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface GetHelloMapping {
+    }
+
+    public enum RetentionPolicy {
+        SOURCE,
+        CLASS,
+        RUNTIME;
+
+        private RetentionPolicy() {
+        }
+    }
+
+    테스트 재실행!
+    성공!
+
+    Target? 이 애노테이션을 어디에 사용할 수 있는가?
+    @Target(ElementType.METHOD)
+
+    @Documented
+    클래스에 대한 자바독을 만들 때 이 애노테이션도 퍼블릭한 명세서에 포함되도록 한다.

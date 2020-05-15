@@ -1,0 +1,10 @@
+54. 핸들러 메소드 17부: 정리
+
+다루지 못한 내용
+    ● @JsonView: https://www.youtube.com/watch?v=5QyXswB_Usg&t=188s
+    ● PushBuidler: HTTP/2, 스프링 5
+
+과제
+    ● 프로젝트 코드 분석
+    ● https://github.com/spring-projects/spring-petclinic
+    ● 컨트롤러 코드 위주로...

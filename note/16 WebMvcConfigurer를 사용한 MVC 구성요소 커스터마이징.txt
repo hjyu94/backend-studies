@@ -1,0 +1,85 @@
+16. WebMvcConfigurer 인터페이스
+
+스프링 부트 없이 스프링 MVC 사용하기!
+@EnableWebMvc가 제공하는 빈을 커스터마이징할 수 있는 기능을 제공하는 인터페이스
+
+
+@EnableWebMvc를 사용하면 등록되는 기본적인 빈들
+(DispatcherServlet에서 기본전략으로 사용하는 빈 말고)
+(import 하는 DelegatingWebMvcConfiguration 설정에 의해 추가되는 빈들)
+
+우리가 원하는 대로 커스텀 할 수 있도록 델리게이션 구조로 되어있다.
+얘를 implements WebMvcConfigurer 를 사용해서 확장할 수 있다.
+
+
+ex
+    ViewResolver를 빈으로 등록하는 과정 없이 편하게 @EnableWebMvc이 등록해주는 리졸버를 커스터마이징해보자
+    - 확장 지점 찾기: 메소드 오버라이딩 목록 보기
+
+
+    @Configuration
+    @EnableWebMvc
+    public class WebConfig implements WebMvcConfigurer {
+        @Override
+        public void configureViewResolvers(ViewResolverRegistry registry) {
+            registry.jsp("/WEB-INF/", ".jsp"); // 확장 지점
+        }
+    }
+
+
+    @GetMapping("/sample")
+    public void sample() {};
+
+
+    아무 값도 리턴하지 않으면 자동으로 /sample 을 뷰 이름으로 생각하고 처리하는데
+    viewResolver 설정에 따라서 앞에 "/WEB-INF/" 뒤에 ".jsp" 를 붙여
+    "sample" -> ""/WEB-INF/sample.jsp" 로 처리한다
+
+
+    public class WebApplication implements WebApplicationInitializer {
+        @Override
+        public void onStartup(ServletContext servletContext) {
+            AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
+            context.setServletContext(servletContext);
+            // EnableMvc 가 불러오는 DelegatingWebMvcConfiguration를 사용할 때
+            // 서블릿 컨텍스트를 종종 참조함.
+            // 따라서 서블릿 컨텍스트를 등록해놓지 않으면 제대로 설정이 되지 않는다.
+
+            context.register(WebConfig.class); // 빈 설정 등록
+            context.refresh();
+
+            DispatcherServlet dispatcherServlet = new DispatcherServlet();
+            ServletRegistration.Dynamic app = servletContext.addServlet("app", dispatcherServlet);
+            app.addMapping("/app/*"); // "app/" 으로 들어온 요청은 모두 DispatcherServlet 이 받도록!
+        }
+    }
+
+    // 디스팻쳐 서블릿을 만들어 등록하는 법 (1. web.xml 2. 자바설정 - 이 때 ApplicaationContext에 서블릿 설정 꼭 해야함)
+
+
+maven
+
+new Maven module
+create from archetype: maven-archetype-webapp
+ <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.11</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>javax.servlet-api</artifactId>
+      <version>4.0.1</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+      <version>5.1.3.RELEASE</version>
+    </dependency>
+
+  </dependencies>

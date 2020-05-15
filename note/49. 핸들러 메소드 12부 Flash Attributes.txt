@@ -1,0 +1,82 @@
+49. 핸들러 메소드 12부: Flash Attributes
+
+주로 리다이렉트시에 데이터를 전달할 때 사용한다.
+    ● 데이터가 URI에 노출되지 않는다.
+    ● 임의의 객체를 저장할 수 있다.
+    ● 보통 HTTP 세션을 사용한다.
+
+리다이렉트 하기 전에 데이터를 HTTP 세션에 저장하고 리다이렉트 요청을 처리 한 다음 그 즉시 제거한다.
+
+RedirectAttributes를 통해 사용할 수 있다.
+
+XPath
+    ● https://www.w3schools.com/xml/xpath_syntax.asp
+    ● https://www.freeformatter.com/xpath-tester.html#ad-output
+
+
+[실습]
+
+    RedirectAttributes랑 굉장히 비슷
+    (리다이렉트할때 데이터를 URI 뒤의 쿼리 파라미터에 붙여서 전달)
+    (이 때 데이터는 쿼리 파라카미터로 붙을 수 있어야해서 문자열로 변경될 수 있어야 한다.)
+    (Event 타입의 데이터를 바로 넣어줄 순 없다, Event->String 컨버터가 있지 않는 한)
+
+    @GetMapping("/redirect-attribute/ex/3")
+    public String ex3(RedirectAttributes attributes)
+    {
+        Event event = new Event();
+        event.setName("FlashAttributes를 이용해보자!");
+        event.setLimit(1000);
+
+        attributes.addFlashAttribute("newEvent", event);
+
+        return "redirect:/redirect-attribute/ex/3/redirected-page";
+    }
+    // 세션에 event 객체가 들어가게 된다.
+    // 리다이렉트 된 곳에서만 사용할 수 있다. 그 후 세션에서 사라짐!
+
+    @GetMapping("/redirect-attribute/ex/3/redirected-page")
+    @ResponseBody
+    public String redirected_ex3(@ModelAttribute("newEvent") Event event, Model model)
+    {
+        Event event1 = event;
+        Object event2 = model.asMap().get("newEvent");
+
+        return event1.toString() + "<br>" + event2.toString();
+    }
+    newEvent attribute로 전달되서 사용 가능하다
+    Http session 으로 전달되기 때문에 uri의 경로에 데이터가 노출되지 않는다.
+    (세션에 전달되기는 하지만 @SessionAttributes 랑 같은 이름으로 쓰면 안됨)
+
+
+* 테스트 작성법
+
+    @GetMapping("/redirect-attribute/ex/3/redirected-page")
+    public String redirected_ex3(@ModelAttribute("newEvent") Event event, Model model)
+    {
+        Event event1 = event;
+        Object event2 = model.asMap().get("newEvent");
+
+        List<Event> eventList = new ArrayList<>();
+        eventList.add(event1);
+        eventList.add((Event) event2);
+        model.addAttribute("eventList", eventList);
+
+        return "/session/events/list";
+    }
+
+    @Test
+    public void flashAttributeTest() throws Exception {
+        Event newEvent = new Event();
+        newEvent.setName("hjeong");
+        newEvent.setLimit(1000);
+
+        mockMvc.perform(get("/redirect-attribute/ex/3/redirected-page")
+                    .sessionAttr("visitTime", LocalDateTime.now())
+                    .flashAttr("newEvent", newEvent))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(request().sessionAttribute("newEvent", nullValue()))
+                .andExpect(xpath("//p").nodeCount(2))
+        ;
+    }

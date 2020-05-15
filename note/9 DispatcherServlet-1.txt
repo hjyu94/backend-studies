@@ -1,0 +1,150 @@
+9. DispatcherServlet 동작 원리 1부
+
+어떻게 DispatcherServlet 을 사용하면 우리가 핸들러를 Annotation으로 작성할 수 있는가?
+4.2 애플리케이션을 디버거 모드로 실행해보자
+(Dispatcher Servlet 이 있고, localhost:8080/app/hello 를 요청하는 경우 Hello! 텍스트를 보여주는 앱)
+(Dispatcher Servlet 이 우선 /app/* 로 들어온 요청을 모두 받기는 하고, 그 요청을 각 컨트롤러에게 위임함)
+
+DispatcherServlet 초기화
+    ● 다음의 특별한 타입의 빈들을 찾거나, 기본 전략에 해당하는 빈들을 등록한다.
+    ● HandlerMapping: 핸들러를 찾아주는 인터페이스
+    ● HandlerAdapter: 핸들러를 실행하는 인터페이스
+    ● HandlerExceptionResolver
+    ● ViewResolver
+    ● ...
+    // Strategy 패턴이 적용되어 있다.
+
+
+DispatcherServlet 동작 순서
+    1. 요청을 분석한다. (로케일, 테마, 멀티파트 등)
+    2. (핸들러 맵핑에게 위임하여) 요청을 처리할 핸들러를 찾는다.
+    3. (등록되어 있는 핸들러 어댑터 중에) 해당 핸들러를 실행할 수 있는 “핸들러 어댑터”를 찾는다.
+    4. 찾아낸 “핸들러 어댑터”를 사용해서 핸들러의 응답을 처리한다.
+        ● 핸들러의 리턴값을 보고 어떻게 처리할지 판단한다.
+        ● 뷰 이름에 해당하는 뷰를 찾아서 모델 데이터를 랜더링한다.
+        ● @ResponseEntity가 있다면 Converter를 사용해서 응답 본문을 만들고.
+    5. (부가적으로) 예외가 발생했다면, 예외 처리 핸들러에 요청 처리를 위임한다.
+    6. 최종적으로 응답을 보낸다.
+
+
+HandlerMapping
+    ● RequestMappingHandlerMapping
+    ● BeanNameUrlHandlerMapping
+
+
+HandlerAdapter
+    ● RequestMappingHandlerAdapter
+    ● SimpleControllerHandlerAdapter
+
+
+
+중단점 찍어서 디버깅 해보자!
+    *F7, F8
+
+    DispatcherService.doService()
+        DispatcherService.doDispatch()
+            DispatcherServlet.getHandler()
+            DispatcherServlet.getHandlerAdapter()
+    HelloController.hello()
+    HandlerMethodReturnValueHandlerComposite.selectHandler()
+
+DispatcherService.doDispatch()
+    제일 먼저 하는 일은
+    요청이 multipart 요청인지, locale은 어떤건지? 테마는 어떤 테마인지
+    이런 정보를 판단한다
+    (* multipart: 파일 업로드에 필요한 요청)
+
+    ...
+
+    mappedHandler = this.getHandler(processedRequest);
+        // 핸들러를 찾아오는 부분
+        // DispatcherServlet이 proecessedRequest를 토대로 핸들러를 찾아온다.
+
+        (아무런 클래스를 정의해주지 않아도 DispatcherServlet에는 기본적으로
+        BeanNameUrlHandlerMapping, RequestMappingHandlerMapping 을 가지고 있다)
+
+        DispatcherServlet이 들고있는 HandlerMapping을 순회하면서
+        해당 요청을 처리할 수 있는 handler를 찾아서 return 한다.
+
+        (*RequestMappingHandlerMapping: 핸들러와 리퀘스트 매핑, 메타 애노테이션으로 사용하고 있는
+        @GetMapping, @PostMapping으로 지정한 핸들러를 찾아주는 매핑)
+        (얘가 리턴된다)
+
+    ...
+
+    mappedHandler가 null이 아니게 되고
+
+    ...
+
+    HandlerAdapter ha = this.getHandlerAdapter(mappedHandler.getHandler());
+        // DispatcherServlet에는 핸들러매핑, 핸들러어댑터가 등록되어 있는데
+        // 핸들러 매핑에서 찾아낸 핸들러를 누가 실행할 수 있는지 핸들러 어댑터를 찾아온다.
+
+        this.handlerAdapters
+        [0] HttpRequestHandlerAdapter
+        [1] SimpleControllerHandlerAdapter
+        [2] RequestMappingHandlerAdapter (*)
+
+        this.handlerAdapters 를 순회하면서 HandlerAdapter를 찾아온다
+        adapter.supports(handler) -> 해당 핸들러 어댑터가 핸들러를 실행할 수 있는지 값 리턴
+
+    ...
+
+    mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
+
+        // 찾아낸 핸들러 어댑터를 이용해서 요청을 처리한다
+        return this.handleInternal(request, response, (HandlerMethod)handler);
+
+            // handleInternal(...) 안에서 invokeHandlerMethod() 실행되는데
+            mav = this.invokeHandlerMethod(request, response, handlerMethod);
+
+                // 핸들러 메소드를 invoke 한다?
+                // 자바의 reflection 을 사용해서 컨트롤러의 핸들러를 실행하게 되는 것.
+                (* reflection: https://gyrfalcon.tistory.com/entry/Java-Reflection)
+                // HelloController.hello() 를 실행하게 되는 것
+                // 핸들러 메소드라는 객체 안에 함수 포인터를 들고 있다.(HelloController.hello())
+
+                // 뭔소리냐?
+                // 간단하게 말하자면, 자바의 reflection을 사용해서 HelloController.hello() 를 호출한다.
+
+               ...
+
+                HelloController.hello() 실행
+                // HelloController는 @RestController인데
+                // @RestController로 정의하면 이 안의 모든 메소드에는 @ResponseBody가 적용된다.
+                // 사실상 hello()에는 @ResponseBody 가 들어있다는 점을 염두해야 한다.
+
+                ...
+
+                // invokeForRequest의 리턴밸류가 HelloController.hello() 의 리턴값을 받아 스트링이 된다.
+
+                ...
+
+                this.returnValueHandlers.handleReturnValue(returnValue, this.getReturnValueType(returnValue), mavContainer, webRequest);
+
+                ...
+
+            // 리턴 값을 처리할 수 있는 녀석을 찾자!
+            HandlerMethodReturnValueHandlerComposite.HandlerMethodReturnValueHandler selectHandler(@Nullable Object value, MethodParameter returnType) 에서 걸림
+            핸들러에서 리턴한 리턴값을 어떻게 처리할 것인가?
+            리턴값이 ResponseEntity, View, String, 다양한 것을 리턴할 수 있다.
+
+            우리가 리턴한 값은 @ResponseBody 가 붙어있는 String 을 받았다.
+            이 리턴값을 처리할 수 있는 것은 this.returnValueHandlers 중에서
+            RequestResponseBodyMethodProcessor 로 바디에 리턴된 스트링을 넣어준다.
+
+            ...
+
+            HandlerMethodReturnValueHandler handler = selectHandler(...);
+                // 리턴 밸류 핸들러는 컴포터를 사용해서 리턴값을 http 본문 body 영억에 넣어준다.
+
+            ...
+
+    이 경우 mv는 null이 나온다.
+    뷰에 모델 정보를 주는 형태가 아니기 때문에.
+    -> 뷰에 렌더링 하는 과정 없이 페이지를 보여주게 될 것이다.
+
+
+
+
+
