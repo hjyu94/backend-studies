@@ -36,7 +36,7 @@
 
 
 참고
-7    ● https://docs.oracle.com/cd/B14099_19/web.1012/b14017/filters.htm#i1000654
+    ● https://docs.oracle.com/cd/B14099_19/web.1012/b14017/filters.htm#i1000654
 
 
 [1] 서블릿 리스너 ex
@@ -123,7 +123,7 @@
                 // 반드시 다음 필터로 연결해줘야 한다.
                 // 맨 마지막 필터였다면 서블릿으로 연결시켜준다
                 // 서블릿에서 필요한 매개변수 req, resp 가 전달된다.
-                (HelloServlet::doGet(HttpServletRequest req, HttpServletResponse resp))
+                (HelloServlet::doGet(HttpServletRequest req, HttpServletResponse resp) 에서 req, resp 아규먼트로)
             }
             @Override
             public void destory(){
@@ -132,47 +132,20 @@
         }
 
     web.xml에 필터 등록
-        <web-app>
-            <filter>
-                <filter-name>myFilter</>
-                <filiter-class>me.hjeong.MyFilter</>
-            </>
-            <filter-mapping>
-                <filter-name>myFilter</>
-                <servlet-mapping>hello</>
-            </>
-        </>
-
-The content of element type "web-app" must match
-"(icon?,display-name?,description?,distributable?,context-param*,filter*,filter-mapping*,listener*,servlet*,servlet-mapping*,session-config?,mime-mapping*,welcome-file-list?,error-page*,taglib*,resource-env-ref*,resource-ref*,security-constraint*,login-config?,security-role*,env-entry*,ejb-ref*,ejb-local-ref*)".
--> 요소들 순서 맞춰주기
-
     <web-app>
-      <display-name>Archetype Created Web Application</display-name>
-
       <filter>
-        <filter-name>myFilter</filter-name>
-        <filter-class>me.hjeong.MyFilter</filter-class>
+        <filter-name>myFilter</f
+        <filter-class>me.hjeong.
       </filter>
       <filter-mapping>
-        <filter-name>myFilter</filter-name>
-        <servlet-name>hello</servlet-name>
+        <filter-name>myFilter</f
+        <servlet-name>hello</ser
       </filter-mapping>
+    </>
 
-      <listener>
-        <listener-class>me.hjeong.MyListener</listener-class>
-      </listener>
-
-      <servlet>
-        <servlet-name>hello</servlet-name>
-        <servlet-class>me.hjeong.HelloServlet</servlet-class>
-      </servlet>
-      <servlet-mapping>
-        <servlet-name>hello</servlet-name>
-        <url-pattern>/hello</url-pattern>
-      </servlet-mapping>
-    </web-app>
-
+    The content of element type "web-app" must match
+    "(icon?,display-name?,description?,distributable?,context-param*,filter*,filter-mapping*,listener*,servlet*,servlet-mapping*,session-config?,mime-mapping*,welcome-file-list?,error-page*,taglib*,resource-env-ref*,resource-ref*,security-constraint*,login-config?,security-role*,env-entry*,ejb-ref*,ejb-local-ref*)".
+    -> 요소들 순서 맞춰주기
 
 Run!
 
