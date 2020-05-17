@@ -1,0 +1,69 @@
+13 스프링 HATEOAS 소개
+
+HATEOAS
+    Hypermedia as the Engine of Application State
+    HATEOAS is a component of the REST application architecture that distinguishes it from other network application architectures.
+    With HATEOAS, a client interacts with a network application whose application servers provide information dynamically through hypermedia.
+    A REST client needs little to no prior knowledge about how to interact with an application or server beyond a generic understanding of hypermedia.
+    By contrast, clients and servers in CORBA interact through a fixed interface shared through documentation or an interface description language (IDL).
+    The restrictions imposed by HATEOAS decouple client and server.
+    This enables server functionality to evolve independently.
+
+    하이퍼미디어를 사욯해서 애플리케이션 서버의 정보를 클라이언트와 동적으로 정보를 주고받음.
+
+    예시
+        [요청]
+            get /accounts/12345 요청을 보낼 때
+        [응답]
+            계좌번호 정보
+            남은 금액 (usd달러로 100달러)
+            링크
+                - 추가로 돈 입금하기
+                - 인출하기
+                - 다른 계좌로 송금하기
+                - 계좌 닫기
+            // 릴레이션으로 어떠한 액션을 할 수 있는지가 나와있음.
+            // 각각에 해당하는 링크 정보가 하이퍼미디어 레퍼런스러 URI이 됨
+            // 서버가 relation만 보고 동작한다면 해당 URI 가 바뀌더라도 기능이 정상적으로 작동
+
+        [요청]
+            동일함
+        [응답]
+            남은 금액이 - 임!
+            추가로 돈 입금하는 링크만 존재
+
+    즉 애플리케이션의 상태 변화에 따라 링크정보가 바껴야 한다. -> HATEOAS
+    이러한 HATEOAS를 만족시켜야 진정한 Restful API 가 된다.
+
+
+스프링 HATEOAS
+    ● This project provides some APIs to ease creating REST representations that follow the HATEOAS principle
+      when working with Spring and especially Spring MVC.
+      The core problem it tries to address is link creation and representation assembly.
+    ● https://docs.spring.io/spring-hateoas/docs/current/reference/html/
+
+    스프링 프로젝트 중 하나로써
+    HATEOAS를 만족하는 Representation을 만족하는 API를 만들 때 사용할 수 있는 라이브러리
+    링크와 리소스를 보다 쉽게 사용할 수 있도록 여러 기능을 제공한다.
+
+
+가장 중요한 기능
+    ● 링크 만드는 기능
+        ○ 문자열 가지고 만들기
+        ○ 컨트롤러와 메소드로 만들기
+
+    ● 리소스 만드는 기능
+        ○ 리소스: 데이터 + 링크
+
+클라이언트 입장에서는 링크를 보다 쉽게 찾아올 수 있도록 기능 제공
+    ● 링크 찾아주는 기능
+        ○ Traverson
+        ○ LinkDiscoverers
+
+● 링크 ​
+    ○ HREF
+    ○ REL ​
+        ■ self
+        ■ profile
+        ■ update-event
+        ■ query-events
