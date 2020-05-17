@@ -140,4 +140,33 @@ public class EventControllerTests {
                 .andExpect(status().isBadRequest())
         ;
     }
+    @Test
+    @TestDescription("Bad Request 본문에 에러 표시하기")
+    public void createEvent_Bad_Request_Body() throws Exception {
+        EventDto eventDto = EventDto.builder()
+                .name("Spring")
+                .description("REST API Development with Spring")
+                .beginEnrollmentDateTime(LocalDateTime.of(2020, 9, 1, 0, 0))
+                .closeEnrollmentDateTime(LocalDateTime.of(2018, 10, 31, 0, 0))
+                .beginEventDateTime(LocalDateTime.of(2020, 11, 23, 14, 0))
+                .endEventDateTime(LocalDateTime.of(2018,11,24,14,0))
+                .basePrice(500)
+                .maxPrice(200)
+                .limitOfEnrollment(100)
+                .location("강남역 D2 스타텁 팩토리")
+                .build();
+
+        String json = objectMapper.writeValueAsString(eventDto);
+
+        mockMvc.perform(post("/api/events/")
+                    .contentType(MediaType.APPLICATION_JSON_VALUE)
+                    .content(json)
+                )
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$[0].objectName").exists())
+                .andExpect(jsonPath("$[0].defaultMessage").exists())
+                .andExpect(jsonPath("$[0].code").exists())
+        ;
+    }
 }

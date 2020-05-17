@@ -1,0 +1,97 @@
+10 Bad Request 응답의 본문 메세지 작성
+
+테스트
+    응답에 아래같은 값이 있길 바란다.
+    andExpect(jsonPath("$[0].objectName").exists())
+    andExpect(jsonPath("$[0].field").exists())
+    andExpect(jsonPath("$[0].defaultMessage").exists())
+    andExpect(jsonPath("$[0].code").exists())
+    andExpect(jsonPath("$[0].rejectedValue").exists())
+
+컨트롤러
+    [1] event 를 body 에 담으면 json 으로 나갔듯이
+    ( return ResponseEntity.created(createdUri).body(event); )
+    [2] errors 를 body 에 담으면 json 으로 나갈 수 있지 않을까?
+    ( badRequest().body(errors); )
+
+    [1] body(event) 경우
+        objectMapper 가 event를 json으로 변환한다.
+        아무런 custom serializaer 없어도
+        objectMapper의 BeanSerializer를 사용해서
+        자바 빈 스펙을 따르는 객체인 event를 json 으로 변환할 수 있다.
+
+    [2] body(errors) 경우
+        Errors 는 자바 빈 스펙을 준수하는 데이터가 아님.
+        그렇기 때문에 커스텀 Serializer 없이 BeanSerializer 를 사용해서 json으로 변환할 수 없다.
+
+
+ErrorsSerializer class 생성
+    common 패키지에 추가
+
+    public class ErrorsSerializer extends JsonSerializer<Errors> {
+        public void serialize {
+            gen.writeStartArray();
+
+            gen.writeEndArray();
+        }
+    }
+    Errors 에 Error 가 여러개임 -> Array 에 보내자.
+
+EventValidator
+    에러에는 두 타입이 있음
+    [1] Field Error
+        errors.rejectValue(...) -> field error
+    [2] Global Error
+        errors.reject("wrongPrices", "Values for prices are wrong");
+
+ErrorsSerializer
+    public void serialize {
+        gen.writeStartArray();
+        // field error 담기
+        errors.getFieldErrors().stream().forEach(e -> {
+            gen.writeStartObject();
+            try {
+                jsonGenerator.writeStartObject();
+                jsonGenerator.writeStringField("field", e.getField());
+                jsonGenerator.writeStringField("objectName", e.getObjectName());
+                jsonGenerator.writeStringField("code", e.getCode());
+                jsonGenerator.writeStringField("defaultMessage", e.getDefaultMessage());
+                Object rejectedValue = e.getRejectedValue();
+                if (rejectedValue != null) {
+                    jsonGenerator.writeStringField("rejectedValue", rejectedValue.toString());
+                }
+                jsonGenerator.writeEndObject();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+        });
+        // global error 담기
+        errors.getGlobalError().stream().forEach(e -> {
+            try {
+                gen.writeStartObject();
+                gen.writeStringField("objectName", e.getObjectName());
+                gen.writeStringField("code", e.getObjectName());
+                gen.writeStringField("defaultMesssage", e.getObjectName());
+                gen.writeEndObject();
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+        });
+        gen.writeEndArray();
+    }
+
+
+Custom Serializere 등록하기
+    스프링부트가 제공하는 @JsonComponent 를 사용해서 등록할 수 있다.
+
+* 이제 objectMapper는 Errors 를 Serialization 할 때 ErrorsSerializer 를 사용하게 된다.
+* 테스트 실행! 성공!
+
+테스트
+    글로벌 에러는 필드 에러에 없는 값들이 있으므로 테스트에서 몇줄 지우자.
+
+    andExpect(jsonPath("$[0].objectName").exists())
+    andExpect(jsonPath("$[0].defaultMessage").exists())
+    andExpect(jsonPath("$[0].code").exists())
+
+    .andDo(print()) // 응답 확인하기
