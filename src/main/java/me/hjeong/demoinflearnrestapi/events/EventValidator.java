@@ -12,7 +12,7 @@ public class EventValidator {
         {
             if(eventDto.getMaxPrice() != 0)
             {
-                errors.rejectValue("bestPrice", "wrongValue", "basePrice is wrong");
+                errors.rejectValue("basePrice", "wrongValue", "basePrice is wrong");
                 errors.rejectValue("maxPrice", "wrongValue", "maxPrice is wrong");
             }
             else
