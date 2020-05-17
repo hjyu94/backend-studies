@@ -1,0 +1,75 @@
+12 테스트 코드 리팩토링 (JUnitParams)
+
+testFree(), testOffline() 테스트에서
+given, when, then 코드가 중복됨, 매개변수만 달라짐
+
+JUnitParams dependency 추가
+기본적인 Junit 테스트 메소드들은 파라미터를 받지 못하는데 이 라이브러리를 이용해서 매개변수 사용
+
+Test
+[1]
+    @RunWith(JUnitParamsRunner.class)
+    class Test {
+        @Test
+        @Parameters({
+            "0, 0, true",
+            "100, 0, false",
+            "0, 100, false"
+        })
+        public void testFree(int basePrice, int maxPrice, boolean isFree) {
+            ...
+        }
+    }
+[2]
+    @RunWith(JUnitParamsRunner.class)
+    class Test {
+        @Test
+        @Parameters(method = "parametersForTestFree")
+        public void testFree(int basePrice, int maxPrice, boolean isFree) {
+            ...
+        }
+
+        private Object[] parametersForTestFree() {
+            return new Object[] {
+                new Object[] {0, 0, true},
+                new Object[] {100, 0, false},
+                new Object[] {0, 100, false}
+                new Object[] {100, 100, false}
+            }
+        }
+    }
+[3]
+    @RunWith(JUnitParamsRunner.class)
+    class Test {
+        @Test
+        @Parameters
+        // parametersFor가 prefix인 메소드를 Parameters 값으로 사용
+        public void testFree(int basePrice, int maxPrice, boolean isFree) {
+            ...
+        }
+
+        private Object[] parametersForTestFree() {
+            return new Object[] {
+                new Object[] {0, 0, true},
+                new Object[] {100, 0, false},
+                new Object[] {0, 100, false}
+                new Object[] {100, 100, false}
+            }
+        }
+    }
+
+    @Parameters({...}), @Parameters("method-name"), @Parameters
+    세 가지 방법이 있다.
+    testOffline도 적용해보자
+
+    private Object[] parametersForTestOffline() {
+        return new Object[]{
+                new Object[]{"강남", true},
+                new Object[]{null, true},
+                new Object[]{"     ", true},
+        };
+    }
+    @Test
+    @Parameters
+    public void testOffline(String location, boolean isOffline) { ... }
+
