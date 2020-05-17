@@ -14,6 +14,7 @@ public class EventValidator {
             {
                 errors.rejectValue("basePrice", "wrongValue", "basePrice is wrong");
                 errors.rejectValue("maxPrice", "wrongValue", "maxPrice is wrong");
+                errors.reject("wrongPrices", "Values for prices are wrong");
             }
             else
             {
