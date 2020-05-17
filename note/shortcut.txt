@@ -9,3 +9,5 @@
     Ctrl Shift F10 테스트 런
     Shift F6 rename
     메소드 안에서 Ctrl P -> 어떤 값을 아규먼트로 쓸 수 있는지
+
+    Ctrl Alt V : 변수 빼기
