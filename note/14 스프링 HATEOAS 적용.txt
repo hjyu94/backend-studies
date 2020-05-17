@@ -101,3 +101,72 @@ Controller
             }
         }
     }
+
+    body에 실리는 eventResource를 objectMapper가(object, json 컨버터)
+    Serializer하는데 (->json 변환) 이 때 BeanSerializer를 사용한다.
+    기본적으로 필드 이름을 사용해서 json을 추가하는데
+    이 때 event 필드가 컴포짓 객체이므로 이 이름 안에 그룹으로 Event의 필드를 추가. -> 문제
+
+
+EventResource의 문제
+    [1]
+        컴포짓 객체를 필드로 사용하지 말고 Event 안의 필드를 모두 복붙해와서
+        생성자에서 event.getXXX() 로 필드를 채워주면 됨
+
+        public class EventResource extends RepresentationModel {
+            private Integer id;
+            private String name;
+            // ...
+
+            public EventResource(Event event) {
+                this.name = event.getName();
+                // ...
+            }
+        }
+    [2]
+        @JsonUnwrapped
+        private Event event;
+    [3]
+        public class EventResource extends EntityModel<Event> {
+            public EventResource(Event content, Link... links) {
+                super(content, links);
+            }
+        }
+        EntityModel를 사용하면 필드에 content 타입이 들어가는데
+        이 때 내부적으로 content 필드에 @JsonUnwrapped가 들어감
+
+
+* 테스트 성공!
+    {
+        "id":1,
+        "name":"Spring",
+        "description":"REST API Development with Spring",
+        "beginEnrollmentDateTime":"2018-09-01T00:00:00",
+        "closeEnrollmentDateTime":"2018-10-31T00:00:00",
+        "beginEventDateTime":"2018-11-23T14:00:00",
+        "endEventDateTime":"2018-11-24T14:00:00",
+        "location":"ê°ë¨ì­ D2 ì¤íí í©í ë¦¬",
+        "basePrice":0,
+        "maxPrice":0,
+        "limitOfEnrollment":100,
+        "offline":false,
+        "free":true,
+        "eventStatus":"DRAFT",
+        "_links":{
+            "query-events":{
+                "href":"http://localhost/api/events"
+            },
+            "self":{
+                "href":"http://localhost/api/events/1"
+            },
+            "update-event":{
+                "href":"http://localhost/api/events/1"
+            }
+        }
+    }
+
+* 응답헤더
+    Content type = application/hal+json: link 정보가 응답에 들어있음을 예상 가능
+
+* 리소스는 빈으로 등록하는게 아니라 매번 새로운 객체를 생성해서 사용
+    return ResponseEntity...body(eventResource);
