@@ -1,0 +1,77 @@
+16 스프링 REST Docs 적용
+
+REST Docs 자동 설정
+    ● @AutoConfigureRestDocs
+
+RestDocMockMvc 커스터마이징
+    ● RestDocsMockMvcConfigurationCustomizer 구현한 빈 등록
+    ● @TestConfiguration
+
+테스트 할 것
+    ● API 문서 만들기
+        ○ 요청 본문 문서화
+        ○ 응답 본문 문서화
+
+의존성
+    <dependency>
+        <groupId>org.springframework.restdocs</groupId>
+        <artifactId>spring-restdocs-mockmvc</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+
+
+[실습]
+
+Test
+    @AutoConfigureRestDocs
+    class EventControllerTests {
+        @Test
+        @TestDescription("정상적으로 이벤트를 생성하는 테스트")
+        public void createEvent() throws Exception {
+            ...
+            .andDo(document("create-event"));
+        }
+        // 첫번째 인자: 문서의 이름
+        // 두번째 인자부터: 스니펫
+    }
+
+
+* 테스트: target/generated-snippets/create-events에 adoc 파일들이 생성됨
+
+* 보기 쉽게 포매팅 해보자
+* 패키지 추가 test/java/restapi/common
+
+RestDocsConfiguration
+    @TestConfiguration // 테스트에서만 사용하는 @Configuration 파일이다
+    public class RestDocsConfiguration {
+        @Bean
+        public RestDocsMockMvcConfigurationCustomizer ... {
+            return new ...() {
+                @Override
+                public void customize(... configurer) {
+                    configurer.operationPreprocessors()
+                        .withRequestDefaults(prettyPrint());
+                        .withResponseDefaults(prettyPrint());
+                }
+            };
+        }
+    }
+
+    // 인텔리제이 툴의 도움을 받아서 람다식으로 변환해도 된다
+    @TestConfiguration
+    public class RestDocsConfiguration {
+        @Bean
+        public RestDocsMockMvcConfigurationCustomizer restDocsMockMvcConfigurationCustomizer() {
+            return configurer -> configurer.operationPreprocessors()
+                    .withRequestDefaults(prettyPrint())
+                    .withResponseDefaults(prettyPrint());
+        }
+    }
+
+Test
+    @AutoConfigurerRestDocs
+    @Import(RestDocsConfiguration.class)
+    class EventControllerTests { ... }
+
+* 테스트를 다시 실행해보면 adoc안의 json이 보기 편하게 작성되어 있음을 볼 수 있다.

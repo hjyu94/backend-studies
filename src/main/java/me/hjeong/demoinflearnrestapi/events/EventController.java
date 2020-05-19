@@ -1,6 +1,7 @@
 package me.hjeong.demoinflearnrestapi.events;
 
 import org.modelmapper.ModelMapper;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.server.LinkBuilder;
 import org.springframework.hateoas.server.mvc.ControllerLinkBuilder;
@@ -55,7 +56,8 @@ public class EventController {
 
         EventResource eventResource = new EventResource(event);
         eventResource.add(linkTo(EventController.class).withRel("query-events"));
-        eventResource.add(selfLinkBuilder.withRel("update-events")); // put
+        eventResource.add(selfLinkBuilder.withRel("update-event")); // put
+        eventResource.add(new Link("/docs/index.html#resources-events-create").withRel("profile"));
 
         return ResponseEntity.created(createdUri).body(eventResource);
     }

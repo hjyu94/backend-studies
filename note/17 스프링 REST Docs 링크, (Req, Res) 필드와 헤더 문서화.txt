@@ -1,0 +1,94 @@
+17. 스프링 REST Docs: 링크, (Req, Res) 필드와 헤더 문서화
+
+요청 필드 문서화
+    ● requestFields() + fieldWithPath()
+    ● responseFields() + fieldWithPath()
+    ● requestHeaders() + headerWithName()
+    ● responseHeaders() + headerWithName()
+    ● links() + linkWithRel()
+
+테스트 할 것
+    ● API 문서 만들기
+        ○ 요청 본문 문서화
+        ○ 응답 본문 문서화
+        ○ 링크 문서화
+            ■ self  ■ query-events  ■ update-event  ■ profile 링크 추가
+        ○ 요청 헤더 문서화
+        ○ 요청 필드 문서화
+        ○ 응답 헤더 문서화
+        ○ 응답 필드 문서화
+
+Relaxed 접두어
+    ● 장점: 문서 일부분만 테스트 할 수 있다.
+    ● 단점: 정확한 문서를 생성하지 못한다.
+
+
+[실습]
+
+Test
+    .andDo(document("create-event",
+        links(
+            linkWithRel("self").description("link to self"),
+            linkWithRel("query-events").description("link to query-events"),
+            linkWithRel("update-events").description("link to update-events"),
+        ),
+        requestHeaders (
+            headerWithName(HttpHeaders.ACCEPT).description("accept header"),
+            headerWithName(HttpHeaders.CONTENT_TYPE).description("content type header")
+        ),
+        requestFields(
+            fieldWithPath("name").description("Name of new event"),
+            fieldWithPath("description").description("description of new event"),
+            fieldWithPath("beginEnrollmentDateTime").description("..."),
+            fieldWithPath("closeEnrollmentDateTime").description("..."),
+            fieldWithPath("beginEventDateTime").description("..."),
+            fieldWithPath("endEventDateTime").description("..."),
+            fieldWithPath("location").description("..."),
+            fieldWithPath("basePrice").description("..."),
+            fieldWithPath("maxPrice").description("..."),
+            fieldWithPath("limitOfEnrollment").description("..."),
+        ),
+        responseHeaders(
+            headerWithName(HttpHeaders.LOCATION).description("Location header"),
+            headerWithName(HttpHeaders.CONTENT_TYPE).description("Content type"),
+        )
+    ));
+
+    * responseFields 검사
+    [1] relaxed 접두어 사용: 문서 일부분만 테스트 할 수 있다.
+        relaxedResponseFields(
+            fieldWithPath("id").description("..."),
+            fieldWithPath("name").description("..."),
+            fieldWithPath("description").description("..."),
+            fieldWithPath("beginEnrollmentDateTime").description("..."),
+            fieldWithPath("closeEnrollmentDateTime").description("..."),
+            fieldWithPath("beginEventDateTime").description("..."),
+            fieldWithPath("endEventDateTime").description("..."),
+            fieldWithPath("location").description("..."),
+            fieldWithPath("basePrice").description("..."),
+            fieldWithPath("maxPrice").description("..."),
+            fieldWithPath("limitOfEnrollment").description("..."),
+            fieldWithPath("free").description("..."),
+            fieldWithPath("offline").description("..."),
+            fieldWithPath("eventStatus").description("..."),
+        )
+    [2]
+        responseFields(
+            fieldWithPath("id").description("..."),
+            fieldWithPath("name").description("..."),
+            fieldWithPath("description").description("..."),
+            fieldWithPath("beginEnrollmentDateTime").description("..."),
+            fieldWithPath("closeEnrollmentDateTime").description("..."),
+            fieldWithPath("beginEventDateTime").description("..."),
+            fieldWithPath("endEventDateTime").description("..."),
+            fieldWithPath("location").description("..."),
+            fieldWithPath("basePrice").description("..."),
+            fieldWithPath("maxPrice").description("..."),
+            fieldWithPath("limitOfEnrollment").description("..."),
+            fieldWithPath("free").description("..."),
+            fieldWithPath("offline").description("..."),
+            fieldWithPath("eventStatus").description("..."),
+            fieldWithPath("_links.self.href").description("..."),
+            fieldWithPath("_links.query-events.href").description("..."),
+            fieldWithPath("_links.update-events.href").description("..."),
+        )
