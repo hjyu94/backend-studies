@@ -1,0 +1,117 @@
+20 인덱스 핸들러 만들기
+
+인덱스 핸들러
+    ● 다른 리소스에 대한 링크 제공
+    ● 문서화
+
+    @GetMapping("/api")
+    public ResourceSupport root() {
+        ResourceSupport index = new ResourceSupport();
+        index.add(linkTo(EventController.class).withRel("events"));
+        return index;
+    }
+
+테스트 컨트롤러 리팩토링
+    ● 중복 코드 제거
+
+에러 리소스
+    ● 인덱스로 가는 링크 제공
+
+
+[실습]
+
+test/java/restapi/index 패키지 하에 IndexControllerTest.java 추가
+
+인덱스컨트롤러테스트
+    @RunWith(SpringRunner.class)
+    @SpringBootTest
+    @AutoConfigureMockMvc
+    @AutoConfigureRestDocs
+    @ActiveProfiles("test")
+    @Import(RestDocsConfiguration.class)
+    public class IndexControllerTest {
+        @Autowired
+        MockMvc mockMvc;
+
+        @Test
+        public void index() throws Exception {
+            this.mockMvc.perform(get("/api"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("_links.events").exists())
+            ;
+        }
+    }
+    GET /api 요청시 각각의 리소스들에 대한 루트들이 나오길 바람
+    (이벤트 리소스에 대한 루트가 나오면 됨)
+
+* 테스트 실패 404
+
+src/main/java/restapi/index 패키지 아래 IndexController.java 추가
+
+인덱스컨트롤러
+    @RestController
+    public class IndexController {
+        @GetMapping("/api")
+        public RepresentationModel index() {
+            var index = new RepresentationModel();
+            index.add(linkTo(EventController.class).withRel("events"));
+            return index;
+        }
+    }
+
+* 테스트 성공
+
+에러 리소스에서 인덱스로 가는 링크 제공
+에러가 발생하면 에러를 받은 뒤 애플리케이션 상태를 변경할 수 있는 곳은 오로지 인덱스임
+
+테스트
+    @Test
+    @TestDescription("Bad Request 본문에 에러 표시하기")
+    public void createEvent_Bad_Request_Body() throws Exception {
+        ...
+        .andExpect(jsonPath("_links.index").exists());
+    }
+
+* 테스트 실패
+
+에러를 인덱스로 맏늘자!
+
+src/main/java/.../common 패키지 아래 ErrorsResource.java 추가
+
+    <참고> hateoas가 1.0.2 가 되면서 바뀐부분이 있네요..
+    ResourceSupport is now RepresentationModel
+    Resource is now EntityModel
+    Resources is now CollectionModel
+    PagedResources is now PagedModel
+
+에러 리소스
+    public class ErrorsResource extends EntityModel<Errors> {
+        public ErrorsResource(Errors content, Link... links) {
+            super(content, links);
+            add(linkTo(methodOn(IndexController.class).index()).withRel("index"));
+        }
+    }
+
+이벤트 컨트롤러
+    if(errors.hasErrors()) {
+        return ResponseEntity.badRequest().body(new ErrorsResource(errors));
+    }
+
+중복 리팩토링
+    Ctrl Alt Shift T: Extract Method
+    private ResponseEntity<ErrorsResource> badRequest(Errors errors) {
+        return ResponseEntity.badRequest().body(new ErrorsResource(errors));
+    }
+
+badRequest를 만들어 보낼 때 Errors를 만들어서 본문에 넣어주는데
+Errors를 ErrorsResource로 변환하고 본문에 넣을 것이고
+리소스로 변환할 때 인덱스에 대한 링크를 추가하게 됨.
+
+* 이벤트 컨트롤러 테스트 -> 실패
+    java.lang.AssertionError: No value at JSON path "$[0].objectName"
+
+    Errors가 content array 안에 있어서 실패 한 것
+    andExpect(jsonPath("content[0].objectName").exists())
+    ...
+
+* 테스트 재시작 -> 성공!
