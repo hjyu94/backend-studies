@@ -1,0 +1,93 @@
+19 PostgreSQL 적용
+
+테스트 할 때는 계속 H2를 사용해도 좋지만 애플리케이션 서버를 실행할 때 PostgreSQL을 사용하도록 변경하자.
+/scripts.md 참고
+
+1. PostgreSQL 드라이버 의존성 추가
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+    </dependency>
+
+2. 도커로 PostgreSQL 컨테이너 실행
+    docker run --name ndb -p 5432:5432 -e POSTGRES_PASSWORD=pass -d postgres
+    ndb? 컨테이너 이름
+    5432:5432? 포트 매핑. 컨테이너 안에서 5432 포트에 뜨는 PostgreSQL 를 로컬 호스트의 5432 포트와 매핑하겠다.
+    -e? 환경 변수
+    -d? 데몬 모드로 띄우겠다
+    postges? 이미지 이름
+
+    * docker ps 로 확인 가능
+
+3. 도커 컨테이너에 들어가보기
+    docker exec -i -t ndb bash
+    exec? 커맨드
+    -i? interative
+    -t? target
+    bash 이후 명령어를 쓰면 된다
+
+    su - postgres
+    psql -d postgres -U postgres
+    \l // 데이터 베이스 확인
+    \dt // 테이블 확인
+
+    * h2 는 test 로 변경해서 어플리케이션 설정 시 PostgreSQL 만 뜨도록 하자
+
+4. 데이터소스 설정
+    [application.properties]
+        spring.datasource.username=postgres
+        spring.datasource.password=pass
+        spring.datasource.url=jdbc:postgresql://localhost:5432/postgres
+        spring.datasource.driver-class-name=org.postgresql.Driver
+
+
+5. 하이버네이트 설정
+    [application.properties]
+        spring.jpa.hibernate.ddl-auto=create-drop
+        spring.jpa.properties.hibernate.jdbc.lob.non_contextual_creation=true
+        spring.jpa.properties.hibernate.format_sql=true
+        logging.level.org.hibernate.SQL=DEBUG
+        logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
+
+
+* 애플리케이션 설정과 테스트 설정 중복 어떻게 줄일 것인가?
+    ● 프로파일과 @ActiveProfiles 활용
+
+    테스트에 @SpringBootTest를 붙여서 실행하면
+    -> @SpringBootApplication 설정파일의 기준으로 패키지 내의 빈들이 모두 등록되고
+    -> application.properties 를 사용하게 됨
+    -> 테스트에서는 h2를 쓰고 싶었는데 PostgreSql 을 사용하게 됨.
+    -> 테스트에 사용할 application.properties 파일을 따로 빼자!
+
+    h2 를 사용하기 위한 application.properties를 test/resources 아래 추가하고
+    해당 디렉토리를 mark as Test Resource 해줌
+
+    [test/resources/application.properties]
+        spring.datasource.username=sa
+        spring.datasource.password=
+        spring.datasource.url=jdbc:h2:mem:testdb
+        spring.datasource.driver-class-name=org.h2.Driver
+
+        spring.datasource.hikari.jdbc-url=jdbc:h2:mem:testdb
+        spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
+
+    문제!
+    빌드할 때 src/resources/application.properties가 test/resources/application.properties로 덮어씌워져 버린다.
+    -> 애플리케이션 설정파일에만 있던 설정이 날아가버리는 문제가 있다.
+    -> 파일명을 변경 application-test 로 변경한다.
+    -> 기본적으로 사용해주지 않음.
+    -> @ActiveProfiles("test") 를 테스트에 추가
+
+    [application-test.properties]
+        spring.datasource.username=sa
+        spring.datasource.password=
+        spring.datasource.url=jdbc:h2:mem:testdb
+        spring.datasource.driver-class-name=org.h2.Driver
+
+        spring.datasource.hikari.jdbc-url=jdbc:h2:mem:testdb
+
+        spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect
+
+
+    application.properties -> 어플리케이션 실행시, 테스트 실행시 사용할 설정
+    application-test.properties -> 테스트에서만 재정의할 설정은 여기서 재정의(overwrite)
