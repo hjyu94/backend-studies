@@ -1,7 +1,7 @@
 9. DispatcherServlet 동작 원리 1부
 
 어떻게 DispatcherServlet 을 사용하면 우리가 핸들러를 Annotation으로 작성할 수 있는가?
-4.2 애플리케이션을 디버거 모드로 실행해보자
+애플리케이션을 디버거 모드로 실행해보자
 (Dispatcher Servlet 이 있고, localhost:8080/app/hello 를 요청하는 경우 Hello! 텍스트를 보여주는 앱)
 (Dispatcher Servlet 이 우선 /app/* 로 들어온 요청을 모두 받기는 하고, 그 요청을 각 컨트롤러에게 위임함)
 
@@ -26,17 +26,13 @@ DispatcherServlet 동작 순서
     5. (부가적으로) 예외가 발생했다면, 예외 처리 핸들러에 요청 처리를 위임한다.
     6. 최종적으로 응답을 보낸다.
 
-
 HandlerMapping
     ● RequestMappingHandlerMapping
     ● BeanNameUrlHandlerMapping
 
-
 HandlerAdapter
     ● RequestMappingHandlerAdapter
     ● SimpleControllerHandlerAdapter
-
-
 
 중단점 찍어서 디버깅 해보자!
     *F7, F8

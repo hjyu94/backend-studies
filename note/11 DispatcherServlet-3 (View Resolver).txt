@@ -52,7 +52,7 @@ initViewResolver() 살펴보기
             try {
                 ViewResolver vr = (ViewResolver)context.getBean("viewResolver", ViewResolver.class);
                 this.viewResolvers = Collections.singletonList(vr);
-                // 특별히 flag 값을 false인 경우 ViewResolver.class 타입의 빈"만" 찾아온다.
+                // 특별히 flag 값을 false로 설정한 경우 ViewResolver.class 타입의 빈"만" 찾아온다.
                 // 더 빠른 방식
             } catch (NoSuchBeanDefinitionException var3) {
             }
@@ -109,3 +109,5 @@ Custom 빈을 등록 해보자!
         this.detectAllViewResolvers 의 기본값은 true
         viewResolvers[0] 에 우리가 정의한 빈을 등록 된다.
         그리고 viewResolvers가 null이 아니기 때문에 기본 뷰리졸버를 쓸 수 없다.
+
+    http://localhost:8080/app/simple

@@ -74,7 +74,7 @@ ex) 뷰가 있는 경우를 살펴보자.
     모델 객체를 바인딩해서 뷰를 렌더링하게 된다.
     (jsp 파일을 response 에 실어서 보낸다는 이야기)
 
-
+    RequestMappingHandlerMapping, RequestMappingHandlerAdapter 가 사용된다
 
 BeanNameHandlerMapping 핸들러 매핑을 사용하는 경우?
 
@@ -82,17 +82,20 @@ BeanNameHandlerMapping 핸들러 매핑을 사용하는 경우?
     // 빈의 이름에 "/simple" 이라고 주면
     // "/simple"이라는 요청을 처리하는 핸들러가 된다.
 
+    import org.springframework.web.servlet.ModelAndView;
+    import org.springframework.web.servlet.mvc.Controller;
+
+    import javax.servlet.http.HttpServletRequest;
+    import javax.servlet.http.HttpServletResponse;
+
     @org.springframework.stereotype.Controller("/simple")
     public class SimpleController implements Controller {
-
         @Override
-        public ModelAndView handleRequest(...) {
-            return new ModelAndView("/WEB-INF/simple.jsp");
-            // 모델과 뷰에 대한 정보를 넣어줄 수 있다.
+        public ModelAndView handleRequest(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) throws Exception {
+            return new ModelAndView("WEB-INF/simple.jsp");
         }
-
+        // 모델과 뷰에 대한 정보를 넣어줄 수 있다.
     }
-
     // 이때는 SimpleController.class 자체가 핸들러가 된다.
     (cf) 첫번째 예제에서는 HelloController.hello()가 핸들러임.
 
