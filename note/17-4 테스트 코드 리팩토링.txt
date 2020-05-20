@@ -1,0 +1,32 @@
+[ 테스트 코드 리팩토링 ]
+IndexControllerTest, EventControllerTest 에 중복되는 코드가 있다.
+이 중복되는 코드를 가진 BaseControllerTest 를 생성하고
+각 테스트 클래스에서 상속받자!
+
+common package
+    @RunWith(SpringRunner.class)
+    @SpringBootTest
+    @AutoConfigureMockMvc
+    @AutoConfigureRestDocs
+    @ActiveProfiles("test")
+    @Import(RestDocsConfiguration.class)
+    @Ignore
+    // 테스트를 실행하려고 하지 말아야 한다. 테스트를 가지고 있는 클래스로 간주하지 말아라
+    public class BaseControllerTest {
+        @Autowired
+        protected MockMvc mockMvc;
+
+        @Autowired
+        protected ObjectMapper objectMapper;
+
+        @Autowired
+        protected ModelMapper modelMapper;
+    }
+
+public class EventControllerTests extends BaseControllerTest { ... }
+public class IndexControllerTest extends BaseControllerTest { ... }
+
+패키지 우클릭 후 Run 'Tests in package-name' 클릭
+패키지 하의 모든 클래스에서 테스트에 해당하는 것을 모두 실행해준다.
+
+테스트 성공!
