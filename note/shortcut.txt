@@ -12,3 +12,4 @@
     메소드 안에서 Ctrl P -> 어떤 값을 아규먼트로 쓸 수 있는지
 
     Ctrl Alt V : 변수 빼기
+    Ctrl Alt L 자동정렬
