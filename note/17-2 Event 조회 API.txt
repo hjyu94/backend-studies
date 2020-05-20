@@ -1,0 +1,50 @@
+[ Event 조회 API ]
+이벤트 한 건을 조회하는 API 구현
+
+이벤트 컨트롤러 테스트
+    @Test
+    @TestDesciprionTest("기존의 이벤트를 하나 조회하기")
+    public void getEvent() ... {
+        // Given
+        Event event = this.generateEvent(100);
+
+        // When, Then
+        this.mockMvc.perform(get("/api/events/{id}", event.getId())) // path var
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("name").exists())
+                .andExpect(jsonPath("_links.self").exists())
+                .andExpect(jsonPath("_links.profile").exists())
+                .andDo(document("get-an-event"))
+    }
+
+    @Test
+    @TestDesc("없는 이벤트를 조회했을 때 404 응답 받기")
+    public void getEvent404() {
+        // Given
+        X
+
+        // When, Then
+        this.mockMvc.perform(get("/api/events/99995123"))
+                .andExpect(status().isNotFound())
+    }
+
+
+테스트 실패! 404 해당 url 을 매핑하는 핸들러가 없음
+이벤트 컨트롤러
+    @GetMapping("/{id}")
+    public ResponseEntity getEvent(@PathVariable Integer id) {
+        Optional<Event> optionalEvent = this.eventRepository.findById(id);
+        if (OptionalEvent.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Event event = optionalEvent.get();
+        ... = new EventResource(event)
+        return ResponseEntity.ok(...);
+    }
+
+테스트 둘 다 실행
+getEvent() 실패, _links.profile 값이 없어서!
+컨트롤러
+    eventResource.add(new Link("/docs/index.html#resources-events-get").withRel("profile"));
+
+테스트 둘 다 성공!
