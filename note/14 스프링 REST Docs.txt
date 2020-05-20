@@ -1,0 +1,303 @@
+14 스프링 REST Docs
+
+>> 소개
+
+레퍼런스
+    ● https://docs.spring.io/spring-restdocs/docs/2.0.2.RELEASE/reference/html5/
+
+    Document RESTful services by combining hand-written documentation with auto-generated snippets produced with Spring MVC Test.
+
+    [Introduction]
+        The aim of Spring REST Docs is to help you to produce documentation for your RESTful services that is accurate and readable.
+        Writing high-quality documentation is difficult.
+        One way to ease that difficulty is to use tools that are well-suited to the job.
+        To this end, Spring REST Docs uses Asciidoctor by default.
+        Asciidoctor processes plain text and produces HTML, styled and layed out to suit your needs.
+        If you prefer, Spring REST Docs can also be configured to use Markdown.
+        Spring REST Docs makes use of snippets produced by tests written
+        with Spring MVC’s test framework, Spring WebFlux’s WebTestClient or REST Assured 3.
+        This test-driven approach helps to guarantee the accuracy of your service’s documentation.
+        If a snippet is incorrect the test that produces it will fail.
+        Documenting a RESTful service is largely about describing its resources.
+        Two key parts of each resource’s description are the details of the HTTP requests that it consumes and the HTTP responses that it produces.
+        Spring REST Docs allows you to work with these resources and the HTTP requests and responses
+        , shielding your documentation from the inner-details of your service’s implementation.
+        This separation helps you to document your service’s API rather than its implementation.
+        It also frees you to evolve the implementation without having to rework the documentation.
+
+
+REST Docs 코딩
+    ● andDo(document(“doc-name”, snippets))
+    ● snippets (문서 조각)
+        ○ links()
+        ○ requestParameters() + parameterWithName()
+        ○ pathParameters() + parametersWithName()
+        ○ requestParts() + partWithname()
+        ○ requestPartBody()
+        ○ requestPartFields()
+        ○ requestHeaders() + headerWithName()
+        ○ requestFields() + fieldWithPath()
+        ○ responseHeaders() + headerWithName()
+        ○ responseFields() + fieldWithPath()
+        ○ ...
+    ● Relaxed*
+    ● Processor
+        ○ preprocessRequest(prettyPrint())
+        ○ preprocessResponse(prettyPrint())
+        ○ ...
+
+Constraint
+    ● ​https://github.com/spring-projects/spring-restdocs/blob/v2.0.2.RELEASE/samples/res t-notes-spring-hateoas/src/test/java/com/example/notes/ApiDocumentation.java
+
+
+>> 적용
+
+REST Docs 자동 설정
+    ● @AutoConfigureRestDocs
+
+RestDocMockMvc 커스터마이징
+    ● RestDocsMockMvcConfigurationCustomizer 구현한 빈 등록
+    ● @TestConfiguration
+
+테스트 할 것
+    ● API 문서 만들기
+        ○ 요청 본문 문서화
+        ○ 응답 본문 문서화
+
+의존성
+    <dependency>
+        <groupId>org.springframework.restdocs</groupId>
+        <artifactId>spring-restdocs-mockmvc</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+요청 필드 문서화
+    ● requestFields() + fieldWithPath()
+    ● responseFields() + fieldWithPath()
+    ● requestHeaders() + headerWithName()
+    ● responseHeaders() + headerWithName()
+    ● links() + linkWithRel()
+
+테스트 할 것
+    ● API 문서 만들기
+        ○ 요청 본문 문서화
+        ○ 응답 본문 문서화
+        ○ 링크 문서화
+            ■ self  ■ query-events  ■ update-event  ■ profile 링크 추가
+        ○ 요청 헤더 문서화
+        ○ 요청 필드 문서화
+        ○ 응답 헤더 문서화
+        ○ 응답 필드 문서화
+
+Relaxed 접두어
+    ● 장점: 문서 일부분만 테스트 할 수 있다.
+    ● 단점: 정확한 문서를 생성하지 못한다.
+
+Spring REST Docs
+    ● pom.xml에 메이븐 플러그인 설정
+        <plugin>
+            <groupId>org.asciidoctor</groupId>
+            <artifactId>asciidoctor-maven-plugin</artifactId>
+            <version>1.5.3</version>
+            <executions>
+                <execution>
+                    <id>generate-docs</id>
+                    <phase>prepare-package</phase>
+                    <goals>
+                        <goal>process-asciidoc</goal>
+                    </goals>
+                    <configuration>
+                        <backend>html</backend>
+                        <doctype>book</doctype>
+                    </configuration>
+                </execution>
+            </executions>
+            <dependencies>
+                <dependency>
+                    <groupId>org.springframework.restdocs</groupId>
+                    <artifactId>spring-restdocs-asciidoctor</artifactId>
+                    <version>2.0.2.RELEASE</version>
+                </dependency>
+            </dependencies>
+        </plugin>
+        <plugin>
+            <artifactId>maven-resources-plugin</artifactId>
+            <version>2.7</version>
+            <executions>
+                <execution>
+                    <id>copy-resources</id>
+                    <phase>prepare-package</phase>
+                    <goals>
+                        <goal>copy-resources</goal>
+                    </goals>
+                    <configuration>
+                        <outputDirectory>  ${project.build.outputDirectory}/static/docs </outputDirectory>
+                        <resources>
+                            <resource>
+                                <directory>  ${project.build.directory}/generated-docs </directory>
+                            </resource>
+                        </resources>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+
+    ● 템플릿 파일 추가
+        ○ src/main/asciidoc/index.adoc
+
+문서 생성하기
+    ● mvn package
+        ○ test
+        ○ prepare-package::process-asciidoc // src/main/asciidoc 의 모든 아스키닷 문서를 html로 만들어준다.
+        ○ prepare-package::copy-resources // resource -> outputDirectory 로 파일을 이동해줌. target/classes/static/docs 에 index.html 이동
+    ● 문서 확인
+        ○ /docs/index.html // 스프링 부트. static 밑의 파일은 기본적으로 url에 입력해서 볼 수 있다. localhost:8080/docs/index.html
+
+
+
+[실습]
+
+Test
+    @AutoConfigureRestDocs
+    class EventControllerTests {
+        @Test
+        @TestDescription("정상적으로 이벤트를 생성하는 테스트")
+        public void createEvent() throws Exception {
+            ...
+            .andDo(document("create-event"));
+        }
+        // 첫번째 인자: 문서의 이름
+        // 두번째 인자부터: 스니펫
+    }
+
+
+* 테스트: target/generated-snippets/create-events에 adoc 파일들이 생성됨
+
+* 보기 쉽게 포매팅 해보자
+* 패키지 추가 test/java/restapi/common
+
+RestDocsConfiguration
+    @TestConfiguration // 테스트에서만 사용하는 @Configuration 파일이다
+    public class RestDocsConfiguration {
+        @Bean
+        public RestDocsMockMvcConfigurationCustomizer ... {
+            return new ...() {
+                @Override
+                public void customize(... configurer) {
+                    configurer.operationPreprocessors()
+                        .withRequestDefaults(prettyPrint());
+                        .withResponseDefaults(prettyPrint());
+                }
+            };
+        }
+    }
+
+    // 인텔리제이 툴의 도움을 받아서 람다식으로 변환해도 된다
+    @TestConfiguration
+    public class RestDocsConfiguration {
+        @Bean
+        public RestDocsMockMvcConfigurationCustomizer restDocsMockMvcConfigurationCustomizer() {
+            return configurer -> configurer.operationPreprocessors()
+                    .withRequestDefaults(prettyPrint())
+                    .withResponseDefaults(prettyPrint());
+        }
+    }
+
+Test
+    @AutoConfigurerRestDocs
+    @Import(RestDocsConfiguration.class)
+    class EventControllerTests { ... }
+
+* 테스트를 다시 실행해보면 adoc안의 json이 보기 편하게 작성되어 있음을 볼 수 있다.
+
+
+
+Test
+    .andDo(document("create-event",
+        links(
+            linkWithRel("self").description("link to self"),
+            linkWithRel("query-events").description("link to query-events"),
+            linkWithRel("update-events").description("link to update-events"),
+        ),
+        requestHeaders (
+            headerWithName(HttpHeaders.ACCEPT).description("accept header"),
+            headerWithName(HttpHeaders.CONTENT_TYPE).description("content type header")
+        ),
+        requestFields(
+            fieldWithPath("name").description("Name of new event"),
+            fieldWithPath("description").description("description of new event"),
+            fieldWithPath("beginEnrollmentDateTime").description("..."),
+            fieldWithPath("closeEnrollmentDateTime").description("..."),
+            fieldWithPath("beginEventDateTime").description("..."),
+            fieldWithPath("endEventDateTime").description("..."),
+            fieldWithPath("location").description("..."),
+            fieldWithPath("basePrice").description("..."),
+            fieldWithPath("maxPrice").description("..."),
+            fieldWithPath("limitOfEnrollment").description("..."),
+        ),
+        responseHeaders(
+            headerWithName(HttpHeaders.LOCATION).description("Location header"),
+            headerWithName(HttpHeaders.CONTENT_TYPE).description("Content type"),
+        )
+    ));
+
+    * responseFields 검사
+    [1] relaxed 접두어 사용: 문서 일부분만 테스트 할 수 있다.
+        relaxedResponseFields(
+            fieldWithPath("id").description("..."),
+            fieldWithPath("name").description("..."),
+            fieldWithPath("description").description("..."),
+            fieldWithPath("beginEnrollmentDateTime").description("..."),
+            fieldWithPath("closeEnrollmentDateTime").description("..."),
+            fieldWithPath("beginEventDateTime").description("..."),
+            fieldWithPath("endEventDateTime").description("..."),
+            fieldWithPath("location").description("..."),
+            fieldWithPath("basePrice").description("..."),
+            fieldWithPath("maxPrice").description("..."),
+            fieldWithPath("limitOfEnrollment").description("..."),
+            fieldWithPath("free").description("..."),
+            fieldWithPath("offline").description("..."),
+            fieldWithPath("eventStatus").description("..."),
+        )
+    [2]
+        responseFields(
+            fieldWithPath("id").description("..."),
+            fieldWithPath("name").description("..."),
+            fieldWithPath("description").description("..."),
+            fieldWithPath("beginEnrollmentDateTime").description("..."),
+            fieldWithPath("closeEnrollmentDateTime").description("..."),
+            fieldWithPath("beginEventDateTime").description("..."),
+            fieldWithPath("endEventDateTime").description("..."),
+            fieldWithPath("location").description("..."),
+            fieldWithPath("basePrice").description("..."),
+            fieldWithPath("maxPrice").description("..."),
+            fieldWithPath("limitOfEnrollment").description("..."),
+            fieldWithPath("free").description("..."),
+            fieldWithPath("offline").description("..."),
+            fieldWithPath("eventStatus").description("..."),
+            fieldWithPath("_links.self.href").description("..."),
+            fieldWithPath("_links.query-events.href").description("..."),
+            fieldWithPath("_links.update-events.href").description("..."),
+        )
+
+
+    애플리케이션 실행!
+    localhost:8080/docs/index.html
+
+Test
+    .andDo(document("create-event",
+        links(
+            ...
+            linkWithRel("profile").description("link to profile"),
+        ),
+        ...
+        responseFields(
+            ...
+            fieldWithPath("_links.profile.href").description("..."),
+        )
+    ));
+
+Controller
+    eventResource.add(new Link("/docs/index.html#resources-event-create").withRel("profile"));
+
+* 테스트 실행! 성공!
