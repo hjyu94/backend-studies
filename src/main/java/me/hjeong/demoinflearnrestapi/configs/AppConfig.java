@@ -3,6 +3,7 @@ package me.hjeong.demoinflearnrestapi.configs;
 import me.hjeong.demoinflearnrestapi.accounts.Account;
 import me.hjeong.demoinflearnrestapi.accounts.AccountRole;
 import me.hjeong.demoinflearnrestapi.accounts.AccountService;
+import me.hjeong.demoinflearnrestapi.common.AppProperties;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
@@ -33,14 +34,24 @@ public class AppConfig {
             @Autowired
             AccountService accountService;
 
+            @Autowired
+            AppProperties appProperties;
+
             @Override
             public void run(ApplicationArguments args) throws Exception {
-                Account hjeong = Account.builder()
-                        .email("hjeong@email.com")
-                        .password("hjeong")
-                        .roles(Set.of(AccountRole.ADMIN, AccountRole.USER))
+                Account admin = Account.builder()
+                        .email(appProperties.getAdminUsername())
+                        .password(appProperties.getAdminPassword())
+                        .roles(Set.of(AccountRole.ADMIN))
                         .build();
-                accountService.saveAccount(hjeong);
+                accountService.saveAccount(admin);
+
+                Account user = Account.builder()
+                        .email(appProperties.getUserUsername())
+                        .password(appProperties.getUserPassword())
+                        .roles(Set.of(AccountRole.ADMIN))
+                        .build();
+                accountService.saveAccount(user);
             }
         };
     }

@@ -2,6 +2,7 @@
 package me.hjeong.demoinflearnrestapi.events;
 
 import me.hjeong.demoinflearnrestapi.accounts.AccountRepository;
+import me.hjeong.demoinflearnrestapi.common.AppProperties;
 import me.hjeong.demoinflearnrestapi.common.BaseControllerTest;
 import me.hjeong.demoinflearnrestapi.common.TestDescription;
 import org.hamcrest.Matchers;
@@ -35,11 +36,14 @@ public class EventControllerTests extends BaseControllerTest {
     @Autowired
     AccountRepository accountRepository;
 
-    @Before
-    public void setUp() {
-        this.eventRepository.deleteAll();
-        this.accountRepository.deleteAll();
-    }
+//    @Before
+//    public void setUp() {
+//        this.eventRepository.deleteAll();
+//        this.accountRepository.deleteAll();
+//    }
+
+    @Autowired
+    AppProperties appProperties;
 
     @Test
     @TestDescription("정상적으로 이벤트를 생성하는 테스트")
@@ -385,10 +389,11 @@ public class EventControllerTests extends BaseControllerTest {
     }
 
     private String getAccessToken() throws Exception {
-        String username = "hjeong@email.com";
-        String password = "hjeong";
-        String clientId = "myApp";
-        String clientSecret = "pass";
+        String username = appProperties.getUserUsername();
+        String password = appProperties.getUserPassword();
+        String clientId = appProperties.getClientId();
+        String clientSecret = appProperties.getClientSecret();
+
 
         ResultActions perform = this.mockMvc.perform(post("/oauth/token")
                 .with(httpBasic(clientId, clientSecret))

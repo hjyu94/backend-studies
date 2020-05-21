@@ -1,6 +1,7 @@
 package me.hjeong.demoinflearnrestapi.configs;
 
 import me.hjeong.demoinflearnrestapi.accounts.AccountService;
+import me.hjeong.demoinflearnrestapi.common.AppProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,13 +24,16 @@ public class AuthServerConfig extends AuthorizationServerConfigurerAdapter {
         security.passwordEncoder(passwordEncoder);
     }
 
+    @Autowired
+    AppProperties appProperties;
+
     @Override
     public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
         clients.inMemory()
-                .withClient("myApp")
+                .withClient(appProperties.getClientId())
                 .authorizedGrantTypes("password", "refresh_token")
                 .scopes("read", "write")
-                .secret(this.passwordEncoder.encode("pass"))
+                .secret(this.passwordEncoder.encode(appProperties.getClientSecret()))
                 .accessTokenValiditySeconds(10 * 60)
                 .refreshTokenValiditySeconds(60 * 60);
     }

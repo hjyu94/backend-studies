@@ -1,0 +1,151 @@
+25 코드 리팩토링
+
+- Admin, User Account 만들기
+- email 필드 중복 검사
+- 문자열을 외부 설정으로 빼내기
+
+
+기본 유저 만들기
+    ● ApplicationRunner
+        ○ Admin  ○ User
+
+외부 설정으로 기본 유저와 클라이언트 정보 빼내기
+    ● @ConfigurationProperties
+
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-configuration-processor</artifactId>
+        <optional>true</optional>
+    </dependency>
+
+
+[실습]
+
+* 톰캣이 떠 있으면 죽이기
+    ps ax | grep tomcat
+    kill -9 ...
+
+
+* AppConfig에서 Runner.run()에서 유저를 저장하고 있다.
+이 때 동일한 이메일로 여러 유저가 쌓여있으면 안된다
+
+    Account
+        @Column(unique = true)
+        private String email;
+
+    application.properties
+        애초에 저장하기 전에도 확인해봐야 하는데
+        어플리케이션을 띄울때마다 DB를 새로 만들고 있다
+        -> 중복 처리 필요 없음
+        spring.jpa.hibernate.ddl-auto = create-drop
+
+
+
+* ADMIN, USER 1개씩 저장하기
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
+        Account admin = Account.builder()
+                .email("admin@email.com")
+                .password("admin")
+                .roles(Set.of(AccountRole.ADMIN))
+                .build();
+        accountService.saveAccount(admin);
+
+        Account user = Account.builder()
+                .email("user@email.com")
+                .password("user")
+                .roles(Set.of(AccountRole.ADMIN))
+                .build();
+        accountService.saveAccount(user);
+    }
+
+    터미널에서 DB 확인하기
+    [1]
+        postgres=# \dt
+                     List of relations
+         Schema |     Name      | Type  |  Owner
+        --------+---------------+-------+----------
+         public | account       | table | postgres
+         public | account_roles | table | postgres
+         public | event         | table | postgres
+        (3 rows)
+
+    [2]
+        postgres=# select * from account;
+         id |      email      |                               password
+        ----+-----------------+----------------------------------------------------------------------
+          1 | admin@email.com | {bcrypt}$2a$10$S.HcP1f9o/EabtBhm/9I6OUegcGh8ZE.Bv3qURL5C6aptCyX5ibW6
+          2 | user@email.com  | {bcrypt}$2a$10$zU6mmU7s0TTx47t30iYdOe4LhYPeEc1t.LDI1c0ijqJkJxwK.SqcS
+        (2 rows)
+
+
+
+* 두 유저와 클라이언트 데이터들을 설정했던 문자열들을 외부 설정으로 빼내자
+
+    pom.xml
+        spring-boot-configuration-processor 의존성 추가
+
+    common package - AppProperties.java
+        @ConfigurationProperties(prefix = "my-app")
+        public class AppProperties { }
+
+        @Component -> 빈으로 등록
+
+        private String adminUsername;
+        private String adminPassword;
+        private String userUsername;
+        private String userPassword;
+        private String clientId;
+        private String clientSecret;
+
+        각 변수에 @NotEmpty, 클래스에 @Getter @Setter
+
+    application.propeties
+        프로젝트 빌드하면 추가한 메이븐 프로세서 의존성 때문에
+        SpringBootConfigurationProcessor가 동작해서
+        자동완성할 수 있는 정보를 생성해준다. (my- 까지만 쳐도 프로퍼티 자동완성이 된다)
+
+        my-app.admin-username=admin@email.com
+        my-app.admin-password=admin
+        my-app.user-username=user@email.com
+        my-app.user-password=user
+        my-app.client-id=myApp
+        my-app.client-secret=pass
+
+        위의 프로퍼티 데이터들은 스프링부트가 자동으로 AppProperties 필드로 받아와서
+        사용할때는 AppProperties를 빈으로 주입해서 getter로 가져다 쓰면 됨
+
+    AppConfig
+        @Autowired
+        AppProperties appProperties;
+
+        @Override
+        public void run(ApplicationArguments args) throws Exception {
+            Account admin = Account.builder()
+                    .email(appProperties.getAdminUsername())
+                    .password(appProperties.getAdminPassword())
+                    .roles(Set.of(AccountRole.ADMIN))
+                    .build();
+            ...
+        }
+
+    AuthServerConfig
+        @Autowired
+        AppProperties appProperties;
+
+        @Override
+        public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
+            .withClient(appProperties.getClientId())
+            .secret(this.passwordEncoder.encode(appProperties.getClientSecret()))
+            ...
+        }
+
+    등등 찾아다니면서 문자열로 값이 들어가 있는 경우 AppProperties 를 이용해서 값을 주자 -> type safe
+
+
+
+* 기본 유저들(admin, user)은 테스트를 실행할때도, 앱 실행할때도
+애플리케이션 러너들은 실행되기 때문에 있는것과 마찬가지임
+
+* 앱 전반적으로 사용되는 문자열은 외부설정으로 빼내서 사용하자.
+

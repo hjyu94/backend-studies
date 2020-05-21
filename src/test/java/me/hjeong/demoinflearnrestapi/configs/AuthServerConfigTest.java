@@ -1,6 +1,7 @@
 package me.hjeong.demoinflearnrestapi.configs;
 
 import me.hjeong.demoinflearnrestapi.accounts.AccountService;
+import me.hjeong.demoinflearnrestapi.common.AppProperties;
 import me.hjeong.demoinflearnrestapi.common.BaseControllerTest;
 import me.hjeong.demoinflearnrestapi.common.TestDescription;
 import org.junit.Test;
@@ -16,13 +17,16 @@ public class AuthServerConfigTest extends BaseControllerTest {
     @Autowired
     AccountService accountService;
 
+    @Autowired
+    AppProperties appProperties;
+
     @Test
     @TestDescription("인증 토큰을 발급 받는 테스트")
     public void getAuthToken() throws Exception {
-        String username = "hjeong@email.com";
-        String password = "hjeong";
-        String clientId = "myApp";
-        String clientSecret = "pass";
+        String username = appProperties.getUserUsername();
+        String password = appProperties.getUserPassword();
+        String clientId = appProperties.getClientId();
+        String clientSecret = appProperties.getClientSecret();
 
         this.mockMvc.perform(post("/oauth/token")
                     .with(httpBasic(clientId, clientSecret))

@@ -1,5 +1,6 @@
 package me.hjeong.demoinflearnrestapi.accounts;
 
+import me.hjeong.demoinflearnrestapi.common.AppProperties;
 import me.hjeong.demoinflearnrestapi.common.TestDescription;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -34,19 +35,15 @@ public class AccountServiceTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    @Autowired
+    AppProperties appProperties;
+
     @Test
     @TestDescription("Repository에 존재하는 account의 인증정보를 가지고 오는 경우")
     public void findByUserName() {
         // Given
-        String password = "pass";
-        String username = "hjeong@email.com";
-        Account account
-                = Account.builder()
-                .email(username)
-                .password(password)
-                .roles(Set.of(AccountRole.ADMIN, AccountRole.USER))
-                .build();
-        this.accountService.saveAccount(account);
+        String username = appProperties.getUserUsername();
+        String password = appProperties.getUserPassword();
 
         // When
         UserDetailsService userDetailsService = (UserDetailsService) this.accountService;
