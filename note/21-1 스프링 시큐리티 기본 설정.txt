@@ -1,0 +1,194 @@
+21-1 스프링 시큐리티 기본 설정
+
+시큐리티 필터를 적용하기 않음...
+    ● /docs/index.html
+
+로그인 없이 접근 가능
+    ● GET /api/events
+    ● GET /api/events/{id}
+
+로그인 해야 접근 가능
+    ● 나머지 다...
+    ● POST /api/events
+    ● PUT /api/events/{id}
+    ● ...
+
+스프링 시큐리티 OAuth 2.0
+    ● AuthorizationServer: OAuth2 토큰 발행(/oauth/token) 및 토큰 인증(/oauth/authorize)
+        ○ Oder 0 (리소스 서버 보다 우선 순위가 높다.)
+    ● ResourceServer: 리소스 요청 인증 처리 (OAuth 2 토큰 검사)
+        ○ Oder 3 (이 값은 현재 고칠 수 없음)
+
+스프링 시큐리티 설정
+    ● @EnableWebSecurity
+    ● @EnableGlobalMethodSecurity
+    ● extends WebSecurityConfigurerAdapter
+
+    ● PasswordEncoder: PasswordEncoderFactories.createDelegatingPassworkEncoder()
+    ● TokenStore: InMemoryTokenStore
+    ● AuthenticationManagerBean
+
+    ● configure(AuthenticationManagerBuidler auth)
+        ○ userDetailsService  ○ passwordEncoder
+    ● configure(HttpSecurity http)
+        ○ /docs/**: permitAll
+    ● configure(WebSecurty web)
+        ○ ignore ​
+            ■ /docs/**  ■ /favicon.ico
+
+    * PathRequest.toStaticResources() 사용하기
+
+
+
+
+>> 스프링 시큐리티 설정해보기
+
+application.properties
+    logging.level.org.springframework.security=DEBUG
+    스프링 시큐리티에 관해 어떤 메세지가 출력되는지 로그로 확인할 수 있다
+
+스프링 시큐리티의 의존성을 추가하는 순간
+스프링 부트는 스프링 시큐리티 자동설정을 적용해줘서
+모든 요청들은 인증이 필요해져서 이벤트 컨트롤러 테스트가 깨지게 된다.
+또한 스프링 시큐리티가 사용자를 임의로 InMemory로 만들어준다.
+
+테스트 돌릴 때 나오는 에러 메세지
+
+    * MockHttpServletResponse:
+               Status = 403
+        Error message = Forbidden
+              Headers = [X-Content-Type-Options:"nosniff", X-XSS-Protection:"1; mode=block", Cache-Control:"no-cache, no-store, max-age=0, must-revalidate", Pragma:"no-cache", Expires:"0", X-Frame-Options:"DENY"]
+         Content type = null
+                 Body =
+        Forwarded URL = null
+       Redirected URL = null
+              Cookies = []
+
+    java.lang.AssertionError: Status
+
+설정할 값
+    index.html 은 시큐리티 필터를 적용하지 않고
+    GET 이외의 요청은 모두 인증서가 있어야만 요청 가능하도록 하자
+
+시큐리티 OAuth 2.0 을 적용할 것
+AuthorizationServer와 ResourceServer가 공통으로 사용할만한 설정을 추가해야한다.
+
+    * 스프링 시큐리티 OAuth 2.0
+        ● AuthorizationServer: OAuth2 토큰 발행(/oauth/token) 및 토큰 인증(/oauth/authorize)
+            ○ Oder 0 (리소스 서버 보다 우선 순위가 높다.)
+        ● ResourceServer: 리소스 요청 인증 처리 (OAuth 2 토큰 검사)
+            ○ Oder 3 (이 값은 현재 고칠 수 없음)
+
+
+
+
+>> 실습
+
+new package configs
+
+공통설정에 해당하는 스프링 시큐리티 설정을 하겠다
+SecurityConfig
+    @Configuration
+    @EnableWebSecurity
+    public class SecurityConfig extends WebSecurityConfigurerAdapter {
+    }
+
+이제부터는 스프링부트가 제공하는 자동설정이 적용되지 않는다.
+여기에 정의하는 설정을 사용할 수 있다.
+
+
+
+패스워드 인코더가 필요 -> AppConfig 에 설정하자
+또한 ModelMapper 빈 설정을 Application에서 떼어내고 AppConfig, SecurityConfig 에 정리하자
+
+Application
+    @SpringBootApplication
+    public class DemoApplication {
+
+        public static void main(String[] args) {
+            SpringApplication.run(DemoApplication.class, args);
+        }
+
+    }
+
+AppConfig
+    @Configuration
+    public class AppConfig {
+
+        @Bean
+        public ModelMapper modelWrapper() {
+            return new ModelMapper();
+        }
+
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+            return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+        }
+        * PasswordEncoderFactories
+            프리픽스를 패스워드 앞에 붙여준다.
+            패스워드를 다양한 인코딩 타입으로 제공할 것인데
+            어떠한 방식으로 인코딩됐는지 알 수 있도록 한다.
+    }
+
+SecurityConfig
+    [1] 빈 설정
+        @Autowired
+        AccountService accountService; // -> UserDetailsService
+
+        @Autowired
+        PasswordEncoder passwordEncoder;
+
+        @Bean
+        public TokenStore tokenStore() {
+            return new InMemoryTokenStore();
+        }
+        // 토큰을 저장하는 저장소
+
+        @Bean
+        @Override
+        public AuthenticationManager authenticationManagerBean() throws Exception {
+            return super.authenticationManagerBean();
+        }
+        다른 AuthorizationServer에서 참조할 수 있도롤 매니저를 빈으로 노출한다
+
+
+    [2] AuthenticationManagerBuilder 설정
+        @Override
+        protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+            auth.userDetailsService(accountService)
+                    .passwordEncoder(passwordEncoder);
+        }
+        AuthenticationManagerBuilder를 어떻게 만들거냐?
+        내가 만든 accountService와 passwordEncoder를 사용해서 만들어달라!
+
+
+    [3] 특정파일에는 필터 적용하지 않는 방법
+        @Override
+        public void configure(WebSecurity web) throws Exception {
+            web.ignoring().mvcMatchers("/docs/index.html");
+            web.ignoring().requestMatchers(PathRequest.toStaticResources().atCommonLocations());
+        }
+        필터를 적용할지 말지 설정한다.
+        index.html과 여러가지 정적인 리소스들에 대한 필터는 적용하지 않겠다.
+        PathRequest? 스프링 부트가 제공. 스태틱 리소스들의 기본위치 제공
+
+        @Override
+        protected void configure(HttpSecurity http) throws Exception {
+            http.authorizeRequests()
+                .mvcMatchers("/docs/index.html").anonymous()
+                .requestMatchers(PathRequest.toStaticResources().atCommonLocations());
+        }
+        스프링 시큐리티는 적용을 하되 http 안에서 요청을 거르는 방식
+        시큐리티 안에는 들어오지만 익명 유저들도 사용 가능하게 된다.
+        로그를 보면 스프링 시큐리티 필터를 타고 흘러가지만 결국에 처리하겠다고 결론이 난다
+
+        위의 두 가지 중 한가지 방법으로 구현하면 된다.
+
+        서버가 일을 덜하게 하려면 스프링시큐리티를 아예 안타게 하는게 나음
+        void configure(WebSecurity web) -> 이게 더 빠르다
+        void configure(HttpSecurity http) -> 비교적 느림
+
+
+
+애플리케이션 실행! docs/index.html 잘 접속 가능
+web.ignoring() 주석 처리 하고 다시 앱 실행! docs/index.html 로그인 페이지로 간다!
