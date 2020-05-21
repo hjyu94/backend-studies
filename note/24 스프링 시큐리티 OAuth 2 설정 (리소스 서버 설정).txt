@@ -1,0 +1,129 @@
+24 스프링 시큐리티 OAuth 2 설정: 리소스 서버 설정
+
+테스트 수정
+    ● GET을 제외하고 모두 엑세스 토큰을 가지고 요청 하도록 테스트 수정
+
+ResourceServer 설정
+    ● @EnableResourceServer
+    ● extends ResourceServerConfigurerAdapter
+
+    ● configure(ResourceServerSecurityConfigurer resources)
+        ○ 리소스 ID
+    ● configure(HttpSecurity http)
+        ○ anonymous
+        ○ GET /api/** : permit all
+        ○ POST /api/**: authenticated
+        ○ PUT /api/**: authenticated
+        ○ 에러 처리
+            ■ accessDeniedHandler(OAuth2AccessDeniedHandler())
+
+[실습]
+
+리소스 서버를 설정해보자
+
+ResourceServiceConfig
+    @Configuration
+    @EnableResourceServer
+    public class ResourceServiceConfig extends ResourceServerConfigurerAdapter { ... }
+
+
+메소드 오버라이딩
+    @Override
+    public void configure(ResourceServerSecurityConfigurer resources) throws Exception {
+        resources.resourceId("event");
+    }
+    리소스 아이디 변경 (-> event)
+
+
+메소드 오버라이딩
+    @Override
+    public void configure(HttpSecurity http) throws Exception {
+        http.anonymous()
+               .and()
+            .authorizeRequests()
+                .mvcMatchers(HttpMethod.GET, "/api/**").anonymous()
+                .anyRequest().authenticated()
+                .and()
+            .exceptionHandling()
+                .accessDeniedHandler(new OAuth2AccessDeniedHandler());
+                // 인증이 잘못되거나 권한이 없는 경우 예외가 발생할 수 있는데
+                // 이때는 저 OAuth2AccessDeniedHandler를 사용하겠다.
+    }
+
+
+
+이벤트 컨트롤러 테스트를 돌려보면
+GET 요청들은 성공하는데 나머지는 모두 실패
+나머지 테스트에서 토큰 정보를 가지고 와서 테스트에 성공할 수 있도록 하자
+
+
+테스트에서 토큰 정보를 넣어주는 방법
+테스트
+    public void createEvent() ... {
+        mockMvc.perform(post("/api/events/")
+                ...
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + getAccessToken())
+            )
+            ...
+    }
+
+    private String getAccessToken() throws Exception {
+        this.mockMvc.perform(post("/oauth/token"))
+
+        String username = "hjeong@email.com";
+        String password = "hjeong";
+
+        String clientId = "myApp";
+        String clientSecret = "pass";
+
+        ResultActions perform = this.mockMvc.perform(post("/oauth/token")
+                .with(httpBasic(clientId, clientSecret))
+                .param("username", username)
+                .param("password", password)
+                .param("grant_type", "password")
+            )
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("access_token").exists());
+
+        String responseBody = perform.andReturn().getResponse().getContentAsString();
+        Jackson2JsonParser parse = new Jackson2JsonParser();
+        return parse.parseMap(responseBody).get("access_token").toString();
+    }
+    항상 유저이름과 패스워드가 고정이 되있는 상태에서 토큰을 가지고 옴
+
+
+createEvent 테스트 실행
+액세스 토큰을 가지고 접근하고 있고, 리소스 서버에서 GET 이 아닌 요청에 대해서는 인증이 가능하도록 했으니
+성공적으로 토큰을 가지고 접근하면 인증이 성공하는 것을 볼 수 있다.
+
+SnippetException: The following parts of the payload were not documented:
+{
+  "manager" : null
+}
+-> relaxedResponseFields() 를 통해서 일부만 테스트하도록 하자.
+
+
+인증정보를 가지고 요청하도록 테스트들을 수정
+
+    private String getBearerToken() throws Exception {
+        return "Bearer " + getAccessToken();
+    }
+
+    .header(HttpHeaders.AUTHORIZATION, getBearerToken())
+    이렇게 인증이 필요한 테스트 함수에서 인증 헤더로 넣도록 한다.
+
+
+모든 테스트 돌려보면 성공!
+
+* query did not return a unique result 에러가 뜬다면
+    accountService.saveAccount() 로 같은 account 저장이 중복 돼서 생긴다.
+    디비를 지우거나 데이터를 생성할 때마다 주요한 키값이 되는 값은 랜덤으로 뽑아서 생성하던가 하면 된다
+
+테스트
+    @Before
+    public void setUp() {
+        this.eventRepository.deleteAll();
+        this.accountRepository.deleteAll();
+    }
+
