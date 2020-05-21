@@ -1,0 +1,177 @@
+20 스프링 시큐리티 추가
+
+의존성 추가
+    <dependency>
+        <groupId>org.springframework.security.oauth.boot</groupId>
+        <artifactId>spring-security-oauth2-autoconfigure</artifactId>
+        <version>2.1.0.RELEASE</version>
+    </dependency>
+
+테스트 할 것
+    [1] 존재하는 account의 인증정보를 가지고 오는 경우
+    [2] 없는 유저를 읽어오는 경우 테스트
+
+이벤트 컨트롤러 테스트는 다 깨짐 (401 Unauthorized)
+    ● 깨지는 이유는 스프링 부트가 제공하는 스프링 시큐리티 기본 설정 때문.
+
+예외를 테스트하는 다양한 방법 살펴보기
+    1. @Test(expected): 예외 타입만 확인 가능
+    2. try-catch: 예외 타입과 메시지 확인 가능. 하지만 코드가 다소 복잡.
+    3. @Rule ExpectedException: 코드는 간결하면서 예외 타입과 메시지 모두 확인 가능
+
+
+
+[실습]
+
+pom.xml 의존성 추가!
+
+accounts/AccountService.java 생성, Test 생성
+
+[1] 존재하는 account의 인증정보를 가지고 오는 경우
+AccountServiceTest
+    @RunWith(SpringRunner.class)
+    @SpringBootTest
+    @ActiveProfiles("test")
+    public class AccountServiceTest {
+        @Autowired AccountService accountService // AccountService -> @Service 추가
+        @Autowired AccountRepository accountRepository;
+
+        @Test
+        public void findByUserName() {
+            // Given
+            String password = "pass";
+            String username = "hjeong";
+            Account account
+                    = Account.builder()
+                    .email("hjeong@email.com")
+                    .password(password)
+                    .roles(Set.of(AccountRole.ADMIN, AccountRole.USER))
+                    .build();
+            this.accountRepository.save(account);
+
+            // When
+            UserDetailsService ... = (UserDetailsService) this.accountService;
+            UserDetails userDetails = ...loadUserByUsername(username);
+
+            // Then
+            assertThat(userDetails.getPassword()).isEqualTo(password);
+        }
+    }
+
+Repository
+    public interface AccountRepository extends JpaRepository<Account, Integer> { ... }
+
+Service
+    @Service
+    public class AccountService implements UserDetailsService {
+        @Override
+        public UserDetails loadUserByUsername(String s) throws UsernameNotFoundException {
+            return null;
+        }
+    }
+
+테스트 실패!
+    NullPointerException
+    // userDetails가 null이라서 생긴 에러
+
+Service
+    @Override
+    public UserDetails loadUserByUsername(String s) throws UsernameNotFoundException {
+        Account account = accountRepository.findByEmail(s);
+    }
+
+Repository
+    public interface AccountRepository extends JpaRepository<Account, Integer> {
+        Optional<Account> findByEmail(String username);
+    }
+    리턴값이 null 이 나올 수 없도록 Optional<T>로 감싼다
+
+Service
+    @Override
+    public UserDetails loadUserByUsername(String s) throws UsernameNotFoundException {
+        Account account = accountRepository.findByEmail(s)
+                .orElseThrow(()->new UsernameNotFoundException(s));
+    }
+
+    account를 스프링 시큐리티가 알 수 있는 UserDetails로 변경해야 한다.
+    class User implements UserDetails
+    -> User를 사용하면 UserDetails의 전체 인터페이스를 다 구현하지 않아도 되니 편리하다
+    따라서 username으로 찾아온 Account를 User 타입으로 변경하자
+
+    ... laodUserByUsername(String s) ... {
+        ...
+        return new User(account.getEmail(), account.getPassword(), authorities(account.getRoles()))
+        // 1인자: String username
+        // 2인자: String password
+        // 3인자: Collection<? extends GrantedAuthority> authorities
+    }
+
+    private Collection<? extends GrantedAuthority> authorities(Set<AccountRole> roles) {
+        return roles.stream()
+                    .map(r -> new SimpleGrantedAuthority("ROLE_" + r.name()))
+                    .collect(Collectors.toSet());
+    }
+    AccountRole enum을 Collection<GrantedAutority> 로 변경하여 리턴
+
+테스트 성공!
+
+
+
+[2] 없는 유저를 읽어오는 경우 테스트
+
+테스트
+    @Test
+    @TestDescription("없는 유저를 읽어오는 경우 테스트")
+    public void findByUserName_Fail() {
+        String username = "random@email.com";
+        accountService.loadUserByUsername(username);
+    }
+
+테스트 실패!
+    에러가 던져짐
+    org.springframework.security.core.userdetails.UsernameNotFoundException: random@email.com
+    -> 얘를 테스트에서 확인해보는 방법 1~3
+
+1.
+    @Test(expected = UsernameNotFoundException.class)
+    public void findByUserName_Fail() { ... }
+
+    예외 타입만 확인이 가능하다
+
+2.
+    @Test
+    @TestDescription("없는 유저를 읽어오는 경우 테스트")
+    public void findByUserName_Fail_2() {
+        String username = "random@email.com";
+        try {
+            accountService.loadUserByUsername(username);
+            fail("supposed to be failed");
+        } catch (UsernameNotFoundException e) {
+            assertThat(e.getMessage()).containsSequence(username);
+            // 에러 메세지가 유저이름을 갖고 있는지
+        }
+    }
+
+    무조건 catch로 가야하는데 안 가면
+    fail()를 통해서 테스트를 실패시킴
+
+    예외 타입과 메시지 확인 가능. 하지만 코드가 다소 복잡.
+
+3.
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+    // public 으로 선언
+
+    @Test
+    @TestDescription("없는 유저를 읽어오는 경우 테스트")
+    public void findByUserName_Fail_3() {
+        // Expected
+        String username = "random@email.com";
+        expectedException.expect(UsernameNotFoundException.class);
+        expectedException.expectMessage(Matchers.containsString(username));
+
+        // When
+        accountService.loadUserByUsername(username);
+    }
+
+    발생할 예외를 먼저 적어줘야 하고 (Expected -> When) 예측과 다르면 테스트가 실패하게 되는 것.
