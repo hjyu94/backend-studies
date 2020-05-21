@@ -1,0 +1,86 @@
+21-2 스프링 시큐리티 기본 설정(폼 인증 설정)
+
+@Override
+protected void configure(HttpSecurity http) throws Exception {
+    http ​
+        .anonymous()
+            .and()
+        .formLogin()
+            .and()
+        .authorizeRequests()
+            .mvcMatchers(HttpMethod.GET, "/api/**").authenticated()
+            .anyRequest().authenticated();
+} ​
+
+● 익명 사용자 사용 활성화
+● 폼 인증 방식 활성화
+    ○ 스프링 시큐리티가 기본 로그인 페이지 제공
+● 요청에 인증 적용
+    ○ /api 이하 모든 GET 요청에 인증이 필요함.
+    (permitAll()을 사용하여 인증이 필요없이 익명으로 접근이 가능케 할 수 있음)
+    ○ 그밖에 모은 요청도 인증이 필요함.
+
+
+
+[실습]
+
+HttpSecurity 를 제공하는 아규먼트로 제공하는 configure() 를 재정의하자
+
+@Override
+protected void configure(HttpSecurity http) throws Exception {
+    http.anonymous()
+            .and()
+            .formLogin() // 폼 로그인 인증을 설정할 것이다.
+            .and()
+            .authorizeRequests() // GET /api/** 는 익명에 대해서 허용할 것이고, 나머지 요청은 인증이 필요하다
+            .mvcMatchers(HttpMethod.GET, "/api/**").authenticated()
+            .anyRequest().authenticated();
+}
+
+
+우리가 지정한 시큐리티 설정파일에서는 PasswordEncoder를 쓰게 해놨는데
+Account를 저장할 때는 PasswordEncoder를 쓰지 않고 입력받은 패스워드를 바로 리파지토리로 바로 저장.
+따라서 패스워드가 매치가 되지 않는다
+
+서비스에서 레파지토리로 어카운트를 저장하기 전에 패스워드 인코더를 사용 후 저장하도록 하자
+
+AcocuntService
+    @Autowired
+    PasswordEncoder ...;
+
+    public Account saveAccount(Account account) {
+        String encodedPassword = this.passwordEncoder.encode(account.getPassword());
+        account.setPassword(encodedPassword);
+        return this.accountRepository.save(account);
+    }
+
+Test
+    @Autowired
+    Repository 지움
+
+    @Test
+    public void findByUserName() {
+        String password = "pass";
+        String username = "hjeong@email.com";
+        Account account
+                = Account.builder()
+                .email(username)
+                .password(password)
+                .roles(Set.of(AccountRole.ADMIN, AccountRole.USER))
+                .build();
+        // this.accountRepository.save(account);
+        this.acountService.saveAccount(account); 로 변경
+    }
+
+Test
+    입력한 패스워드가, userDetails에서 가져온 패스워드와 일치하는지 테스트
+
+    @Autowired
+    PasswordEncoder ...;
+
+    assertThat(this.passwordEncoder.matches(password, userDetails.getPassword())).isTrue();
+
+
+findByUserName 테스트!
+    유저를 저장할 때 유저의 패스워드에 패스워드 인코더가 적용이 됨
+    userDetails에 있는 패스워드와, 실제 패스워드가 일치함
