@@ -89,7 +89,7 @@ new package configs
 공통설정에 해당하는 스프링 시큐리티 설정을 하겠다
 SecurityConfig
     @Configuration
-    @EnableWebSecurity
+    @EnableWebSecurity // 스프링 부트 기본 설정이 적용되지 않도록
     public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
@@ -176,7 +176,7 @@ SecurityConfig
         protected void configure(HttpSecurity http) throws Exception {
             http.authorizeRequests()
                 .mvcMatchers("/docs/index.html").anonymous()
-                .requestMatchers(PathRequest.toStaticResources().atCommonLocations());
+                .requestMatchers(PathRequest.toStaticResources().atCommonLocations()).anonymous();
         }
         스프링 시큐리티는 적용을 하되 http 안에서 요청을 거르는 방식
         시큐리티 안에는 들어오지만 익명 유저들도 사용 가능하게 된다.
