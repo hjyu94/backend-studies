@@ -1,0 +1,42 @@
+22 Runner.run() 에서 Account 저장하기
+
+앱이 구동 될때, 테스트가 시작할 때
+ApplicationRunner들의 run()이 자동 실행 되며
+Account를 자동으로 만들어 줄 것.
+
+AppConfig
+    @Bean
+    public ApplicationRunner applicationRunner() {
+        return new ApplicationRunner() {
+            @Autowired
+            AccountService accountService;
+
+            @Override
+            public void run(ApplicationArguments args) throws Exception {
+                Account hjeong = Account.builder()
+                        .email("hjeong@email.com")
+                        .password("hjeong")
+                        .roles(Set.of(AccountRole.ADMIN, AccountRole.USER))
+                        .build();
+                accountService.saveAccount(hjeong);
+            }
+        };
+    }
+
+
+SecurityConfig
+[1]
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.anonymous()
+            ...
+            .mvcMatchers(HttpMethod.GET, "/api/**").anonymous()
+    }
+[2]
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.anonymous()
+            ...
+            .mvcMatchers(HttpMethod.GET, "/api/**").authenticated()
+    }
+    /api/events: 로그인 창이 든다
