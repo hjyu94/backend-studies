@@ -238,7 +238,7 @@ public class EventControllerTests extends BaseControllerTest {
     }
 
     @Test
-    @TestDescription("30개의 이벤트를 10개씩 표시하는 페이지의 두번째 페이지 표시")
+    @TestDescription("인증정보 없을 때, 30개의 이벤트를 10개씩 표시하는 페이지의 두번째 페이지 표시")
     public void queryEvents() throws Exception {
         // Given
         IntStream.range(0, 30).forEach(i -> {
@@ -261,6 +261,31 @@ public class EventControllerTests extends BaseControllerTest {
         ;
     }
 
+    @Test
+    @TestDescription("인증정보 있을 때, 30개의 이벤트를 10개씩 표시하는 페이지의 두번째 페이지 표시")
+    public void queryEvents_With_Authentication() throws Exception {
+        // Given
+        IntStream.range(0, 30).forEach(i -> {
+            this.generateEvent(i);
+        });
+
+        // When, Then
+        mockMvc.perform(get("/api/events")
+                .param("page", "1")
+                .param("size", "10")
+                .param("sort", "name,DESC")
+                .header(HttpHeaders.AUTHORIZATION, getBearerToken())
+        )
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("page").exists())
+                .andExpect(jsonPath("_embedded.eventList[0]._links.self").exists())
+                .andExpect(jsonPath("_links.self").exists())
+                .andExpect(jsonPath("_links.profile").exists())
+                .andExpect(jsonPath("_links.create-event").exists())
+                .andDo(document("query-events"))
+        ;
+    }
     @Test
     @TestDescription("기존의 이벤트를 하나 조회하기")
     public void getEvent() throws Exception {
