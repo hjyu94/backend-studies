@@ -2,6 +2,7 @@ package me.hjeong.demoinflearnrestapi.events;
 
 import me.hjeong.demoinflearnrestapi.accounts.Account;
 import me.hjeong.demoinflearnrestapi.accounts.AccountAdapter;
+import me.hjeong.demoinflearnrestapi.accounts.CurrentUser;
 import me.hjeong.demoinflearnrestapi.common.ErrorsResource;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
@@ -12,6 +13,7 @@ import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.hateoas.server.LinkBuilder;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -48,7 +50,7 @@ public class EventController {
 
     @PostMapping
     public ResponseEntity createEvent(@RequestBody @Valid EventDto eventDto, Errors errors
-                                      , @AuthenticationPrincipal(expression = "account") Account account
+                                      , @CurrentUser Account account
     ) {
         if(errors.hasErrors()) {
             return badRequest(errors);
@@ -88,13 +90,12 @@ public class EventController {
         {
             pagedEntityModel.add(linkTo(EventController.class).withRel("create-event"));
         }
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         return ResponseEntity.ok(pagedEntityModel);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity getEvent(@PathVariable Integer id, @AuthenticationPrincipal(expression = "#this == 'anonymousUser' ? null : account") Account currentUser) {
+    public ResponseEntity getEvent(@PathVariable Integer id, @CurrentUser Account currentUser) {
         Optional<Event> optionalEvent = this.eventRepository.findById(id);
         if(optionalEvent.isEmpty()){
             return ResponseEntity.notFound().build();
@@ -113,6 +114,7 @@ public class EventController {
     public ResponseEntity updateEvent(@PathVariable Integer id
                                 , @RequestBody @Valid EventDto eventDto
                                 , Errors errors
+                                , @CurrentUser Account currentUser
                             )
     {
         Optional<Event> optionalEvent = this.eventRepository.findById(id);
@@ -130,6 +132,10 @@ public class EventController {
         }
 
         Event existingEvent = optionalEvent.get();
+        if(!existingEvent.getManager().equals(currentUser))
+        {
+            return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+        }
         this.modelMapper.map(eventDto, existingEvent);
         Event savedEvent = eventRepository.save(existingEvent);
 
