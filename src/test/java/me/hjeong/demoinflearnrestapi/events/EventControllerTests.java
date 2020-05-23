@@ -286,14 +286,34 @@ public class EventControllerTests extends BaseControllerTest {
                 .andDo(document("query-events"))
         ;
     }
+
     @Test
-    @TestDescription("기존의 이벤트를 하나 조회하기")
+    @TestDescription("인증 정보 없을 때, 기존의 이벤트를 하나 조회하기")
     public void getEvent() throws Exception {
         // Given
         Event event = this.generateEvent(100);
 
         // When, Then
         this.mockMvc.perform(get("/api/events/{id}", event.getId()))
+                .andDo(document("get-an-event"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("name").exists())
+                .andExpect(jsonPath("_links.self").exists())
+                .andExpect(jsonPath("_links.profile").exists())
+                .andExpect(jsonPath("_links.update-event").exists())
+        ;
+    }
+
+    @Test
+    @TestDescription("인증 정보 있을 때, 기존의 이벤트를 하나 조회하기")
+    public void getEvent_With_Authentication() throws Exception {
+        // Given
+        Event event = this.generateEvent(100);
+
+        // When, Then
+        this.mockMvc.perform(get("/api/events/{id}", event.getId())
+                    .header(HttpHeaders.AUTHORIZATION, getBearerToken())
+                )
                 .andDo(document("get-an-event"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("name").exists())

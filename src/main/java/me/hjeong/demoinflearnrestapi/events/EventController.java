@@ -88,11 +88,13 @@ public class EventController {
         {
             pagedEntityModel.add(linkTo(EventController.class).withRel("create-event"));
         }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
         return ResponseEntity.ok(pagedEntityModel);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity getEvent(@PathVariable Integer id) {
+    public ResponseEntity getEvent(@PathVariable Integer id, @AuthenticationPrincipal(expression = "#this == 'anonymousUser' ? null : account") Account currentUser) {
         Optional<Event> optionalEvent = this.eventRepository.findById(id);
         if(optionalEvent.isEmpty()){
             return ResponseEntity.notFound().build();
@@ -100,6 +102,10 @@ public class EventController {
         Event event = optionalEvent.get();
         EventResource eventResource = new EventResource(event);
         eventResource.add(new Link("/docs/index.html#resources-events-get").withRel("profile"));
+        if(event.getManager() == currentUser)
+        {
+            eventResource.add(linkTo(EventController.class).slash(event.getId()).withRel("update-event"));
+        }
         return ResponseEntity.ok(eventResource);
     }
 
