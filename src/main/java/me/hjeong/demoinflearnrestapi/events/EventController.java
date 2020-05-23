@@ -46,7 +46,9 @@ public class EventController {
     }
 
     @PostMapping
-    public ResponseEntity createEvent(@RequestBody @Valid EventDto eventDto, Errors errors) {
+    public ResponseEntity createEvent(@RequestBody @Valid EventDto eventDto, Errors errors
+                                      , @AuthenticationPrincipal AccountAdapter currentUser
+    ) {
         if(errors.hasErrors()) {
             return badRequest(errors);
         }
@@ -58,6 +60,7 @@ public class EventController {
 
         Event event = modelMapper.map(eventDto, Event.class);
         event.update();
+        event.setManager(currentUser.getAccount());
         Event newEvent = this.eventRepository.save(event);
 
         LinkBuilder selfLinkBuilder = linkTo(EventController.class).slash(newEvent.getId());
@@ -74,7 +77,7 @@ public class EventController {
     @GetMapping
     public ResponseEntity queryEvents(Pageable pageable
                                     , PagedResourcesAssembler<Event> assembler
-                                    , @AuthenticationPrincipal User user
+                                    , @AuthenticationPrincipal AccountAdapter user
     ) {
         Page<Event> page = this.eventRepository.findAll(pageable);
         PagedModel<EventResource> pagedEntityModel = assembler.toModel(page, e -> new EventResource(e));
