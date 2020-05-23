@@ -1,16 +1,19 @@
 package me.hjeong.demoinflearnrestapi.events;
 
+import me.hjeong.demoinflearnrestapi.accounts.AccountAdapter;
 import me.hjeong.demoinflearnrestapi.common.ErrorsResource;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.hateoas.server.LinkBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Controller;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.net.URI;
+import java.security.Principal;
 import java.util.Optional;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
@@ -68,15 +72,18 @@ public class EventController {
     }
 
     @GetMapping
-    public ResponseEntity queryEvents(Pageable pageable, PagedResourcesAssembler<Event> assembler) {
+    public ResponseEntity queryEvents(Pageable pageable
+                                    , PagedResourcesAssembler<Event> assembler
+                                    , @AuthenticationPrincipal User user
+    ) {
         Page<Event> page = this.eventRepository.findAll(pageable);
         PagedModel<EventResource> pagedEntityModel = assembler.toModel(page, e -> new EventResource(e));
         pagedEntityModel.add(new Link("/docs/index.html#resources-events-list").withRel("profile"));
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User principal = (User) authentication.getPrincipal();
-        String username = principal.getUsername();
-
+        if(user!=null)
+        {
+            pagedEntityModel.add(linkTo(EventController.class).withRel("create-event"));
+        }
         return ResponseEntity.ok(pagedEntityModel);
     }
 
