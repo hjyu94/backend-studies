@@ -1,5 +1,6 @@
 package me.hjeong.demoinflearnrestapi.events;
 
+import me.hjeong.demoinflearnrestapi.accounts.Account;
 import me.hjeong.demoinflearnrestapi.accounts.AccountAdapter;
 import me.hjeong.demoinflearnrestapi.common.ErrorsResource;
 import org.modelmapper.ModelMapper;
@@ -47,7 +48,7 @@ public class EventController {
 
     @PostMapping
     public ResponseEntity createEvent(@RequestBody @Valid EventDto eventDto, Errors errors
-                                      , @AuthenticationPrincipal AccountAdapter currentUser
+                                      , @AuthenticationPrincipal(expression = "account") Account account
     ) {
         if(errors.hasErrors()) {
             return badRequest(errors);
@@ -60,7 +61,7 @@ public class EventController {
 
         Event event = modelMapper.map(eventDto, Event.class);
         event.update();
-        event.setManager(currentUser.getAccount());
+        event.setManager(account);
         Event newEvent = this.eventRepository.save(event);
 
         LinkBuilder selfLinkBuilder = linkTo(EventController.class).slash(newEvent.getId());
