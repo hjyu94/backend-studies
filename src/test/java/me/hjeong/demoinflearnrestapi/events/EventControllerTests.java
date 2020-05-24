@@ -1,7 +1,7 @@
 
 package me.hjeong.demoinflearnrestapi.events;
 
-import me.hjeong.demoinflearnrestapi.accounts.AccountRepository;
+import me.hjeong.demoinflearnrestapi.accounts.*;
 import me.hjeong.demoinflearnrestapi.common.AppProperties;
 import me.hjeong.demoinflearnrestapi.common.BaseControllerTest;
 import me.hjeong.demoinflearnrestapi.common.TestDescription;
@@ -12,10 +12,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.common.util.Jackson2JsonParser;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import static org.springframework.restdocs.headers.HeaderDocumentation.*;
@@ -34,16 +37,19 @@ public class EventControllerTests extends BaseControllerTest {
     EventRepository eventRepository;
 
     @Autowired
+    AccountService accountService;
+
+    @Autowired
     AccountRepository accountRepository;
+
+    @Autowired
+    AppProperties appProperties;
 
 //    @Before
 //    public void setUp() {
 //        this.eventRepository.deleteAll();
 //        this.accountRepository.deleteAll();
 //    }
-
-    @Autowired
-    AppProperties appProperties;
 
     @Test
     @TestDescription("정상적으로 이벤트를 생성하는 테스트")
@@ -337,7 +343,11 @@ public class EventControllerTests extends BaseControllerTest {
     @TestDescription("이벤트를 정상적으로 수정하기")
     public void updateEvent() throws Exception {
         // Given
-        Event event = this.generateEvent(200);
+        String username = appProperties.getUserUsername();
+        AccountAdapter accountAdapter = (AccountAdapter) this.accountService.loadUserByUsername(username);
+        Account account = accountAdapter.getAccount();
+
+        Event event = this.generateEvent(200, account);
         EventDto eventDto = modelMapper.map(event, EventDto.class);
         String newName = "Updated Event";
         eventDto.setName(newName);
@@ -412,21 +422,39 @@ public class EventControllerTests extends BaseControllerTest {
         ;
     }
 
-    private Event generateEvent(int id) {
-        Event event = Event.builder()
-                .name("event " + id)
-                .description("test event")
-                .beginEnrollmentDateTime(LocalDateTime.of(2018, 9, 1, 0, 0))
-                .closeEnrollmentDateTime(LocalDateTime.of(2018, 10, 31, 0, 0))
-                .beginEventDateTime(LocalDateTime.of(2018, 11, 23, 14, 0))
-                .endEventDateTime(LocalDateTime.of(2018,11,24,14,0))
-                .basePrice(0)
-                .maxPrice(0)
-                .limitOfEnrollment(100)
-                .location("...")
+    private Account createAccount() {
+        Account keesun = Account.builder()
+                .email(appProperties.getUserUsername())
+                .password(appProperties.getUserPassword())
+                .roles(Set.of(AccountRole.ADMIN, AccountRole.USER))
                 .build();
+        return this.accountService.saveAccount(keesun);
+    }
 
+    private Event generateEvent(int id) {
+        Event event = buildEvent(id);
         return eventRepository.save(event);
+    }
+
+    private Event generateEvent(int id, Account account) {
+        Event event = buildEvent(id);
+        event.setManager(account);
+        return this.eventRepository.save(event);
+    }
+
+    private Event buildEvent(int id) {
+        return Event.builder()
+                    .name("event " + id)
+                    .description("test event")
+                    .beginEnrollmentDateTime(LocalDateTime.of(2018, 9, 1, 0, 0))
+                    .closeEnrollmentDateTime(LocalDateTime.of(2018, 10, 31, 0, 0))
+                    .beginEventDateTime(LocalDateTime.of(2018, 11, 23, 14, 0))
+                    .endEventDateTime(LocalDateTime.of(2018,11,24,14,0))
+                    .basePrice(0)
+                    .maxPrice(0)
+                    .limitOfEnrollment(100)
+                    .location("...")
+                    .build();
     }
 
     private String getBearerToken() throws Exception {
@@ -438,7 +466,6 @@ public class EventControllerTests extends BaseControllerTest {
         String password = appProperties.getUserPassword();
         String clientId = appProperties.getClientId();
         String clientSecret = appProperties.getClientSecret();
-
 
         ResultActions perform = this.mockMvc.perform(post("/oauth/token")
                 .with(httpBasic(clientId, clientSecret))

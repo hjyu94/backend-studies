@@ -1,0 +1,32 @@
+41. 깨진 테스트 살펴보기
+
+[1] EventControllerTests.updateEvent()
+    ● 깨지는 이유: NullPointerException
+    existingEvent.getManager()가 null 임
+    이벤트 생성시 매니져 객체를 넣어주지 않았어서
+
+
+[2] EventControllerTests.getEvent()
+    ● 깨지는 이유: NullPointerException
+    Given Event의 매니저가 null 이라서
+    // given
+    Account account = this.createAccount();
+    new Event(100, account);
+
+
+[3] DemoApplicationTests
+    ● 깨지는 이유: 테스트에서 H2가 아닌 PostgreSQL 사용하려 하지만, PostgreSQL이 동작중이지 않음.
+    ● 해결 방법: 해당 테스트에서 H2를 사용하도록 test 프로파일 설정.
+
+    이 테스트는 우리가 만든 테스트가 아니라 Spring Initializer가 처음에 만들어준 테스트.
+    src/main/rsc/application.properties를 사용함
+    (테스트를 실행하거나 애플리케이션 실행시 읽는 설정 파일)
+
+    해당 설정파일에 따라 PostgreSQL 를 실행하려고 하나 띄워놓지 않아서 실패함
+    (-> 도커에서 띄워야 함)
+    그런데 우리는 테스트에서 PostgreSQL이 아니라 H2 를 쓰고 싶었음
+
+    application-test.properties
+    프로파일이 테스트인 테스트를 돌릴때만 쓰이게 됨 (overwrite)
+    DemoApplicationTests의 프로파일을 테스트로 설정하지 않았기 때문에 기본 설정만 사용하게 됨
+    따라서 테스트용 설정파일을 읽도록 @ActiveProfiles('test')하면 문제가 해결됨
