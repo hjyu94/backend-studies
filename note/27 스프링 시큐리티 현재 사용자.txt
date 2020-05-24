@@ -1,0 +1,235 @@
+27 스프링 시큐리티 현재 사용자
+
+SecurityContext
+    ● 자바 ThreadLocal 기반 구현으로 인증 정보를 담고 있다.
+    ● 인증 정보 꺼내는 방법:
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+@AuthenticationPrincipal spring.security.User user
+    ● 인증 안한 경우에 null
+    ● 인증 한 경우에는 username과 authorities 참조 가능
+
+spring.security.User를 상속받는 클래스를 구현하면
+    ● 도메인 User를 받을 수 있다.
+    ● @AuthenticationPrincipa me.whiteship.user.UserAdapter
+    ● Adatepr.getUser().getId()
+
+SpEL을 사용하면
+    ● @AuthenticationPrincipa(expression=”account”) me.whiteship.user.Account
+
+커스텀 애노테이션을 만들면
+    ● @CurrentUser Account account
+    ● 엇? 근데 인증 안하고 접근하면..?
+
+    @Target(ElementType.PARAMETER)
+    @Retention(RetentionPolicy.RUNTIME)
+    @AuthenticationPrincipal(expression = "account")
+    public @interface CurrentUser { } ​
+
+expression = "#this == 'anonymousUser' ? null : account"
+    ● 현재 인증 정보가 anonymousUse 인 경우에는 null을 보내고 아니면 “account”를 꺼내준다.
+
+조회 API 개선
+    ● 현재 조회하는 사용자가 owner인 경우에 update 링크 추가 (HATEOAS)
+
+수정 API 개선
+    ● 현재 사용자가 이벤트 owner가 아닌 경우에 403 에러 발생
+
+
+
+[실습]
+
+스프링 시큐리티를 사용해서 인증했을 때 현재 사용자 정보를 참조하는 방법을 보자
+
+[1] 로그인 한 상태에서 이벤트 목록을 조회했을 때 이벤트 생성 링크 추가
+
+* 테스트
+    @Test
+    @TestDescription("인증정보 있을 때, 30개의 이벤트를 10개씩 표시하는 페이지의 두번째 페이지 표시")
+    public void queryEvents_With_Authentication() throws Exception {
+        ...
+        // When, Then
+        mockMvc.perform(get("/api/events")
+                    .header(HttpHeaders.AUTHORIZATION, getBearerToken())
+                )
+            .andExpect(jsonPath("_links.create-event").exists());
+    }
+
+* 현재 사용자 정보 꺼내오는 방법
+    [1] SecurityContextHolder에서 인증정보를 꺼내 Username을 알아내서 DB에서 찾아오기
+        @GetMapping
+        public ResponseEntity queryEvents(Pageable pageable, PagedResourcesAssembler<Event> assembler) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            User principal = (User) authentication.getPrincipal();
+            ...
+        }
+
+        테스트 디버깅 시작해서 authentication 변수 보기!
+            authentication = {OAuth2Authentication@11161} "org.springframework.security.oauth2.provider.OAuth2Authentication@b6692093: Principal: org.springframework.security.core.userdetails.User@46d4b9fa: Username: user@email.com; Password: [PROTECTED]; Enabled: true; AccountNonExpired: true; credentialsNonExpired: true; AccountNonLocked: true; Granted Authorities: ROLE_ADMIN; Credentials: [PROTECTED]; Authenticated: true; Details: remoteAddress=127.0.0.1, tokenType=BearertokenValue=<TOKEN>; Granted Authorities: ROLE_ADMIN"
+            (+)--storedRequest = {OAuth2Request@11166}
+            (+)--userAuthentication = {UsernamePasswordAuthenticationToken@11167} "org.springframework.security.authentication.UsernamePasswordAuthenticationToken@3769e40a: Principal: org.springframework.security.core.userdetails.User@46d4b9fa: Username: user@email.com; Password: [PROTECTED]; Enabled: true; AccountNonExpired: true; credentialsNonExpired: true; AccountNonLocked: true; Granted Authorities: ROLE_ADMIN; Credentials: [PROTECTED]; Authenticated: true; Details: {grant_type=password, username=user@email.com}; Granted Authorities: ROLE_ADMIN"
+                 (+)--principal = {User@11179} "org.springframework.security.core.userdetails.User@46d4b9fa: Username: user@email.com; Password: [PROTECTED]; Enabled: true; AccountNonExpired: true; credentialsNonExpired: true; AccountNonLocked: true; Granted Authorities: ROLE_ADMIN"
+                      (+)--password = null
+                      (+)--username = "user@email.com"
+                      (+)--authorities = {Collections$UnmodifiableSet@11184}  size = 1
+                      (+)--accountNonExpired = true
+                      (+)--accountNonLocked = true
+                      (+)--credentialsNonExpired = true
+                      (+)--enabled = true
+                 (+)--credentials = null
+                 (+)--authorities = {Collections$UnmodifiableRandomAccessList@11180}  size = 1
+                 (+)--details = {LinkedHashMap@11181}  size = 2
+                 (+)--authenticated = true
+            (+)--authorities = {Collections$UnmodifiableRandomAccessList@11168}  size = 1
+            (+)--details = {OAuth2AuthenticationDetails@11169} "remoteAddress=127.0.0.1, tokenType=BearertokenValue=<TOKEN>"
+            (+)--authenticated = true
+
+        authentication.getPrincipal();
+        여기서 나오는 리턴되는 Principal은 어카운트_서비스.loadUserByUsername()에서 리턴했던 User 객체이다.
+        (interface User extends Principal, User는 Principal을 상속받았음)
+
+        @Override
+        public UserDetails loadUserByUsername(String s) throws UsernameNotFoundException {
+            ....
+            return new User(...);
+        }
+
+        @GetMapping
+        public ResponseEntity queryEvents(Pageable pageable, PagedResourcesAssembler<Event> assembler) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            User principal = (User) authentication.getPrincipal();
+            String username = principal.getUsername();
+            ...
+        }
+        이제 username 을 이용해서 AccountRepository에서 데이터를 가지고 올 수 있다.
+
+
+    [2] @AuthenticationPrincipal User user 아규먼트
+        @GetMapping
+        public ResponseEntity queryEvents(@AuthenticationPrincipal User user, ...) {
+            ...
+        }
+        스프링 시큐리티가 제공해주는 기능중에 하나로
+        메소드 파라미터에 @AuthenticationPrincipal를 이용해서 User를 바로 넘겨받을 수 있다.
+        현재 사용자가 있으면 받아오고 아니면 null.
+
+
+* 현재 사용자가 있다면 이벤트를 생성하는 링크를 추가해주자.
+    public ResponseEntity queryEvents(@AuthenticationPrincipal User user, ...) {
+        ...
+        if(user!=null)
+        {
+            pagedEntityModel.add(linkTo(EventController.class).withRel("create-event"));
+        }
+        return ...
+    }
+
+
+
+[2] 로그인 한 상태에서 이벤트 목록을 조회했을 때 이벤트 생성 링크 추가
+
+Event.manager 세팅하자. 이 때는 event.setManager()에서 Account 타입을 받아야 한다.
+메소드 아규먼트로에서 public UserDetails loadUserByUsername(String s)의 리턴 타입인 UserDetails를 받을 수 있다.
+따라서 UserDetails를 구현한 User를 상속받으면서 우리가 만든 Account를 알고있는 User를 만들어야 한다.
+
+
+AccountAdapter: User는 상속받고, Account를 생성자에 주입받자
+    class AccountAdapter extends User {
+        private Account account;
+
+        public AccountAdapter(Account account) {
+            super(account.getEmail(), account.getPassword(), authorities(account.getRoles()));
+            this.account = account;
+        }
+
+        private static ... authorities(...) {
+            ...
+        }
+
+        // getAccount()
+    }
+
+
+어카운트서비스: loadUserByUsername()이 AccountAdapter를 를 리턴하도록 한다
+    @Override
+    public UserDetails loadUserByUsername(String s) throws UsernameNotFoundException {
+        Account account = accountRepository.findByEmail(s)
+                .orElseThrow(()->new UsernameNotFoundException(s));
+        return new AccountAdapter(account);
+    }
+
+이벤트 컨트롤러
+    @GetMapping
+    public ResponseEntity queryEvents(@AuthenticationPrincipal AccountAdapter currentUser, ...) {
+        ...
+    }
+
+    @PostMapping
+    public ResponseEntity createEvent(@AuthenticationPrincipal AccountAdapter currentUser, ...) {
+        Event event = modelMapper.map(eventDto, Event.class);
+        event.update();
+        event.setManager(currentUser.getAccount());
+        ...
+    }
+    AccountAdapter를 사용해서 Account를 바로 꺼낼 수 있기 때문에
+    SecurityContextHolder에서 가지고 온 username을 DB에서 검색하지 않아도 된다.
+
+
+* 어댑터가 아니라 어카운트를 바로 받을 수도 있다
+    @AuthenticationPrincipal AccountAdapter currentUser
+    -> @AuthenticationPrincipal(expression = "account") Account account
+    : currentUser가 가진 Account 객체를 바로 사용할 수 있개 해줌
+
+
+* 인증하지 않은 상태에서는 어떻게 동작하는가?
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    여기서 authentication 에 중단점 찍고 디버깅 해보면
+
+    authentication = {AnonymousAuthenticationToken@10948} "org.springframework.security.authentication.AnonymousAuthenticationToken@54a447bb: Principal: anonymousUser; Credentials: [PROTECTED]; Authenticated: true; Details: org.springframework.security.web.authentication.WebAuthenticationDetails@957e: RemoteIpAddress: 127.0.0.1; SessionId: null; Granted Authorities: ROLE_ANONYMOUS"
+    (+)---principal = "anonymousUser"
+    (+)---keyHash = -633497695
+    (+)---authorities = {Collections$UnmodifiableRandomAccessList@10955}  size = 1
+    (+)---details = {WebAuthenticationDetails@10956} "org.springframework.security.web.authentication.WebAuthenticationDetails@957e: RemoteIpAddress: 127.0.0.1; SessionId: null"
+    (+)---authenticated = true
+
+    이 경우는 authentication 객체가 들고있는 principal이 문자열 "anonymousUser" 이다.
+
+    인증된 정보가 있는 경우는 loadUerByUsername()이 리턴하는 객체가 나오지만
+    없는 경우는 "anonymousUser"라는 문자열값이나온다
+
+    따라서 @AuthenticationPrincipal(expression = "account")가 제대로 동작할 수 없다.
+    (문자열 "anonymousUser"에서 Account 객체를 꺼내오려고 하는 것!)
+
+
+* expression SpEL 을 사용해서 문제 해결하기
+    @AuthenticationPrincipal(expression = "#this == 'anonymousUser' ? null : account") Account currentUser
+
+
+* 메타 애노테이션 간추리기
+    @Target(value = ElementType.PARAMETER)
+    @Retention(value = RetentionPolicy.RUNTIME)
+    @AuthenticationPrincipal(expression = "#this == 'anonymousUser' ? null : account")
+    public @interface CurrentUser { ... }
+
+
+이벤트 컨트롤러 테스트들 모든 테스트 성공!
+
+수정한 내역!
+    이벤트 컨트롤러에서 이벤트 생성시 매니저 정보 넣기
+
+    조회할때 생성 링크 추가
+        pagedEntityModel.add(linkTo(EventController.class).withRel("create-event"));
+
+    목록 하나만 볼 때, 작성자가 현재 사용자라면 수정 링크 추가
+        eventResource.add(linkTo(EventController.class).slash(event.getId()).withRel("update-event"));
+
+    현재 사용자가 해당 글의 매니저인 경우에만 수정이 가능해야 한다.
+        @PutMapping("/{id}")
+        public ResponseEntity updateEvent(...) {
+            if(!existingEvent.getManager().equals(currentUser))
+            {
+                return new ResponseEntity(HttpStatus.UNAUTHORIZED);
+            }
+        }
+
+테스트 깨지면 보강 강의 참조 !
