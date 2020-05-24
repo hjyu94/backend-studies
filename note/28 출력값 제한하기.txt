@@ -1,0 +1,73 @@
+28 Events API 개선: 출력값 제한하기
+
+생성 API 개선
+    ● Event owner 설정
+    ● 응답에서 owner의 id만 보내 줄 것.
+    {
+        "id" : 4,
+        "name" : "test 3PISM1Ju",
+        "description" : "test event",
+        ... ​
+        "free" : false,
+        "eventStatus" : "DRAFT",
+        "owner" :
+        {
+            "id" : 3,
+            "email" : "keesun@email.com",
+            "password" : "{bcrypt}$2a$10$3z/rHmeYsKpoOQR3aUq38OmZjZNsrGfRZxSnmpLfL3lpLxjD5/JZ6",
+            "roles" : [ "USER", "ADMIN" ]
+        },
+     }​
+    ● JsonSerializer<User> 구현
+    ● @JsonSerialize(using) 설정
+
+
+[실습]
+
+create_event_response
+    응답에 매니저의 email, password, roles 정보가 나와버림
+    매니저 어카운트의 ID 값만 나오면 됨
+    (나머지는 개인적인 정보라서 보안상 보여주지 않아야 함)
+
+
+해결법
+    1 유저 정보를 내보낼 용도로 사용하는 Dto 생성
+    2 Json Seiralizer<User> 사용 (***)
+
+
+AccountSerializer
+    이전은 Account->Json serialization 할 때 objectMapper를 사용
+    Account의 모든 필드를 Json으로 변경시켜 준다.
+    우리가 AccountSerializer 를 커스텀 해서 필요한 출력값만 보여주도록 하자.
+
+    - extends JsonSerializer<Account> // fasterxml 을 써야함
+    - void serialize(...) {
+        jsonGenerator.writeStartObject();
+        jsonGenerator.writeNumberField("id", account.getId());
+        jsonGenerator.writeEndObject();
+    }
+
+이 시리얼라이저 클래스 자체를 @JsonComponent로 만들면
+Account->json 될 때마다 id 값만 내보낸다.
+경우에 따라서는 id, email, password, roles 값 모두 필요할 때가 있다.
+(Account 정보를 수정할 때 등등)
+따라서 이벤트에서 manager 정보를 출력할 때만 사용하게 되도록
+Event 클래스를 수정하자
+
+Event
+    @ManyToOne
+    @JsonSerialize(using = AccountSerializer.class)
+    // com.fasterxml.jackson.databind 사용해야 한다
+    private Account manager;
+
+
+create_event_response
+    이제 manager 값에 id 만 출력값으로 나오게 된다.
+    {
+        "id" : 3,
+        ...
+        "manager" : {
+            "id" : 2
+        },
+        ...
+    }
