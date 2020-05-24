@@ -1,0 +1,43 @@
+스프링 부트 2.2.* 버전으로 업그레이드
+
+스프링부트는 해당버전에 가장 최적화되어있는
+써드파티 라이브러리의 버전을 관리해줌
+따라서 스프링부트의 버전만 올리더라도 많은 부분이 바뀜
+(스프링 부트가 제공하는 자동설정값들, 프로퍼티값들, 의존성들과 그 버전들)
+버전을 올릴 때에는 테스트를 충분히 해줘야 한다.
+
+원래는 2.1.0 이었음
+테스트가 깨지는게 있는지 전부 보고 버전을 업그레이드해야 한다.
+
+
+스프링 부트 버전을 올리면 바뀔 수 있는 일
+    - 자동 설정 값 변경
+    - 의존성 변경
+    - 기존 애플리케이션의 동작이 바뀌거나 컴파일 에러가 발생할 수 있다.
+
+
+스프링 부트 2.2.* 주요 변화
+    - JUnit4 -> JUnit5
+    - 스프링 HATEOAS 버전이 올라가면서 스프링 HATEOAS API가 바뀌었다.
+
+
+스프링 HATEOAS
+    - Resource -> EntityModel
+    - Resources -> CollectionModel
+    - PagedResources -> PagedModel
+    - ResourceSupport -> RepresentationModel
+    - assembler.toResource -> assembler.toModel
+    - org.springframework.hateoas.mvc.ControllerLinkBuilder
+        -> hateoas.server.mvc.WebMvcLinkBuilder
+    - MediaTypes 중 UTF-8 인코딩이 들어간 상수 제거
+
+
+JUnit5
+    - org.junit -> org.junit.jupiter
+    - @ignore -> @Disabled
+    - @Before, @Alter -> @BeforeEach, @AfterEach
+    - @TestDescription(우리가 커스텀한 애노테이션) -> @DisplayName
+
+
+스프링 MVC 변경
+    - MediaType 중에 UTF-8 인코딩이 들어간 상수 deprecation
