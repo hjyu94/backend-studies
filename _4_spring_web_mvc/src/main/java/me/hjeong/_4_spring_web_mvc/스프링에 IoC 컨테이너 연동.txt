@@ -1,0 +1,4 @@
+톰캣 안에 exploded jar (스프링 어플리케이션)을 배포해서 띄우는 방식
+
+[1] /webapp/WEB-INF/web.xml -> Dispatcher Servlet 등록
+[2] implements WebApplicationInitializer -> Dispatcher Servlet 등록
