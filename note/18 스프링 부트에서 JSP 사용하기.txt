@@ -1,7 +1,7 @@
 18. 스프링 부트에서 JSP 사용하기
 
-“ If possible, JSPs should be avoided. There are several
- known limitations
+“ If possible, JSPs should be avoided.
+ There are several known limitations
  when using them with embedded servlet containers.”
     - https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#boot-feature s-spring-mvc-template-engines
 
