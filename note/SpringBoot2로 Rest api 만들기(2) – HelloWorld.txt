@@ -1,0 +1,103 @@
+SpringBoot2로 Rest api 만들기(2) – HelloWorld
+
+이번 시간에는 앞 장에서 실습한 프로젝트를 기반으로 HelloWorld를 만들어 보겠습니다.
+java code 개발은 src/main/java 하위에 package를 생성하고 진행합니다.
+
+package란?
+java 라이브러리들 간의 충돌을 막기 위해 class들을 구분하기 위한 방법입니다. 예를 들면 com.rest.api.Xyz.java와 com.rest2.api.Xyz.java는 class 이름은 같지만 package명이 다르므로 다른 class로 구분됩니다. java는 수많은 라이브러리를 import 해서 쓰기 때문에 이름만으로는 class의 충돌을 피할 수 없고 이런 식으로 package를 계층적으로 구성하여 class 간 충돌을 방지하고 있습니다.
+
+@SpringBootApplication
+SpringBoot에서는 @SpringBootApplication선언만으로 대부분의 설정이 자동으로 이루어집니다.
+src/main/java 에서 메뉴를 호출하여 New – Package를 실행하고 com.rest.api package를 생성합니다. 그리고 com.rest.api 하단에 boot실행을 위한 Applications 설정 파일을 생성합니다.
+
+package com.rest.api;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+@SpringBootApplication
+public class Applications {
+    public static void main(String[] args) {
+        SpringApplication.run(Applications.class, args);
+    }
+}
+application.yml
+resources 아래에 프로젝트 환경설정 값을 저장할 application.yml을 생성합니다. 처음엔 아무런 내용이 없으므로 아래 내용처럼 port를 지정해 봅니다. 이렇게 지정하고 서버를 실행하면 8080 port로 서버가 실행됩니다. 다른 port를 지정하려면 1024 이상의 다른 포트를 명시하면 됩니다. 참고로 1024 이하의 port는 특권(privileged) 포트로 지정되어 있어 root 권한으로만 사용할 수 있는 port입니다.
+
+server:
+  port: 8080
+아래의 그림처럼 controller package를 생성하고 하위에 Class를 생성하여 개발합니다. Controller는 Spring에서 클라이언트 요청의 진입점이 되는 Class라고 보면 됩니다. controller package 아래에 HelloController를 작성합니다.
+
+
+
+@Controller
+public class HelloController {
+    /*
+    1. 화면에 helloworld가 출력됩니다.
+    */
+    @GetMapping(value = "/helloworld/string")
+    @ResponseBody
+    public String helloworldString() {
+        return "helloworld";
+    }
+    /*
+    2. 화면에 {message:"helloworld"} 라고 출력됩니다.
+    */
+    @GetMapping(value = "/helloworld/json")
+    @ResponseBody
+    public Hello helloworldJson() {
+        Hello hello = new Hello();
+        hello.message = "helloworld";
+        return hello;
+    }
+    /*
+    3. 화면에 helloworld.ftl의 내용이 출력됩니다.
+    */
+    @GetMapping(value = "/helloworld/page")
+    public String helloworld() {
+        return "helloworld";
+    }
+
+    @Setter
+    @Getter
+    public static class Hello {
+        private String message;
+    }
+}
+@Controller
+Spring에 해당 Class가 Controller임을 알려주기 위해 class명 상단에 @Controller를 붙여줍니다.
+
+@GetMapping(“RequestURI”)
+GetMapping을 붙이면 해당 주소의 Resource를 이용하기 위해서 Get method로 호출해야 한다는 뜻입니다. 웹 브라우저 주소창에서 아래 주소를 실행하면 Get방식으로 호출됩니다.
+http://localhost:8080/helloworld/json
+/helloworld/json을 Mapping 하고 있는 메서드가 실행됩니다.
+
+@ResonseBody
+결과를 응답에 그대로 출력한다는 의미입니다.
+@ResonseBody를 지정하지 않으면 return에 지정된 “helloworld” 이름으로 된 파일을 프로젝트 경로에서 찾아 화면에 출력합니다.
+
+서버 실행
+실행결과를 보기 위해 아래처럼 Applications 파일에 마우스를 대고 메뉴를 호출합니다. 메뉴의 Run Applications ‘main()’을 클릭합니다.
+
+
+위의 내용을 실행 후에는 아래처럼 화면 상단에 Applications가 선택된 상태가 유지되므로 재생 버튼을 누르는 것만으로 서버 실행이 가능합니다.
+
+
+결과 확인
+웹 브라우저에서 각각의 테스트 주소를 실행해 봅니다.
+
+
+리턴타입을 String으로 지정하면 return값 helloworld가 웹브라우저 화면에 표시됩니다.
+
+리턴타입을 Model Class로 지정하면 Spring에서는 기본적으로 key/value형태의 Json포맷으로 출력합니다.
+
+ResponseBody를 지정하지 않으면 Spring에서는 해당 결과를 표시해주기 위한 페이지를 찾는데 해당 페이지가 없으므로 404에러가 발생합니다.
+helloworld.ftl 생성
+build.gradle에 설정한 freemarker가 page template으로 사용되므로 resources 아래에 templates 디렉터리를 생성하고 하위에 helloworld.ftl을 생성합니다. 내용은 HelloWorld를 입력합니다.
+
+
+
+다시 페이지를 요청하면 요번에는 정상적으로 페이지가 표시됩니다.
+
+최신 소스는 GitHub 사이트를 참고해 주세요.
+https://github.com/codej99/SpringRestApi
+GitHub로 프로젝트 구성은 다음을 참고해주세요.
+https://daddyprogrammer.org/post/1215/intellij-github-spring-gradle-project-import
