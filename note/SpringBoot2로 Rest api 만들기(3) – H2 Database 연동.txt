@@ -1,0 +1,191 @@
+SpringBoot2로 Rest api 만들기(3) – H2 Database 연동
+https://daddyprogrammer.org/post/152/spring-boot2-h2-database-intergrate/
+
+이번 시간에는 SpringBoot에 Database를 연동하는 방법을 실습합니다. 실습은 H2 database로 진행하겠습니다.
+
+H2 Database
+H2는 최소한의 리소스로 실행 가능한 경량 DB로서 테스트 용으로 사용하기 알맞은 DB입니다. 서버 요구사항도 낮고, Mysql처럼 번잡하게 깔아야 할 필요 없이 하나의 jar파일을 실행하기만 하면 DB를 사용할 수 있습니다.
+
+>> 최신버전 다운로드 링크
+>> 설치 메뉴얼
+Database Engine 요구사항
+Windows XP or Vista, Mac OS X, or Linux Oracle Java 7 or newer Recommended Windows file system: NTFS (FAT32 only supports files up to 4 GB)
+대부분의 플랫폼에서 실행가능하고 Java7이상만 깔려있으면 됩니다.
+
+다운로드 및 실행
+위의 링크에서 최신 버전 Platform-Independent Zip을 다운로드하여 적당한 곳에 압축을 해제한 다음 아래와 같이 실행하면 H2 Database가 실행됩니다.
+윈도우 : /bin/h2.bat
+맥/리눅스 : /bin/h2.sh
+
+직접실행
+
+$ java -jar h2*.jar
+또는
+
+$ java -cp h2*.jar org.h2.tools.Server
+저장한 설정, 설정 이름은 Generic H2(Server)를 선택합니다.
+
+
+build.gradle에 라이브러리 추가
+이제 스프링에서 H2로 접속하기 위한 설정을 합니다. build.gradle 파일에 H2 라이브러리 설정이 없으면 dependencies에 다음 내용을 추가하여 H2 라이브러리를 다운로드합니다.
+
+dependencies {     runtimeOnly 'com.h2database:h2’     생략…... }
+application.yml에 접속정보 추가
+application.yml에 H2 접속 정보를 설정합니다. yml 파일은 들여 쓰기에 민감하므로 들여 쓰기를 잘 맞춰서 설정 내용을 적어야 합니다.
+
+spring:
+  datasource:
+    url: jdbc:h2:tcp://localhost/~/test
+    driver-class-name: org.h2.Driver
+    username: sa
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    properties.hibernate.hbm2ddl.auto: update
+    showSql: true
+세팅값은 순서대로 DB 접속 주소, DB 접속을 위해 사용할 디바이스 드라이버, DB 접속 user명 그리고 jpa에서 사용할 db로 h2를 세팅한다입니다.
+properties.hibernate.hbm2ddl.auto: update
+시작하면서 도메인 객체 구성과 DB의 스키마를 비교해 필요한 테이블이나 칼럼이 없을 때 도메인 객체에 맞춰 DB 스키마를 변경합니다.
+showSql: true
+jpa가 실행하는 쿼리를 console 로그로 출력하기 위한 설정입니다.
+
+H2에 저장된 table의 데이타를 다루는 코드 작성
+첫 번째로 Table 데이터 맵핑을 위한 Model을 하나 만듭니다. com.rest.api 하위에 entity라는 이름의 package를 생성하고 User Class를 하나 생성합니다.
+entity는 db table 간의 구조와 관계를 JPA가 요구하는 형태로 만든 model입니다.
+테이블에 있는 칼럼 값들의 정보, 테이블 간의 연관 관계(1:N, N:1 등) 정보를 담고 있습니다.
+Lombok 어노테이션을 사용하면 소스가 간단해 지므로 웬만하면 Lombok 사용을 추천합니다.
+
+@Builder // builder를 사용할수 있게 합니다.
+@Entity // jpa entity임을 알립니다.
+@Getter // user 필드값의 getter를 자동으로 생성합니다.
+@NoArgsConstructor // 인자없는 생성자를 자동으로 생성합니다.
+@AllArgsConstructor // 인자를 모두 갖춘 생성자를 자동으로 생성합니다.
+@Table(name = "user") // 'user' 테이블과 매핑됨을 명시
+public class User {
+    @Id // primaryKey임을 알립니다.
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    //  pk생성전략을 DB에 위임한다는 의미입니다. mysql로 보면 pk 필드를 auto_increment로 설정해 놓은 경우로 보면 됩니다.
+    private long msrl;
+    @Column(nullable = false, unique = true, length = 30) // uid column을 명시합니다. 필수이고 유니크한 필드이며 길이는 30입니다.
+    private String uid;
+    @Column(nullable = false, length = 100) // name column을 명시합니다. 필수이고 길이는 100입니다.
+    private String name;
+}
+JPA의 기본키 전략에 대해서는 아래 링크에 자세히 설명되어 있습니다.
+https://feco.tistory.com/96
+만약 위에서 lombok을 사용하지 않는다면 아래와 같이 작성해야 합니다.
+
+@Entity
+@Table(name = "user")
+public class User {
+    @Id // primaryKey임을 알립니다.
+    @GeneratedValue(strategy = GenerationType.IDENTITY) //  pk생성전략을 DB에 위임한다는 의미입니다. mysql로 보면 pk 필드를 auto_increment로 설정해 놓은 경우로 보면 됩니다.
+    private long msrl;
+    @Column(nullable = false, unique = true, length = 30) // uid column을 명시합니다. 필수이고 유니크한 필드이며 길이는 30입니다.
+    private String uid;
+    @Column(nullable = false, length = 100) // name column을 명시합니다. 필수이고 길이는 100입니다.
+    private String name;
+    public User() {}
+    public User(String uid, String name) {
+        this.uid = uid;
+        this.name = name;
+    }
+    public long getMsrl() {
+        return msrl;
+    }
+    public void setMsrl(long msrl) {
+        this.msrl = msrl;
+    }
+    public String getUid() {
+        return uid;
+    }
+    public void setUid(String uid) {
+        this.uid = uid;
+    }
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+Table에 질의를 요청하기 위한 Repository 생성
+생성한 entity를 이용해서 Table에 질의를 요청하기 위한 Repository를 생성합니다. com.rest.api 하위에 repo package를 생성하고, 하위에 아래와 같이 interface를 하나 생성합니다.
+
+public interface UserJpaRepo extends JpaRepository<User, Long> {}
+Controller에 Repository 설정
+Jpa Repo를 사용하는 Controller를 하나 생성합니다. com.rest.api.controller 하위에 다음과 같이 v1 package를 만들고 UserController를 생성합니다.
+
+
+@RequiredArgsConstructor
+@RestController // 결과값을 JSON으로 출력합니다.
+@RequestMapping(value = "/v1")
+public class UserController {
+    private final UserJpaRepo userJpaRepo;
+    @GetMapping(value = "/user")
+    public List<User> findAllUser() {
+        return userJpaRepo.findAll();
+    }
+    @PostMapping(value = "/user")
+    public User save() {
+        User user = User.builder()
+                .uid("yumi@naver.com")
+                .name("유미")
+                .build();
+        return userJpaRepo.save(user);
+    }
+}
+@RequiredArgsConstructor
+class상단에 선언하면 class내부에 final로 선언된 객체에 대해서 Constructor Injection을 수행합니다. 해당 어노테이션을 사용하지 않고 선언된 객체에 @Autowired를 사용해도 됩니다.
+
+@RestController
+결과 데이터를 JSON으로 내보냅니다.
+
+@RequestMapping(value = “/v1”)
+api resource를 버전별로 관리하기 위해 /v1 을 모든 리소스 주소에 적용되도록 처리합니다.
+
+@GetMapping(value = “/user”)
+user테이블에 있는 데이터를 모두 읽어옵니다.
+데이터가 한개 이상일 수 있으므로 리턴 타입은 List<User>로 선언합니다.
+
+userJpaRepo.findAll()
+JPA를 사용하면 기본으로 CRUD에 대해서는 별다른 설정없이 쿼리를 질의할 수 있도록 메소드를 지원합니다. findAll()은 select msrl, name, uid from user; 쿼리를 내부적으로 실행시켜 줍니다.
+
+@PostMapping(value = “/user”)
+user테이블에 데이터를 1건 입력합니다. userJpaRepo.save(user); 역시 JPA에서 기본으로 제공하는 메소드입니다. user객체를 전달하면 다음과 같이 내부적으로 insert문을 실행시켜 줍니다.
+insert into user (msrl, name, uid) values (null, ?, ?)
+
+웹브라우저를 열고 http://localhost:8080/v1/user를 실행합니다. 최초에는 데이터가 없으므로 []만 리턴됩니다.
+
+데이터 입력을 위해 POST로 http://localhost:8080/v1/user를 실행합니다.
+웹브라우저 입력으로는 GET URL만 호출할 수 있으므로 테스트를 위해 아래 링크의 POSTMAN을 다운받아 설치합니다.
+https://www.getpostman.com/downloads/
+
+
+Post로 실행시 데이터가 1건 입력되는것을 확인할 수 있습니다.
+
+다시 GET을 요청하면 이번에는 데이터가 1건 있으므로 해당 데이터가 출력됩니다.
+DB Table 자동생성
+이번 실습에서는 Table을 생성하지 않았는데도 불구하고 Post로 User 생성 시 오류가 발생하지 않고 정상적으로 입력되었습니다. 설정을 따로 해주지 않으면 entity의 정보를 토대로 서버 실행 시 테이블이 자동 생성되기 때문입니다. 개발 시에는 편리한 점이 있지만 서비스에 사용할 경우엔 테이블의 자동생성은 위험할 수 있으므로 아래와 같이 설정하여 자동 생성되지 않도록 해야 합니다.
+properties.hibernate.hbm2ddl.auto: none
+
+hbm2ddl.auto
+create – 서버 시작할 때 모든 테이블을 생성합니다.
+create-drop – 서버 시작할 때 테이블을 생성하고 종료할 때 생성된 테이블을 삭제합니다.
+update – 서버 시작 시 Entity와 Table을 비교하여 변경된 내용을 반영합니다. Table이 없으면 새롭게 생성합니다.
+validate – 서버 시작 시 Entity와 실제 Table을 비교하여 다르면 시작하지 않고 종료합니다.
+none – 아무런 처리를 하지 않습니다.
+spring:
+  datasource:
+    url: jdbc:h2:tcp://localhost/~/test
+    driver-class-name: org.h2.Driver
+    username: sa
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    showSql:true
+    properties.hibernate.hbm2ddl.auto: none
+최신 실습 소스는 GitHub 사이트를 참고해 주세요.
+https://github.com/codej99/SpringRestApi/tree/feature/h2
+GitHub로 프로젝트 구성은 다음을 참고해주세요.
+https://daddyprogrammer.org/post/1215/intellij-github-spring-gradle-project-import
+
+Docker로 Mysql 실습 환경을 빠르게 구축하는 것도 가능합니다. 다음 블로그 내용을 읽어보세요!
