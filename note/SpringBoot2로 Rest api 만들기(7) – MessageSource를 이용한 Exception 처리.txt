@@ -1,0 +1,192 @@
+SpringBoot2로 Rest api 만들기(7) – MessageSource를 이용한 Exception 처리
+( https://daddyprogrammer.org/post/499/springboot2-exception-handling-with-messagesource/ )
+
+# 들어가며
+
+    이번 시간에는 Spring에서 메시지를 처리하는 방법에 대해 알아보고,
+    MessageSource를 이용하여 Exception Message를 고도화해 보도록 하겠습니다.
+
+    Spring에서는 다국어를 처리하기 위해 i18n 세팅을 지원하고 있습니다.
+    i18n이 무엇인가 하면 국제화(Internationalization)의 약자입니다.(I+가운데 남은 글자 수+n).
+    해당 세팅을 통해 한국어로 “안녕하세요”를 영문권에서는 “Hello” 로 표시되도록 할 수가 있습니다.
+    이 방법을 이용하여 예외시 메시지 처리 방식을 변경시켜 보도록 하겠습니다.
+
+
+# message properties를 yml로 작성하기 위한 라이브러리추가
+
+    Spring 기본 설정에서 실제 다국어 메시지가 저장되는 파일은
+    message_ko.properties, message_en.properties 와 같은 형식으로 .properties파일에 저장됩니다.
+    그렇지만 여기서는 환경 설정 파일인 application.yml처럼 yml의 장점을 살려 메시지 파일을 저장하려고 합니다.
+    그렇기 위해서는 아래의 라이브러리 추가가 필요합니다.
+
+    implementation 'net.rakugakibox.util:yaml-resource-bundle:1.1'
+
+
+# MessageConfiguration 파일 생성
+
+    com.rest.api.config 하위에 MessageConfiguration을 생성합니다.
+    스프링에서 제공하는 LocaleChangeInterceptor를 사용하여
+    lang이라는 RequestParameter가 요청에 있으면 해당 값을 읽어 로케일 정보를 변경합니다.
+    아래에서 로케일 정보는 기본으로 Session에서 읽어오고 저장하도록 SessionLocaleResolver를 사용하였는데
+    아래와 같이 다른 리졸버도 있으므로 상황에 따라 적절한 리졸버를 설정하여 사용하면 됩니다.
+
+    https://docs.spring.io/spring/docs/current/javadoc-api/org/springframework/web/servlet/i18n/package-summary.html
+
+    - AbstractLocaleContextResolver
+    - AbstractLocaleResolver
+    - AcceptHeaderLocaleResolver
+    - CookieLocaleResolver
+    - FixedLocaleResolver
+    - SessionLocaleResolver
+
+
+    @Configuration
+    public class MessageConfiguration implements WebMvcConfigurer {
+        @Bean // 세션에 지역설정. default는 KOREAN = 'ko'
+        public LocaleResolver localeResolver() {
+            SessionLocaleResolver slr = new SessionLocaleResolver();
+            slr.setDefaultLocale(Locale.KOREAN);
+            return slr;
+        }
+        @Bean // 지역설정을 변경하는 인터셉터. 요청시 파라미터에 lang 정보를 지정하면 언어가 변경됨.
+        public LocaleChangeInterceptor localeChangeInterceptor() {
+            LocaleChangeInterceptor lci = new LocaleChangeInterceptor();
+            lci.setParamName("lang");
+            return lci;
+        }
+        @Override // 인터셉터를 시스템 레지스트리에 등록
+        public void addInterceptors(InterceptorRegistry registry) {
+            registry.addInterceptor(localeChangeInterceptor());
+        }
+        @Bean // yml 파일을 참조하는 MessageSource 선언
+        public MessageSource messageSource(
+                @Value("${spring.messages.basename}") String basename,
+                @Value("${spring.messages.encoding}") String encoding
+        ) {
+            YamlMessageSource ms = new YamlMessageSource();
+            ms.setBasename(basename);
+            ms.setDefaultEncoding(encoding);
+            ms.setAlwaysUseMessageFormat(true);
+            ms.setUseCodeAsDefaultMessage(true);
+            ms.setFallbackToSystemLocale(true);
+            return ms;
+        }
+        // locale 정보에 따라 다른 yml 파일을 읽도록 처리
+        private static class YamlMessageSource extends ResourceBundleMessageSource {
+            @Override
+            protected ResourceBundle doGetBundle(String basename, Locale locale) throws MissingResourceException {
+                return ResourceBundle.getBundle(basename, locale, YamlResourceBundle.Control.INSTANCE);
+            }
+        }
+    }
+
+
+
+# application.yml에 i8n 경로 및 인코딩 정보 추가
+
+    spring:
+      datasource:
+        url: jdbc:h2:tcp://localhost/~/test
+        driver-class-name: org.h2.Driver
+        username: sa
+      jpa:
+        database-platform: org.hibernate.dialect.H2Dialect
+        properties.hibernate.hbm2ddl.auto: update
+        showSql: true
+      messages:
+        basename: i18n/exception
+        encoding: UTF-8
+
+
+
+# 다국어 처리 message yml파일 작성
+    resources 아래에 i18n 디렉터리를 생성하고 exception_en.yml, exception_ko.yml을 생성하고 다음과 같이 입력합니다.
+    참고로 메시지 값은 모두 String으로 정의해야 합니다.
+
+    [exception_en.yml]
+    unKnown:
+      code: "-9999"
+      msg: "An unknown error has occurred."
+    userNotFound:
+      code: "-1000"
+      msg: "This member not exist"
+
+    [exception_ko.yml]
+    unKnown:
+      code: "-9999"
+      msg: "알수 없는 오류가 발생하였습니다."
+    userNotFound:
+      code: "-1000"
+      msg: "존재하지 않는 회원입니다."
+
+
+
+# ResponseService의 getFailResult 메소드가 code, msg를 받을수 있도록 수정
+    public CommonResult getFailResult(int code, String msg) {
+        CommonResult result = new CommonResult();
+        result.setSuccess(false);
+        result.setCode(code);
+        result.setMsg(msg);
+        return result;
+    }
+
+
+
+# ExceptionAdvice의 에러 메시지를 messageSource 내용으로 교체
+
+    @RequiredArgsConstructor
+    @RestControllerAdvice
+    public class ExceptionAdvice {
+
+        private final ResponseService responseService;
+        private final MessageSource messageSource;
+
+        @ExceptionHandler(Exception.class)
+        @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+        protected CommonResult defaultException(HttpServletRequest request, Exception e) {
+            // 예외 처리의 메시지를 MessageSource에서 가져오도록 수정
+            return responseService.getFailResult(Integer.valueOf(getMessage("unKnown.code")), getMessage("unKnown.msg"));
+        }
+
+        @ExceptionHandler(CUserNotFoundException.class)
+        @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+        protected CommonResult userNotFoundException(HttpServletRequest request, CUserNotFoundException e) {
+            // 예외 처리의 메시지를 MessageSource에서 가져오도록 수정
+            return responseService.getFailResult(Integer.valueOf(getMessage("userNotFound.code")), getMessage("userNotFound.msg"));
+        }
+
+        // code정보에 해당하는 메시지를 조회합니다.
+        private String getMessage(String code) {
+            return getMessage(code, null);
+        }
+
+        // code정보, 추가 argument로 현재 locale에 맞는 메시지를 조회합니다.
+        private String getMessage(String code, Object[] args) {
+            return messageSource.getMessage(code, args, LocaleContextHolder.getLocale());
+        }
+    }
+
+
+# Test Swagger
+
+
+# 영문 에러 메시지 확인을 위해 UserController에 lang 정보를 받을 수 있도록 수정합니다.
+
+    @ApiOperation(value = "회원 단건 조회", notes = "userId로 회원을 조회한다")
+    @GetMapping(value = "/user/{msrl}")
+    public SingleResult<User> findUserById(@ApiParam(value = "회원ID", required = true) @PathVariable long msrl, @ApiParam(value = "언어", defaultValue = "ko") @RequestParam String lang) {
+            // 결과데이터가 단일건인경우 getBasicResult를 이용해서 결과를 출력한다.
+            return responseService.getSingleResult(userJpaRepo.findById(msrl).orElseThrow(CUserNotFoundException::new));
+     }
+
+
+# 마치며
+
+    예외 메시지 처리를 MessageSource를 이용하여 개선해 보았습니다.
+    부가적으로는 다국어 처리도 가능해져 api가 보다 폭넓게 사용될 수 있게 되었습니다.
+
+    최신 소스는 GitHub 사이트를 참고해 주세요.
+    https://github.com/codej99/SpringRestApi/tree/feature/messagesource
+
+    GitHub로 프로젝트 구성은 다음을 참고해주세요.
+    https://daddyprogrammer.org/post/1215/intellij-github-spring-gradle-project-import
