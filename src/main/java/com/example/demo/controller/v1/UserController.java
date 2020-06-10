@@ -1,5 +1,6 @@
 package com.example.demo.controller.v1;
 
+import com.example.demo.advice.exception.CUserNotFoundException;
 import com.example.demo.entity.User;
 import com.example.demo.model.response.CommonResult;
 import com.example.demo.model.response.ListResult;
@@ -39,9 +40,9 @@ public class UserController {
 
     @ApiOperation(value = "회원 단건 조회", notes = "userId로 회원을 조회한다")
     @GetMapping(value = "/user/{msrl}")
-    public SingleResult<User> findUserById(@ApiParam(value = "회원ID", required = true) @PathVariable long msrl) throws Exception {
+    public SingleResult<User> findUserById(@ApiParam(value = "회원ID", required = true) @PathVariable long msrl) {
         // 결과데이터가 단일건인경우 getBasicResult를 이용해서 결과를 출력한다.
-        return responseService.getSingleResult(userJpaRepo.findById(msrl).orElseThrow(Exception::new));
+        return responseService.getSingleResult(userJpaRepo.findById(msrl).orElseThrow(CUserNotFoundException::new));
     }
 
 //    @ApiOperation(value = "회원 입력", notes = "회원을 입력한다.")
