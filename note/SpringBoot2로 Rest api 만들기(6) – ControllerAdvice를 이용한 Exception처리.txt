@@ -1,0 +1,104 @@
+SpringBoot2로 Rest api 만들기(6) – ControllerAdvice를 이용한 Exception처리
+( https://daddyprogrammer.org/post/446/spring-boot2-5-exception-handling-controlleradvice/ )
+
+이번 장에서는 api 처리 중 특정한 Exception이 발생할 경우 공통으로 처리하는 방법에 대해 알아보겠습니다. Spring에서는 이와같은 처리를 위해 ControllerAdvice annotation을 제공하고 있으며 이 annotation을 이용하면 Controller에서 발생하는 Exception을 한군데서 처리할 수 있습니다.
+
+@ControllerAdvice의 사용
+ControllerAdvice는 Spring에서 제공하는 annotation으로 Controller에 전역에 적용되는 코드를 작성할 수 있게 해 줍니다. 또한 설정시 특정 패키지를 명시하면 적용되는 Controller의 범위도 제한할 수 있습니다. 이러한 특성을 이용하면 @ControllerAdvice와 @ExceptionHandler를 조합하여 예외 처리를 공통 코드로 분리하여 작성할 수 있습니다.
+
+다음과 같이 com.rest.api 하위에 advice package를 추가합니다. 그리고 ExceptionAdvice Class를 생성하여 아래와 같이 코드를 작성합니다.
+
+
+@RequiredArgsConstructor
+@RestControllerAdvice
+public class ExceptionAdvice {
+    private final ResponseService responseService;
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    protected CommonResult defaultException(HttpServletRequest request, Exception e) {
+        return responseService.getFailResult();
+    }
+}
+@RestControllerAdvice
+ControllerAdvice의 annotation은 @ControllerAdvice @RestControllerAdvice 두가지가 있습니다. 예외 발생 시 json형태로 결과를 반환하려면 @RestControllerAdvice를 클래스에 선언하면 됩니다. annotation에 추가로 패키지를 적용하면 위에서 설명한 것처럼 특정 패키지 하위의 Controller에만 로직이 적용되게도 할 수 있습니다.
+ex) @RestControllerAdvice(basePackages = “com.rest.api”)
+실습에서는 아무것도 적용하지 않아 프로젝트의 모든 Controller에 로직이 적용됩니다.
+
+@ExceptionHandler(Exception.class)
+Exception이 발생하면 해당 Handler로 처리하겠다고 명시하는 annotation입니다. 괄호안에는 어떤 Exception이 발생할때 handler를 적용할 것인지 Exception Class를 인자로 넣습니다. 예제에서는 Exception.class를 지정하였는데 Exception.class는 최상위 예외처리 객체이므로 다른 ExceptionHandler에서 걸러지지 않은 예외가 있으면 최종으로 이 handler를 거쳐 처리됩니다. 그래서 메서드 명도 defaultException이라 명명하였습니다.
+
+@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+해당 Exception이 발생하면 Response에 출력되는 HttpStatus Code가 500으로 내려가도록 설정합니다. 참고로 성공 시엔 HttpStatus code가 200으로 내려갑니다. 실습에서 HttpStatus Code의 역할은 성공이냐(200) 아니냐 정도의 의미만 있고 실제 사용하는 성공 실패 여부는 json으로 출력되는 정보를 이용합니다.
+
+responseService.getFailResult()
+Exception 발생시 이미 만들어둔 CommonResult의 실패 결과를 json 형태로 출력하도록 설정합니다. 위에서 세팅한 HttpStatus Code외에 추가로 api 성공 실패여부를 다시 세팅하는 이유는 상황에 따라 다양한 메시지를 전달하기 위해서 입니다. HttpStatus Code는 이미 고정된 스펙이기 때문에 (예 200 == OK, 404 == Not Found 등등…) 상세한 예외 메시지 전달에 한계가 있습니다. 예를 들자면 “회원 정보가 없음” 이라는 에러 메시지는 HttpStatus Code상에 존재하지 않아 표현할 수가 없습니다. 따라서 커스텀 Exception을 정의하고 해당 Exception 발생하면 적절한 형태의 오류 메시지를 담은 Json을 결과에 내리도록 처리하는 것입니다.
+
+Exception Test를 위한 Controller 수정
+UserController의 findUserById를 수정합니다. 기존에는 회원 조회 시 데이터가 없는 경우 null을 반환하였지만 Exception을 발생시키도록 수정합니다.
+
+@ApiOperation(value = "회원 단건 조회", notes = "userId로 회원을 조회한다")
+    @GetMapping(value = "/user/{userId}")
+    public SingleResult<User> findUserById(@ApiParam(value = "회원ID", required = true) @PathVariable int userId)throws Exception {
+        // 결과데이터가 단일건인경우 getSingleResult를 이용해서 결과를 출력한다.
+        return responseService.getSingleResult(userJpaRepo.findById(userId).orElseThrow(Exception::new));
+ }
+수정한 내용을 Swagger에서 확인합니다. 존재하지 않는 회원을 조회할 경우 결과 메시지가 정의한 실패 메시지로 출력되며 Response Code도 설정한 500이 출력됨을 확인할 수 있습니다.
+
+
+Exception 고도화 – Custom Exception정의
+위에서 처리한 Exception은 Java에 정의되어있는 Exception입니다. 예외 발생 시 이미 구현되어있는 Exception Class를 사용할 수 있지만 매번 정의된 Exception을 사용하는 것은 여러 가지 예외 상황을 구분하는데 적합하지 않을 수 있습니다. 그래서 이번에는 Custom Exception을 정의하여 사용해 보겠습니다.
+
+com.rest.api.advice 아래에 exception package를 생성하고 다음과 같이 CUserNotFound Class를 생성합니다. Class명의 prefix C는 Custom을 의미합니다. Exception 이름은 알아보기 쉽고 의미가 명확하게 전달될 수 있는 한 자유롭게 지으면 됩니다.
+
+
+public class CUserNotFoundException extends RuntimeException {
+    public CUserNotFoundException(String msg, Throwable t) {
+        super(msg, t);
+    }
+
+    public CUserNotFoundException(String msg) {
+        super(msg);
+    }
+
+    public CUserNotFoundException() {
+        super();
+    }
+}
+CUserNotFoundException은 RuntimeException을 상속받아 작성합니다. 총 3개의 메서드가 제공되는데. 메서드 중 CUserNotFoundException()을 사용하도록 하겠습니다. 혹시 Controller에서 메시지를 받아 예외 처리 시 사용이 필요하면 CUserNotFoundException(String msg)을 사용하면 됩니다.
+
+
+
+위에서 작성한 CUserNotFoundException을 적용하기 위해 ExceptionAdvice를 다시 열고 아래와 같이 작성합니다. 이제 Controller에서 CUserNotFoundException이 발생하면 해당 ExceptionHandler에서 받아 처리하게 됩니다. 기존의 ExceptionHandler는 새로운 ExceptionHandler가 제대로 작동하는지 테스트하기 위해 일단 주석 처리합니다.
+
+@RequiredArgsConstructor
+@RestControllerAdvice
+public class ExceptionAdvice {
+    private final ResponseService responseService;
+//    @ExceptionHandler(Exception.class)
+//    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+//    protected CommonResult defaultException(HttpServletRequest request, Exception e) {
+//        return responseService.getFailResult();
+//    }
+    @ExceptionHandler(CUserNotFoundException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    protected CommonResult userNotFoundException(HttpServletRequest request, CUserNotFoundException e) {
+        return responseService.getFailResult();
+    }
+}
+이제 UserController를 열고 다음과 같이 orElseThrow 부분의 Exception을 CUserNotFoundException으로 변경합니다. 기존의 throws Exception 부분도 더 이상 필요 없으므로 삭제합니다.
+
+    @ApiOperation(value = "회원 단건 조회", notes = "userId로 회원을 조회한다")
+    @GetMapping(value = "/user/{userId}")
+    public SingleResult<User> findUserById(@ApiParam(value = "회원ID", required = true) @PathVariable int userId,
+                                              @ApiParam(value = "언어", defaultValue = "ko") @RequestParam String lang) {
+        // 결과데이터가 단일건인경우 getSingleResult를 이용해서 결과를 출력한다.
+        return responseService.getSingleResult(userJpaRepo.findById(userId).orElseThrow(CUserNotFoundException::new));
+ }
+Swagger로 테스트하여 새로운 Exception이 잘 처리되는지 확인합니다.
+
+
+Exception -> CUserNotFoundException으로 변경 시에도 예외 처리가 동일하게 처리되는 것을 확인할 수 있습니다. 다음 장에서는 Exception의 형태마다 다른 에러 메시지가 출력되도록 고도화해보겠습니다.
+
+최신 소스는 GitHub 사이트를 참고해 주세요. https://github.com/codej99/SpringRestApi/tree/feature/controller-advice
+GitHub로 프로젝트 구성은 다음을 참고해주세요.
+https://daddyprogrammer.org/post/1215/intellij-github-spring-gradle-project-import
