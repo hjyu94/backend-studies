@@ -1,0 +1,120 @@
+06. How Spring Security Authentication works 
+
+https://youtu.be/caCJAJC41Rk 
+
+06. How Spring Security Authentication works 
+
+https://youtu.be/caCJAJC41Rk 
+
+In this video we will break down the magic of spring security and understand how authentication actually works. I'll walk you through the basic elements of spring security. 
+we'll be tackling two important concepts. First how spring security bootstraps itself to even begin to do any work. Second how does it authenticate and decide that the user is who they say they are  By the end of this video you will have lifted that blanket of magic and you will understand exactly how spring security does all of this. You'll also be prepared to implement some advanced authentication mechanisms.
+
+Okay let's start with the first part and understand how spring security begins. It’s a work you don't invoke spring security. you don't call its API's you add spring security starter dependency to your spring application and the framework starts intercepting requests right out of the gate. How does it do? 
+
+Filter
+
+via spring security, adds itself to the request processing is by adding a filter to your app. if you don't know what a filter is, a filter is essentially a construct in a servlet application that lets you intercept requests. Say a request is coming in that needs to be dispatched to a certain servlet, well you can create a bunch of filters and say before this request is handled by the servlet it has to go through these filters. First the filter has the opportunity to do any processing or manipulate the request before it goes to the servlet and in fact it can even stop certain requests so that they don't even reach the servlet. There's usually a one-to-one mapping between a URL and a servlet method. one URL is typically handled by one servlet method. But filters can be applied to a wide range of URLs For example you can say map this filter to all URLs that start with “admin/**” , or for example apply this filter to all URLs in the application using the “/**”.  so in the case of web applications that's what Spring Security does when you drop the spring security starter dependency into your spring boot app. It does the filter mapping to intercept all the requests “/staff/*” and maps it to spring Security's own filter called Delegating Filter Proxy. If you're not working in a spring boot app you'll need to manually add this filter to intercept all requests. 
+
+Delegating Filter Proxy
+
+So looking at that code will give you an idea of what's happening behind the scenes. See this XML code. that lets you add the filter that we're talking about again. you don't need to do this because of the default configuration when working with spring boot applications in the spring security starter dependency. But if you're working in a non spring boot app or you need to add this manually. This is what you need to add into your web directs ml. So looking at this code will give you an idea what's happening behind the scenes. See this /* pattern this filter maps to all incoming requests. This is how spring security has the power to either allow requests or block requests, based on what you configure. Because it's listening to an intercepting everything. Note that this is only for web applications 
+
+if you're doing method level security in non web applications that's a different story but web application seems to be the most common use case and this is how it works here. Now you might tell me well kashyyk?? what if I want to add authorization just to this one URL in my app the rest of the URLs don't need to be accessible by everyone so there's no access control restrictions so why should I add spring security to have it intercept each and every URL I wanted to look at just this one URL or a set of URLs okay the reason is that for an app to be secure it has to be protected from all logon abilities and you cannot focus on just a handful of URLs that you need authentication for if you add spring security to just one part of the application but you let other parts of the application have learner abilities well then your entire application is not secure obviously so anyway that's the basic idea you intercept all requests but spring security at the filter level and then you tell spring security what your authentication and authorization requirements are per URL that way all your configuration is directly with spring security and you don't have to mess with filters after that irrespective of whether you want one you are a linear application to be secured by spring security or multiple URLs 
+
+Now the reason why this works has a clue in the name delegating filter proxy. This is the name of the filter This catch all filter that spring security adds as a starting point is actually a delegating filter. It doesn't do the job itself but instead it delegates it to a bunch of other spring security specific filters. To do different things depending on the URL being requested or the configuration, we have going on for the spring security app even in an unconsidered after the boxspring security app. There are around like five or six of these internal filter that spring security. It runs your application request through these builders all do various things and one of these filters is the authentication filter which intercepts all authentication requests and initiates the authentication process. As you can imagine there are several authorization related filters as well and even filters to skip authorization for like static files in the web application things CSS or JS files 
+
+bootstrap | authentication
+okay so that's how spring security gets into the picture to intercept and start doing its thing.
+
+bootstrap | authentication
+The next question is how does spring security do what it does.
+
+Specifically around authentication. How the spring security do authentication. We looked at how there is an authentication filter that intercepts authentication requests and initiate the process of authentication But what happens after that? 
+
+Credential vs Principal
+
+
+Think of authentication has an operation with inputs and outputs. what are the inputs to an authentication and what are the outputs. typically the inputs are credentials from the user who's trying to authenticate for example the user ID and the password. what's the output? the output could be a boolean yes these credentials are correct true or no incorrect credentials false. But in reality it's a little more than that. When the authentication is successful the authentication process doesn't just return a boolean true. it actually returns the principle. it returns the information about the logged in user.
+
+when spring security performs authentication. It keeps track of both the input and the output using an object of type authentication. Authentication is an internal spring security interface and the authentication object is meant to hold credentials before authentication and once user is authenticated it holds the principle you can think of authentication as this data transfer object for authentication. all right credentials before authentication and holder of principle after the authentication is successful.
+
+Authentication Provider
+
+
+
+Okay then what's the thing that does the actual authentication. There are several ways in which this can be done in the spring. But the most common pattern you will find is using providers. So there is something called an authentication provider. Think of authentication provider as something responsible for doing the actual authentication. So this is an interface that has a method called authenticate(). And you need to have implementations of this interface in your application. Implementation of this authenticate() method in your application. And then tell Spring Security about it. Spring security will then call this authenticate() method to authenticate your users. This method checks what's passed in and says your thus credentials are legit ! authentication successful ! and then spring security says “ok fine, let them in~” So think of it like this someone's trying to authenticate into your spring security application, the user has entered the user ID and password. Spring security takes those credentials(id, password not yet authenticated) and puts it into an authentication object and it goes to this implementation of authentication provider and call the authentication() method. and the authenticate() method takes this argument (this authentication object) the authenticate method looks at the authentication object to examine the credentials. The method returns an object which is of type authentication. However this instance instead of holding credentials it holds information about the currently logged in user(principal) Authenticated user in Spring Security the framework holds onto this information of the currently logged in user. And this representation is referred to as principal. So yes the authenticate method takes credentials as input in an instance of authentication. And after it successfully authenticates it clears out the credentials, puts the currently logged in user or the principal in an instance of authentication and it returns it back.
+
+
+Here's a Javadoc for the authentication provider. check out this method authenticated it takes in an instance of authentication and it returns an instance of authentication.
+
+
+ now take a look at this authentication type. that's both an argument and the return type here this is the holder of information before authentication. it has the credentials information. The credentials object that holds the data that needs to be authenticated. after authentication it holds the principle the details of the currently authenticated. the user holds the authorities of the authenticated principle. so that subsequent authorization process can look up the user authorities. and this side of a particular operation should be allowed or not. in order to tell if a given authentication object holds the credentials are the principle you can look at this isAuthenticated() method it's a boolean. it returns false if the authentication hasn't happened yet, once the authentication is successful it returns true. so depending on this flag you will know given an authentication instance if you should be looking at the credentials or the principle okay so that's authentication provider it's the thing that does the authentication 
+
+Multiple AuthenticationProvider
+But wait a minute. Think of a web application that needs authentication. you'll probably have multiple ways in which you can authenticate a typical app might provide user ID password authentication but also have all based authentication It could also support SSO or LDAP based authentication The point is that a single application can have multiple authentication strategies authentication mechanisms.
+
+
+So as a result an application can have multiple authentication providers each one knowing how to authenticate with a specific authentication mechanism. Each one of authentication  providers 1) takes an instance of the authentication object, 2) each one knows what to expect in the credentials, 3) and then it knows how to authenticate with those corresponding credentials.  
+
+How do these different authentication providers work with each other?
+
+
+Authentication Manager
+In order to coordinate all of them, there is a special type in spring security called the authentication manager as you can see the authentication manager has a very similar interface. it has an authenticated method that takes in the authentication object and it also returns the authentication object. There are different ways in which you can implement authentication manager the common implementation that we are looking at. Here is the provider managers to provide a pattern which does this kind of delegation to authentication providers depending on whichever provider supports the authentication. The provider manager doesn't do the work self. it coordinates with all these different notification providers depending on the authentication type. Given an attempted authentication, it asks all the available authentication providers ‘Hey guys I have an LDAP authentication here. Do you support a LDAP? no? ok~ next provider! Hey! do you support LDAP?’ and so on it asks all the providers till it finds the right provider to authenticate.Once it finds the provider who can do the job for that particular authentication, it delegates the work to it. It causes the authenticate method of that provider and then it returns back whatever that method returns. 
+However in order to be able to do that, each authentication provider needs to say what type of authentication it can support. So in addition to authenticate method, we've seen so far, authentication providers also have this additional supports(), this is a method that the provider manager implementation of authentication manager calls to find the right authentication provider for each and every authentication attempt
+
+boolean AuthenticationProvider.supports(java.lang.Class<?> authentication)
+
+The supports() method takes in authentication information and it returns a boolean if this returns true then the authentication manager says “ok this is the authentication provider I need to work with for this particular authentication” and it then calls the authenticate method on it 
+
+
+And remember it's the authentication providers the ones on the right-hand side that have the support method not the authentication manager because there could be multiple authentication providers and the authentication manager needs to pick one authentication provider that does the actual job of authentication
+
+What do these authentication providers need in order to do authentication.?
+
+Ok now here's a question what do these authentication providers need in order to do authentication. Say you are an authentication provider and someone comes to you 
+and says “Here are the credentials. can you authenticate them for me?” What do you need to do in order to do that job. 
+
+UserDetails
+
+
+Well you need to access the identity store, you need to be able to look up the user information based on the user ID that sent to you. And once you get that user information you can then verify the credentials saved in the system. And see if it's same as the credentials that were is used for authentication. Don't you think that this is something that pretty much all authentication providers need to do, given an authentication attempt. 
+Every provider needs to retrieve the user from the system, somehow and then, verify the credentials to make sure the account is not logged, the password is not expired, it's a valid user and so on. So whether you're doing LDAP or data based or authentication the only part that might change is how you retrieve this user from the system and very you retrieve it 
+but once the user is retrieved the checks, you make like a verification of authorization is all the same.
+
+UserDetailsService
+  There is a reason Spring Security has extracted that part out the retrieving of user information part out into its own entity called the user details service. This service takes in a user name and it returns an object with the user details. this object is of type literally called UserDetails. All the information about the user whether the user account is valid whether it's locked or unlocked the credential information, all of that is in the user details object that the user service returns.
+
+ 
+Once the user details object is returned, the authentication provider has everything it needs to authenticate. In fact with most other indication providers. if the authentication is successful they use this very same user details object directly as the principal object that gets populated into the authentication object 
+
+
+Here's the user details object. Look at how this object has a bunch of properties there are all kind of important in this security context in addition to like the username and the password and the authorities it also has information about that the user is enabled or whether the user is locked or not they have the credentials expired or not. So this is all the information that the authentication provider would need and so this is what the user details service returns to the authentication provider in order to do the authentication 
+
+In short,
+
+
+So here's the picture we have so far. 
+We've learned that the authentication filter intercepts authentication requests. it creates the authentication object with the credentials and passes it to the authentication manager. 
+The authentication manager then finds the right provider that can handle the authentication using the supports method 
+then the authentication manager calls the authenticate() method on that authentication provider and passes the authentication object. 
+the authentication provider looks up the corresponding user in the system by using the user details service 
+user details service returns the user details instance which the authentication provider then verifies 
+and then the other indication happens,
+if the authentication is successful the authentication object is returned back with the principle and the authorities filled in. the principal often being just that instance of the user details object. then this authentication object goes all the way back to the authentication filter that started at all
+now you might ask what happens if the authentication is not successful in that case the authentication provider throws an authentication exception. And that exception bubbles all the way up to the filter and there's either something that catches it or the users see the exception thrown possibly as an error page.
+ 
+There is one last thing to learn here before we wrap up authentication for now. What happens after this the authentication filter gets the authentication object with the principle. 
+
+Now what does filter do with authentication object? 
+
+Thread context holder
+
+it takes that object and saves it in the thread context. Remember I told you that every step of the way in the web application we always need to know who the currently logged in the user is. There is a security context that is associated with the current thread. This authentication object as a result of a successful authentication is actually put into the security context in the thread local object for use in authorization, for use in identifying the current principal, and more. Now you might wonder what about subsequent requests? you can't hold on to this and thread-local has to be in the user session. isn't it well there is also a mechanism to allow for this context to be associated with it the session. This is actually the reason why you authenticate only once and then you can access the application for the duration of that session 
+
+
+And that work is done by another filter. There are a bunch of filters in the springs security filter chain, of course, which do various other things. there's one filter which manages the users session it takes in the authenticated principle and associates it with the user's session . That's the reason why you don't have to authenticate with every request. For every subsequent request this filter is also responsible for 1) taking that context from the session and 2) saving it to thread-local again so that it's available for the framework 
+
+Okay so that's authentication this pattern that you've learned here works the same irrespective of what your authentication mechanism is that are you using password-based authentication or what GWT, Kerberos it really doesn't matter the underlying concept is the same.
+
+Now you know how it works now that you've learned how authentication works under the hood next up let's implement what you've learned so far to build a spring security app the trattoria users from a database implements authentication against those users I'll see you 

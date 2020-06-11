@@ -1,0 +1,44 @@
+https://www.youtube.com/watch?v=iyXne7dIn7U&list=PLqq-6Pq4lTTYTEooakHchTGglSvkZAjnE&index=4
+
+How to configure Spring Security Authentication 
+
+In this video you will learn how to configure the authentication mechanism of spring security. We will learn this by creating a couple of users in memory and have spring security authenticate and verify against them. The process you will learn in this video is the way to do identification configuration in spring security and it'll be useful to you irrespective of whatever your actual authentication approaches so let's learn how to do this 
+
+
+Starting point
+A simple Spring boot application
+with Spring Security dependency added
+
+When you add the spring security starter dependency, Spring security creates a default user and puts your application behind form based authentication
+
+You can of course configure what the default user is in the properties file but that's not ideal for most situations you would want to have the spring security authentication happen based on a bunch of users that you have maybe in the database or some other external state in this video we are going to try out configuring this authentication by actually hard-coding a couple of users and saving it in memory
+
+Now, the way to configure authentication in spring security is by affecting what's called the authentication manager. The authentication manager is true to its name. Something that manages authentication in a spring security application
+
+
+
+
+So you can imagine authentication manager sitting in a spring security app and doing the authentication. It actually has a method called authenticate() and that either returns a successful authentication or it throws an exception. When it comes to authentication says "Hey I cannot authenticate". So authentication manager is what does the authentication.
+
+Authentication Manager Builder
+Now how do you affect it? The authentication manager is not by creating your own authentication manager. But instead, To configure what authentication manager does using a builder pattern. You don't work with authentication management directly for the most part what you do. Instead there's a builder class called authentication manager builder. You use authentication manager builder to configure what the authentication should actually do.
+
+Get hold of AuthenticationManagerBuilder
+Set the configuration on it,
+
+So there are two steps here. First step somehow get hold of this authentication manager builder and second step set the configuration on this authentication manager builder. So you can imagine the interaction with authentication manager builder being that configuration. So when you're dealing with authentication manager, the first thing it's gonna ask you is “Hey what type of authentication do you want?” and you say well “I want in-memory authentication” and then the authentication manager says “ok well then tell me what the username password and the role of your in memory users are” and then you give it the user information it could be one user or it could be multiple users. but once you've done this once you've configured authentication manager builder with these properties. You can imagine a new authentication manager being created somehow which has the values that you want. So you're not directly dealing with the authentication manager. You're dealing with the authentication manager builder.
+
+
+This makes the question “how do you get hold of this authentication manager builder” in the first place. The thing is in a spring security app there is a class that's sitting there which has a method called configure and it takes in as an argument the authentication manager builder. And the spring security framework calls that configure method and passes in the authentication manager builder. The reason that class is there is so that it gives developers an opportunity to extend the class. Override that configure method and Do the configuration that you want if you don't extend this class and override the method the default configuration happens. However if you were to just extend this particular class and then override this method well now you have the ability to write a method which takes the authentication manager builder as an argument and once you put this in your code spring security is going to call your configure method and pass in the authentication manager builder. Now that's an opportunity for you to take that authentication manager builder instance and do this interaction that we talked about. So this is exactly what we're gonna be doing in the following steps 
+
+extends WebSecurityConfigurerAdapter
+@Override configure() // remove super.configure()
+
+in your application what do I mean by clear text clear text is basically saving the password hazards as a string. So that whoever is looking at that string can actually infer what your password is. Most passwords for most applications are saved in an encoded format right so there is a hashing that happens but passwords and you don't save the actual password itself you say we hash if you're curious to know how hashing works and what password hashing is all about check out this card which explains what password hashing is in a lot of detail. there applications having clear text passwords are a strict no these days so spring security kind of has your back spring security says I am NOT going to assume that passwords are clear text I am going to encode passwords and I'm going to enforce my developers to do password encoding. 
+
+
+How to set a password encoder?
+Just exposed an @Bean of type PasswordEncoder!
+
+
+The word has password encoding imply here what do you have to do to do password encoding well what you need to do is actually very simple all you need to do is create a bean of type password encoder and expose it to spring security and Security's looking for all available beans and if any of them as a password encoder it is going to use it for password encoding so that's a requirement it so that's the final step that we need to do here to configure authentication so what I'm gonna do is create a bean and I annotate it with add beans so the return off my method is going to be a spring bean and the method is going to return an instance of password encoder. This is what spring security expects. Now here I can return any encoder that I want for the sake of this video since this is a tutorial video I'm going to return a no op password encoder. all right so now our password encoder is basically a password encoder which does nothing true to its name so you have actually dealing with clear text here in spite of all the things that spring security is doing here to stop you it is still possible to use nor password encoder notice how its striped out because no our password encoder is deprecated not because it's gonna go away in the future but as an as a warning to developers that this is not something that you should be using this is basically saying I'm okay with clear text password and the password is basically blah as you can see over here this is fine because it's a tutorial video but please don't do this in a real application should work for now we have satisfied spring security's requirement for providing a password encoder and all we have done here overall is through this class security configuration we have gotten the handle to authentication manager builder and we have set a couple of properties on first we have set it to use in memory authentication and we have created a user called blah the password blah and with role as user now that we have this now that we have this class in the code spring security is going to look at this and say okay now this developer has configured authentication so I am NOT going to do the default thing that I usually do which is basically creating that one single user alright so now I'm going to go to my main method here and start my spring boot application in this case restart and now when I access the page I get a login form and I'm going to use the user ID and password blah blah and I am in so this is basically us overriding authentication with spring security and what you can do of course is go back here and add a bunch more users all right so here well since this is the Builder pattern and method chaining is in effect you can actually use a handy method called and and what this and method does is return an object that is of the same state as what in memory authentication returns so you're basically getting hold of an object that you can start the user configuration chain with here so if you want to configure a bunch of users all you need to do is call this dart and for every subsequent user and then you can save that user password dot roll and then a dot and dot with user a password rather you can configure a bunch more users 
