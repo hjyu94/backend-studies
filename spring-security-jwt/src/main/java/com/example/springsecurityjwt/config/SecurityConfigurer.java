@@ -1,4 +1,4 @@
-package com.example.springsecurityjwt;
+package com.example.springsecurityjwt.config;
 
 import com.example.springsecurityjwt.service.MyUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
