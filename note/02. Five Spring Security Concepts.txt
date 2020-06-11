@@ -1,0 +1,94 @@
+Five Spring Security Concepts - Authentication vs authorization - Java Brains Brain Bytes
+
+5 key Concepts and terms associated with Spring Security that you'll really need to know when you learn Spring Security 
+
+You'll encounter the score terms and Concepts over and over so in this video I'll take the sun's down and explain them for you so that you know exactly what they mean
+
+Authentication
+Authorization
+Principal
+Authority
+Role
+
+
+Authentication vs Authorization
+
+The first two times I so commonly used in the context of security that it's unlikely that you haven't heard them before. They are authentication and authorization. To understand authentication and authorization you also need to understand the difference between the two.
+
+So let's tackle these two times together. What is an authentication and what is authorization. I usually like to imagine Spring Security as being the Watchman or security guard in front of your web application and stopping every request going in. The security guard typically ask stupid questions. 
+
+Who are you? 
+What do you want?
+
+It is your job to answer the security guard those two questions if you're requesting something from your about the station. You answer the first question who are you by telling the guy who you are not just telling the guard isn't enough. You also have to prove it proof of who you are is usually by providing some kind of ID something that only you can provide an impersonator. And then, you answer the second question what do you want by just stating what you want or what you would like to do. You don't need to provide any proof for the second part because there's really no point in anyone lying here you can only possibly get what you want.
+
+
+Knowledge-based Authentication
+
+Password
+Pin code
+Answer to a secret / personal question
+
+So answering the first question who are you is what's called authentication. Most web applications have some representation of an ID. You open like a Facebook or LinkedIn these sites usually have an ID or an account in their system that uniquely corresponds to you. so when you access the site you need to tell it which of those millions of accounts in the system that it has that corresponds to you. After you tell it which account is associated with you, you also need to prove to the application that it is indeed you. A common way this is done is by providing your user ID and password. it's a way for you to say “hey application. here is the secret password that I told you when I created the account. Here is the same secret password again to prove that it is indeed me.” This type of authentication is called knowledge-based authentication. The authentication is based on knowledge that you have this can be a password or a pin code for an answer to a personal question or some other secret that you know. 
+
+Easy to implement and use
+Not fully safe
+
+The biggest advantage of knowledge base at indication is that it's simple and it's pretty effective for the most part. But ever it does come with a disadvantage if somebody steals your password or somehow finds out what your password is, they can impersonate as you. All that uniquely identifies you is the single piece of string value. 
+
+
+Possession based authentication
+
+Phone / Text messages
+Key cards and badges
+Access token device
+
+This is for example of an app send you a text message and ask you to enter it. it's trying to identify if you are in possession of something with the reality is there should be in position off in this case your phone. Because Fallen they're slightly harder to see than passwords. Other examples of position based on syndication include key cards are bad just to use to survive an interview. The idea is that only the real you can possibly be in possession of the scarred so if your card is used to swipe to get into a building it's likely to be you was trying to enter that building. 
+
+Knowledge Based + Possession Based Authentication
+
+Some apps to a combination of knowledge base and position based authentication using what's referred to as multi-factor authentication. And do your password and then verify your text message right two-factor authentication multi-factor authentication. 
+
+So that's identification basically answering the question “who are you.” Of course with proof that you are actually who you say you are. Looks more into authorization this is the security guard examining what you want and then deciding if you're allowed to do that. In other words it's answering the question “can this user do what they're trying to do”. it yes or no answer for the given operation. 
+
+
+Authentication
+“Who are you”
+
+Authorization
+“Can this user do this”
+
+
+Using might be able to do one particular operation and they may not be able to do another operation. Let me give you an example considered a retail store application everyone who works in the store can log into the application and use it. They can authenticate with their user ID and password. But once they were authenticated, what each person can do in the application really depends on who the user is. A store clerk for example can probably access point of sale functionality or check if something is in stock. A department manager can probably see how his or her particular department store. A Store manager can see everything across the store across all departments. So everytime anybody asks anything of the application. The app is doing this binary yes or no decision to arrive at an answer to the question. Should this user be allowed to do this operation. it also has mechanisms in place to block user from doing any operation that are not allowed to do. This allowed or no decision depending on how to use it as in what they're trying to do is called authorization for authorization, you kind of need at indication. First you need to know who the user's first before being able to make a decision on whether or not that pretty clear user can do something or not. So authentication and authorization and the fundamental difference between them these two terms are not specific to Spring Security by the way they're widely used in software space in general and they mean kind of the same thing.
+
+
+Principal
+Currently logged in user
+
+All right contact number three this is also a Spring Security concept but it's used in some of the frameworks as well. The term is principal. Principal talked about how authentication is the process of identifying a person trying to access application. Principal is a person you've identified through the process of authentication. in other words a principal is the currently logged-in user. A principal is also a person I really used to hit in primary school but that's a different story. In the context of Spring Security, it is this currently logged-in user. It is that unique information our account in the system that you tie to a specific person in the context of the application. Once you integrate with any of the location say about giving your user ID and password, the application established the principle and its remember set. This is the reason why you are trying to get with an application only once and you don't need to enter your user ID or password for like every requested page load. Because that would be really annoying. yeah that's because I have to remember. it's the principle of the currently logged-in user context of the application. This term in the context of the application is super important. 
+
+
+One user can have multiple IDs
+But there’s usually just one logged-in user (->principal) per request
+
+They may not be a one-to-one mapping between a user or a human being and a principal OK Google For example. A single person can create multiple Google accounts. So Google has multiple email IDs our account sitting in the system. That actually could respond to one user. User logs into Google it's either using the credentials of account A, then the principal corresponds to account A. that is it currently logged-in user which corresponds to a county. Then the music and switch the current login to account B a difference book response. Can be. So the best way to think of a principal is as the currently logged-in user or currently logged in account 
+
+How does authorization happen?
+
+okay on to the fourth term in the fourth concept. We’ve looked at how authentication happens. knowledge base or position based or whatever else does. How does authorization happen, how does the application decide whether or not not to allow a particular access. The application owner or maintainer should have specified beforehand, okay if I use, it as this allow them to use only these actions because it is this I love them only these are the directions so it's like a bunch of permissions that allowed for a given user in Spring Security this concept of permission is called Granted Authority. Authorization Authority Get it? The user is trying to do something in an application and the application will allow or authorize them to do it only if the user has been granted authority to do. 
+
+So thinking that retail store example again the store clerk has the following Authority do check out make store announcements the department manager has authorities do check out make store announcements view Department financials Department in Raintree the store manager probably has all these authorities + things like view store financials these are authorities these are fine-grained permissions of what the user can do. You can configure these authorities in Spring Security for users and spring security takes care of the rest. Any operation that hasn't been specified explicitly as permitted for a given user these are just cannot do the operation they can have access to only the operations allowed beforehand or otherwise the default response is no. Here's the thing with the most of the times for most applications they're usually too fine-grained. 
+
+Let's say the retail store hires 5 store clerks not each of the store clerk someone has to assign all right authorities every time. Every time a store manager is hired someone has to make sure all the right authorities have been assigned to them. So this can be tedious you created the concept of roles. 
+
+Role
+Group of authorities
+
+Roles is pretty much like a group of authorities that are usually assigned together so here you create something like a role store clerk and a sign all the authorities that the store clerk should have. When a store clerk has higher do you assign them to this role and automatically to get all the authorities for that role role department manager is it all the groups together all the permissions that a department manager should have see this makes things super simple things consistent. 
+
+Roles are coarse-grained 
+(대충 대강 크게 크게 개념)
+Authorities are fine-grained 
+(작게 작게)
+
+Roles are more coarse-grained permission like the finding permissions that authorities have I should mention that it Spring Security Board these concepts of authority and roll are often used interchangeably in most cases the difference is literally in just a naming convention use you'll see some of that apis work both of the authorities and Rose but remember to the concept refers mainly in how fine grain the permission is finding permissions at Oddities more coarse grained grouping of permissions authentication authorization principal granted Authority and rules these are what you can control that Spring Security you'll be interacting with the Frameworks to configure all these different things that indication authorization I didn't find the principal specifying authorities in rolls and so on but the thing is you don't have to do any of this configuration to Aspen security Spring Security can be very simply just added to any spring boot application and it has some secure out-of-the-box behave 
