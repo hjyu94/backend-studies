@@ -1,0 +1,200 @@
+22. 스프링 데이터 Common: 커스텀 리포지토리
+
+쿼리 메소드(쿼리 생성과 쿼리 찾아쓰기)로 해결이 되지 않는 경우 직접 코딩으로 구현 가능.
+● 스프링 데이터 리포지토리​인터페이스에 기능 추가.
+● 스프링 데이터 리포지토리​기본 기능 덮어쓰기 가능.
+● 구현 방법
+    a. 커스텀 리포지토리 인터페이스 정의
+    b. 인터페이스 구현 클래스 만들기 (기본 접미어는 Impl)
+    c. 엔티티 리포지토리에 커스텀 리포지토리 인터페이스 추가
+
+[1] 스프링 데이터 리포지토리​인터페이스에 기능 추가
+[2] 기본 기능 덮어쓰기 (Spring Data JPA가 제공하는 기능 덮어쓰기)
+[3] 접미어 설정하기
+
+
+[실습]
+
+새 스프링 Initializer 프로젝트
+JPA, PostGreSQL, H2 추가
+
+pom.xml
+1. spring-boot-starter-data-jpa
+2. h2 (scope: test)
+3. postgresql
+4. spring-boot-starter-test (scope: test)
+
+새 패키지 me.hjeong
+
+@Entity
+public class Post {
+    @Id @GeneratedValue
+    private Long id;
+
+    private String title;
+
+    @Lob // 255 보다 길어질 때 대비
+    private String content;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date created;
+
+    // getter, setter
+}
+
+public interface PostRepository extends JpaRepository<Post, Long> {
+}
+
+@RunWith(SpringRunner.class)
+@DataJpaTest
+public class PostRepositoryTest {
+    @Autowired
+    PostRepository postRepository;
+
+    @Test
+    public void crud() {
+    }
+}
+
+테스트 실행!
+PostRepository 타입의 빈이 등록되어 있는지 확인
+
+application.porperties
+format_sql=true
+descriptor_sql= true // 물음표에 들어가는 값 확인
+
+# 커스텀한 레파지토리를 만들어보자.
+
+[1] 스프링 데이터 리포지토리​인터페이스에 기능 추가
+
+    커스텀 리파지토리 만들어보기!
+    인터페이스이름은 아무렇게나 만들면 됨
+    public interface PostCustomRepository {
+        List<Post> findMyPost();
+    }
+    스프링, JPA 와 상관없는 그야말로 POJO 자바객체.
+
+    이 인터페이스 뒤에 Impl이라는 걸 붙인 클래스를 만들어야 한다.
+    @Repository
+    @Transactional
+    public class PostCustomRepositoryImpl implements PostCustomRepository {
+        @Autowired
+        EntityManager entityManager;
+
+        @Override
+        public List<Post> findMyPost() {
+            System.out.println("Custom findMyPost");
+            return entityManager.createQuery("SELECT p FROM Post AS p", Post.class).getResultList();
+        }
+    }
+
+    그 뒤 PostRepository 인터페이스가 우리가 만든 커스텀 리파지토리를 상속받으면 사용 가능하다.
+
+    public interface PostRepository extends JpaRepository<Post, Long>, PostCustomRepositoryImpl {
+    }
+
+    @Test
+    public void crud() {
+        postRepository.findMyPost();
+    }
+
+    Run 탭:
+        select ... from post 가 찍힌다.
+        쿼리 해 옴!
+
+[2] 스프링 데이터 리포지토리​기본 기능 덮어쓰기 가능.
+    public interface PostCustomRepository<T> {
+        ...
+        void delete(T entity); // JPA Repository에서 제공하는 메소드 재정의
+    }
+
+    public interface PostRepository
+        extends JpaRepository<Post, Long>, PostCustomRepositoryImpl<Post> {
+    }
+
+    @Repository
+    @Transactional
+    public class PostCustomRepositoryImpl implements PostCustomRepository<Post> {
+        @Autowired
+        EntityManager entityManager;
+
+        @Override
+        public void delete(Post entity) {
+            System.out.println("custom delete()");
+            entityManager.remove(entity);
+        }
+    }
+    두 부모에서 delete 메소드가 중복이 된다.
+    스프링 데이터 JPA 는 내가 커스텀하게 구현한 구현체의 우선순위를 높게 주기 때문에
+    내가 만든 함수를 사용해준다.
+
+    @Test
+    public void crud() {
+        postRepository.findMyPost();
+        Post post = new Post();
+        post.setTitle("hibernate");
+        postRepository.save(post);
+
+        postRepository.delete(post);
+    }
+
+    insert가 아예 안 일어남.
+
+    @DataJpaTest는 안에 @Transactional 이 붙어있다.
+    테스트 코드에서 @Transactional 이 붙어있으면 롤백 메소드로 처리하며
+    Hibernate는 테스트를 할 때 필요한 순간에만 쿼리를 날려 보내는데
+    이 상황에서는 한 테스트 안에서 저장하고 지우기 때문에 쿼리를 날릴 필요가 없다고 판단 하는 것.
+
+    @Test
+    public void crud() {
+        postRepository.findMyPost();
+        Post post = new Post();
+        post.setTitle("hibernate");
+        postRepository.save(post);
+        postRepository.findMyPost();
+        postRepository.delete(post);
+    }
+
+    이제 insert, select 는 함. delete 쿼리는 날아가지 않는다. (DB에 싱크하지 않는다.)
+    우선 select는 되어야 한다. select 이전에 save 가 있으면 이를 select에서 봐야하니까 insert도 날아간다.
+    하지만 delete는 어차피 테스트 메소드의 트랜잭션이 끝나면 롤백이 될 것이라서 쿼리가 날아가진 않는다.
+    (쿼리는 안 날아갔어도 대신 post 객체는 removed 상태로 변경되었음)
+
+    delete 쿼리가 날아가는 걸 보려면 강제로 flush() 호출 해주면 된다.
+    (removed인 상태를 데이터베이스에 싱크 한다. delete 쿼리를 날린다!)
+
+    @Test
+    public void crud() {
+        postRepository.findMyPost();
+        Post post = new Post();
+        post.setTitle("hibernate");
+        postRepository.save(post);
+        postRepository.findMyPost();
+        postRepository.delete(post);
+        postRepository.flush(); // 쿼리 날리기!
+    }
+
+
+[3] 접미어 설정하기
+
+    레파지토리를 커스터마이징 하려면 구현체의 접미어에 Impl을 사용해야 한다.
+    이 규칙이 마음에 들지 않는다면 변경할 수 있다.
+
+    @SprintBootApplication
+    @EnableJpaRepositories(repositoryImplementationPostfix = "XXX") // 접미어 변경
+    public class Application {}
+
+
+    @Repository
+    @Transactional
+    public class PostCustomRepositoryImpl implements PostCustomRepository {
+    }
+    테스트 실행! -> 실패!
+    PostCustomRepositoryImpl 로 테스트 코드를 실행하면 실패한다.
+
+    @Repository
+    @Transactional
+    public class PostCustomRepositoryXXX implements PostCustomRepository {
+    }
+    테스트 실행! -> 성공!
+    PostCustomRepositoryXXX 로 테스트 코드를 실행하면 접미어 규칙에 맞게 구현체를 찾아와서 실행한다.
