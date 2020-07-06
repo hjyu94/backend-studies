@@ -67,8 +67,8 @@ class PostRepositoryTest {
     public void event() {
         Post post = new Post();
         post.setTitle("event");
-        PostPublishedEvent event = new PostPublishedEvent(post);
-
-        applicationContext.publishEvent(event); // 던짐
+        post.publish();
+        postRepository.save(post); // save() 될 때 도메인에 쌓여있던 이벤트가 모두 발생된다.
+        postRepository.findMyPost(); // 롤백 되어서 insert 쿼리가 발생하지 않기 때문에 추가한 select 문
     }
 }
