@@ -1,4 +1,4 @@
-package me.hjeong.springjpa;
+package me.hjeong.springjpa.post;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
