@@ -1,0 +1,53 @@
+19. 스프링 데이터 Common: 쿼리 만들기 개요
+
+
+스프링 데이터 저장소의 메소드 이름으로 쿼리 만드는 방법
+    ● 메소드 이름을 분석해서 쿼리 만들기 (CREATE)
+    ● 미리 정의해 둔 쿼리 찾아 사용하기 (USE_DECLARED_QUERY)
+    ● 미리 정의한 쿼리 찾아보고 없으면 만들기 (CREATE_IF_NOT_FOUND)
+
+    스프링 데이터 JPA가 메소드 이름을 분석해서 쿼리를 만들어준다.
+
+    public interface CommentRepository extends MyRepository<Comment, Long> {
+        @Query("SELECT c FROM Comment AS c")
+        List<Comment> findByComment(String keyword);
+        // comment에 키워드가 붙어있는 모든 코멘트를 찾아줌
+    }
+
+    첫번째 전략 : CREATE,
+    두번째 전략 : USE_DECLARED_QUERY, 부가적인 정보(어노테이션) 사용
+    기본값으론 JQL 을 써야하는데 SQL을 쓰고 싶다면 nativeQuery = true 옵션을 준다.
+    세번째 전략 : 선언되어 있는 쿼리를 찾아보고 없는 경우에는 메소드 이름을 분석해서 쿼리를 만든다.
+
+    @SpringBootApplication
+    @EnableJpaRepsitory(queryLookupStrategy = CREATE, IF_NOT_FOUND, USE_...)
+    여기서 queryLookupStrategy 값을 설정해서 쓸 수 있다.
+
+쿼리 만드는 방법
+    ● 리턴타입
+
+        {접두어}{도입부}
+        By{프로퍼티 표현식}(조건식)[(And|Or){프로퍼티 표현식}(조건식)]
+        {정렬 조건}
+
+            (매개변수)
+
+    Page<Comment> findByLikeCountGreaterThanAndPost(int age, Post post, Pageable pageable);
+    // 매개변수로 Pageable이 있어야 Page를 리턴타입으로 받을 수 있다.
+
+    Comment 안에 private Integer likeCount 추가
+
+    리턴 타입 E, Optional<E>, List<E>, Page<E>, Slice<E>, Stream<E>
+    접두어 Find, Get, Query, Count, Delete ...
+    도입부 Distinct, First(N), Top(N)
+    프로퍼티 표현식 Person.Address.ZipCode => find(Person)ByAddress_ZipCode(...)
+    조건식 IgnoreCase, Between, LessThan, GreaterThan, Like, Contains, ...
+    정렬 조건 OrderBy{프로퍼티}Asc|Desc
+    매개변수 Pageable, Sort
+
+
+쿼리 찾는 방법
+    ● 메소드 이름으로 쿼리를 표현하기 힘든 경우에 사용.
+    ● 저장소 기술에 따라 다름.
+    ● JPA: @Query @NamedQuery
+

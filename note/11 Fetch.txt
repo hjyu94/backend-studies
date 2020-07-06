@@ -1,0 +1,147 @@
+11. JPA 프로그래밍: Fetch
+
+Fetch 모드?
+    Fetch 연관 관계의 엔티티를 어떻게 가져올 것이냐에 대한 설정
+
+지금 (Eager)? 나중에(Lazy)?
+    ● @OneToMany의 기본값은 Lazy
+    ● @ManyToOne의 기본값은 Eager
+
+
+[1] FetchType.LAZY
+
+    @Entity
+    public class Post {
+        @OneToMany(mappedBy = "post", cascade = CascadeType.ALL)
+        private Set<Comment> comments = new HashSet<>();
+        ...
+    }
+
+    public @interface OneToMany {
+        FetchType fetch() default FetchType.LAZY;
+        ...
+    }
+
+    Post 정보를 가지고 올 때 comments 컬렉션 정보는 가지고 오지 않는다.
+    comments는 OneToMany로 한 포스트에 코멘트가 몇개까지 있는지도 모르는데
+    Post 정보를 조회한다고 comments 데이터를 한번에 다 가지고 오면
+    너무 객체에 불필요한 데이터를 로딩할 가능성이 높기 때문에.
+
+
+[2] FetchType.EAGER
+
+    public @interface ManyToOne {
+        FetchType fetch() default FetchType.EAGER;
+        ...
+    }
+
+    @Entity
+    public class Comment {
+        @ManyToOne
+        private Post post;
+        ...
+    }
+
+    반대로 manyToOne 의 기본값은 FetchType.EAGER
+    코멘트의 정보를 가지고 올 때 동시에 포스트의 정보를 같이 가지고 온다.
+    어짜피 한 코멘트에 관한 포스트 데이터는 하나뿐이라서
+
+
+실습)
+현재 데이터 상태
+
+    springdata=# select * from post;
+     id |     title
+    ----+---------------
+      1 | 게시글 타이틀
+    (1 row)
+
+    springdata=# select * from comment;
+     id | comment  | post_id
+    ----+----------+---------
+      2 | 코멘트 1 |       1
+      3 | 코멘트 2 |       1
+    (2 rows)
+
+
+[1] 포스트 가져오기 - lazy
+
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
+        Session session = entityManager.unwrap(Session.class);
+        Post post = session.get(Post.class, 1l);
+        System.out.println("==================");
+        System.out.println(post.getTitle());
+    }
+
+    session.get()
+    없으면 null, 무조건 db에서 가지고 온다
+
+    session.load()
+    없으면 예외를 던짐, 없을 땐 프록시에서 가지고 올 수도 있다
+
+    결과!
+    Hibernate:
+        select
+            post0_.id as id1_2_0_,
+            post0_.title as title2_2_0_
+        from
+            post post0_
+        where
+            post0_.id=?
+    ==================
+    게시글 타이틀
+
+    Post는 @OneToMany 로 comments를 가지고 있다.
+    @OneToMany 의 Fetch 기본값은 lazy이기 때문에
+    DB에서 Post를 읽어온다고 해도 comments를 읽어오지 않는다.
+
+
+[1-2] 포스트 가져오기 - eager
+    public class Post {
+        @OneToMany(mappedBy = "post", fetch = FetchType.EAGER)
+        private Set<Comment> comments = new HashSet<>();
+    }
+
+    결과!
+    Hibernate:
+        select
+            post0_.id as id1_2_0_,
+            post0_.title as title2_2_0_,
+            comments1_.post_id as post_id3_1_1_,
+            comments1_.id as id1_1_1_,
+            comments1_.id as id1_1_2_,
+            comments1_.comment as comment2_1_2_,
+            comments1_.post_id as post_id3_1_2_
+        from
+            post post0_
+        left outer join
+            comment comments1_
+                on post0_.id=comments1_.post_id
+        where
+            post0_.id=?
+    ==================
+    게시글 타이틀
+
+    fetch = EAGER 로 놓으면
+    post 를 가지고 올 때 comment 의 정보도 모두 가지고 온다.
+
+
+[2] 코멘트 가져오기
+
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
+        Session session = entityManager.unwrap(Session.class);
+        Comment comment = session.get(Comment.class, 2l);
+        System.out.println("==================");
+        System.out.println(comment.getComment());
+        System.out.println(comment.getPost().getTitle());
+    }
+
+    쿼리가 몇개 날라갔을까?
+    2개(Comment, Post)가 날아간게 아니라 1개만 날아감!
+
+    Comment를 조회할 때 이미 Post를 쿼리해서 가지고 오기 때문에
+    select 쿼리는 하나만 날아간다.
+
+    fetchmode 를 잘 조절해야 성능이 좋아진다.

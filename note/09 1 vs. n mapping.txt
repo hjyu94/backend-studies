@@ -1,0 +1,292 @@
+9.JPA 프로그래밍: 1대다 맵핑
+
+관계에는 항상 두 엔티티가 존재 합니다.
+    ● 둘 중 하나는 그 관계의 주인(owning)이고
+    ● 다른 쪽은 종속된(non-owning) 쪽입니다.
+    ● 해당 관계의 반대쪽 레퍼런스를 가지고 있는 쪽이 주인.
+    (멤버 변수로 반대쪽 객체를 가지고 있는 쪽이 주인)
+
+단방향에서의 관계의 주인은 명확합니다.
+    ● 관계를 정의한 쪽이 그 관계의 주인입니다.
+
+단방향 @ManyToOne
+    ● 기본값은 @ManyToOne 을 가지고 있는 테이블에 FK 생성
+
+단방향 @OneToMany
+    ● 기본값은 조인 테이블 생성
+
+양방향
+    ● FK 가지고 있는 쪽이 오너 따라서 기본값은 @ManyToOne 가지고 있는 쪽이 주인.
+    ● 주인이 아닌쪽(@OneToMany쪽)에서 mappedBy 사용해서 관계를 맺고 있는 필드를 설정해야 합니다.
+
+양방향
+    ● @ManyToOne (이쪽이 주인)
+    ● @OneToMany(mappedBy)
+    ● 주인한테 관계를 설정해야 DB에 반영이 됩니다.
+
+
+
+실습
+    Account라는 Entity가 있고
+    Study라는 Entity가 있다.
+
+    @Entity
+    public class Study {
+        @Id @GeneratedValue
+        private Long id;
+        private String name;
+        // getter, setter
+    }
+
+    @Entity
+    public class Account {
+        @Id @GeneratedValue
+        private Long id;
+        private String name;
+        // getter, setter
+    }
+
+    관계에는 항상 2개의 Entity가 맞물려있다.
+    오직 꼭 반드시 2개의 엔티티끼리의 관계임. 3개끼리의 관계는 없다.
+
+    Study는 Study를 만든 Account가 한명 존재하고
+    Account는 여러 Study를 만들 수 있는 상황.
+
+
+[1] 단방향 Study가 관계의 주인
+
+    Study 입장에서는 Owner가 ManyToOne
+    현재 레퍼런스가 한개. 컬렉션이 아님. 그러면 One 으로 끝난다고 생각하면 쉽다.
+
+    class Study {
+        @ManyToOne
+        private Account owner;
+    }
+
+    public void run ... {
+        Study study = new Study();
+        study.setName("Spring Data JPA");
+        study.setOwner(account);
+        // study가 주인이므로 관계맺기(setOwner())를 study 에서 한다.
+
+        ...
+
+        session.save(study);
+    }
+    -> 실행
+    -> 결과?
+
+        springdata=# select * from account;
+         id |  name
+        ----+--------
+          1 | hjeong
+        (1 row)
+
+        springdata=# select * from study;
+         id |      name       | owner_id
+        ----+-----------------+----------
+          2 | Spring Data JPA |        1
+        (1 row)
+
+
+    Study 테이블 안에 (Account 테이블 안의 PK 를 참조하는) FK 컬럼을 생성해서 갖고 있게 된다.
+
+    이 관계에서의 주인은 Study
+    반대쪽에 대한 Entity를 여기서 참조하기 때문.
+    주인이라는 뜻? Study 객체의 메소드로 관계를 설정했을 때 그 값이 DB에 반영이 된다.
+
+    study.setOwner(account); // 관계를 설정했음.
+    session.save(study); 하면 owner_id 값을 볼 수 있는 것.
+    (Study 테이블에 owner_id 가 생긴다. 그 값이 반영이 된 것)
+    (Account에는 아무것도 안생김)
+
+
+[2] 단방향, Account가 관계의 주인
+
+    이제는 study가 관계의 주인이 아니라 account가 관계의 주인이라면?
+
+    @Entity
+    public class Study {
+        @Id @GeneratedValue
+        private Long id;
+
+        private String name;
+    }
+
+    public class Account {
+        @OneToMany
+        private Set<Study> studies = new HashSet<>();
+    }
+
+    한 Account는 여러개의 Study를 만들 수 있다.
+    @의 끝이 Many로 끝나면 데이터타입이 컬렉션이어야 한다.
+
+
+    주인인쪽에서 관계세팅을 할 수 있다.
+    public void run() ... {
+        account.getStudies().add(study);
+        // 주인이 Account니까 account의 메소드를 이용해서 관계를 맺어줘야 한다.
+        ...
+    }
+
+    실행!
+    결과?
+    테이블이 3개 만들어진다.
+
+        springdata=# \dt
+                     List of relations
+         Schema |      Name       | Type  | Owner
+        --------+-----------------+-------+--------
+         public | account         | table | hjeong
+         public | account_studies | table | hjeong
+         public | study           | table | hjeong
+        (3 rows)
+
+        springdata=# select * from account;
+         id |  name
+        ----+--------
+          1 | hjeong
+        (1 row)
+
+        springdata=# select * from study;
+         id |      name
+        ----+-----------------
+          2 | Spring Data JPA
+        (1 row)
+
+        springdata=# select * from account_studies;
+         account_id | studies_id
+        ------------+------------
+                  1 |          2
+        (1 row)
+
+
+
+[3] 양방향 관계. Study가 관계의 주인이 됨. @ManyToOne 컬럼을 가진 쪽이 주인!
+    객체의 레퍼런스는 방향성이 있고 이 둘을 양방향으로 만들고 싶은 경우도 있음.
+
+    Study쪽에서 Owner 정보를 참조하고
+    Account에서 studies 정보를 참조하고 싶음
+
+    @OneToMany, @ManyToOne 이렇게만 있으면 이거는 양방향 관계 아님. 두개의 단방향 관계임.
+
+    이거를 양방향으로 만드려면 @OneToMany 끝에 (mappedBy = "owner") 값을 줘야 한다.
+
+    FK를 가진 쪽이 주인임(여기서는 Study)
+    Account는 주인이 누구인지 mappedBy 로 알려줘야 한다.
+
+    Study가 주인인 양방향 관계임.
+
+    public class Study {
+        @ManyToOne
+        private Account owner;
+    }
+
+    public class Account {
+        @OneToMany(mappedBy = "owner")
+        private Set<Study> studies = new HashSet<>();
+    }
+
+    drop table account_studies
+    @OneToMany 때문에 생긴 새로운 테이블을 지워주자.
+
+    Study가 주인이므로 따라서 관계 매핑을 Study 에 해줘야 하는데
+    만약 Account에서만 하고 있다면?
+
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
+        Account account = new Account();
+        account.setName("hjeong");
+
+        Study study = new Study();
+        study.setName("Spring Data JPA");
+
+        account.getStudies().add(study);
+
+        Session session = entityManager.unwrap(Session.class);
+        session.save(account);
+        session.save(study);
+    }
+    실행
+    결과?
+        study에 FK 컬럼이 만들어지는데 해당 컬럼 값이 비어있다.
+        테이블이 3개 만들어지지는 않는다
+
+        springdata=# \dt
+                 List of relations
+         Schema |  Name   | Type  | Owner
+        --------+---------+-------+--------
+         public | account | table | hjeong
+         public | study   | table | hjeong
+        (2 rows)
+
+        springdata=# select * from account;
+         id |  name
+        ----+--------
+          1 | hjeong
+        (1 row)
+
+        springdata=# select * from study;
+         id |      name       | owner_id
+        ----+-----------------+----------
+          2 | Spring Data JPA |
+        (1 row)
+
+        springdata=#
+
+
+    public void run() ... {
+        account.getStudies().add(study);
+        study.setOwner(account);
+
+        // 양방향 관계이기 때문에 반대쪽에도 관계를 설정해줘야 한다.
+        // 관계를 account, study 양쪽에서 맺고 있다.
+        // 무엇보다도 Study가 관계의 주인이기 때문에 주인의 메소드를 사용해서 관계를 맺지 않으면 DB에 적용이 안된다.
+    }
+
+    실행
+    결과?
+
+        springdata=# \dt
+                 List of relations
+         Schema |  Name   | Type  | Owner
+        --------+---------+-------+--------
+         public | account | table | hjeong
+         public | study   | table | hjeong
+        (2 rows)
+
+        springdata=# select * from account;
+         id |  name
+        ----+--------
+          1 | hjeong
+        (1 row)
+
+        springdata=# select * from study;
+         id |      name       | owner_id
+        ----+-----------------+----------
+          2 | Spring Data JPA |        1
+        (1 row)
+
+
+
+    이럴땐 양방향 관계를 맺어주는 함수 하나로 통합하는게 깔끔
+
+    public void run()...{
+        ...
+        account.addStudy(study);
+        ...
+    }
+
+   public void addStudy(Study study) {
+       this.getStudies().add(study);
+       study.setOwner(this);
+   }
+
+    remove 할때도 마찬가지임
+
+    public void removeStudy(Study study){
+        this.getStudies().remove(study);
+        study.setOwner(null);
+    }
+
+    이런 메소드를 convenient method 라고 부른다

@@ -1,0 +1,138 @@
+이 강의에서는 PostgreSQL 사용
+
+DB 는 자바와 독립적
+자바가 아니더라도 여러 언어로도 데이터베이스를 사용 가능.
+우리는 자바 언어를 사용하기 때문에 JDBC를 사용한다.
+우리 애플리케이션에 데이터를 영속화(persistent) 할 필요가 있기 때문
+어디엔가 저장을 해 놓고 우리의 어플리케이션이 꺼졌다 켜지더라도 유지되어야 하기 때문
+
+언어와 데이터베이스를 연결하는 여러가지 방식이 있다.
+관계형 데이터 베이스에 데이터를 저장하고 가져다 쓰는 법을 배우자.
+
+new maven project
+me.hjeong / jdbcsample
+
+먼저 데이터베이스가 필요함
+
+docker : 툴! 반드시 학습해야 할 툴!
+
+데이터베이스를 준비했으면 JDBC로 코딩해야 하는데
+JDBC 라이브러리 의존성이 필요하다.
+JDBC 구현체의 역할을 해줄 드라이버가 필요. 드라이버는 각 DB 마다 다르다.
+
+드라이버 추가하기
+mysql을 쓰면 mysql용 드라이버를 추가해야 하고
+postgresql을 쓰면 postgresql 드라이버를 추가한다.
+
+pom.xml
+    <dependencies>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.2.2</version>
+        </dependency>
+    </dependencies>
+
+PostgreSQL 설치 및 서버 실행 (docker) (terminal에서 실행함)
+    docker ps
+        현재 상태 확인
+
+    docker run -p 5432:5432 -e POSTGRES_PASSWORD=gywjd465 -e POSTGRES_USER=hjeong -e POSTGRES_DB=springdata --name postgres_boot -d postgres
+        포트 매핑. 5432 도커가 posgresql 컨테이너 안에서 5432 포트를 노출시키고 있는데 그것을 내 로컬상의 5432 포트와 매핑해서
+        애플리케이션이 5432에 접속하는 경우 postgresql 를 사용할 수 있게 됨
+        -e: 환경 변수 값 설정
+        --name: 컨테이너 이름
+        -d: 백그라운드로 띄우겠다.
+        postgres: 이미지의 이름
+
+    docker exec -i -t postgres_boot bash
+        exec: 명령어를 사용하겠다.
+        -i, --interactive: Keep STDIN open even if not attached
+        -t [target]: 어떤 컨테이너에 명령어를 실행할 건지
+        bash: 실행할 명령어
+
+    su - postgres
+
+    psql springdata(데이터베이스 이름) 명령 대신에 우리는 윈도우즈니까
+    psql --username keesun --dbname springdata 사용.
+
+    데이터베이스 조회 \list
+    테이블 조회 \dt
+    쿼리 SELECT * FROM account;
+
+
+기본 패키지를 만든다
+    new package: me.hjeong
+    new Class
+
+    public class Application {
+        public static void main(String[] args){ // 인텔리J 에서 psvm 치면 자동완성 나옴
+            String url = "jdbc:postgresql://localhost:5432/springdata";
+            String username = "keesun";
+            String password = "pass";
+            // JDBC에서 데이터베이스에 접속할때 필요한 정보
+            // 1. url: JDBC가 어느 위치에 있는 데이터베이스에 접속할 것인가
+            // 2. username, password: 데베에 접속할때 필요한 인증 정보
+
+            // 커넥션을 드라이브매니져를 통해 만든다
+            // try with resource 문법 사용하기 위해서는
+            // 프로젝트의 랭귀지 설정을 바꿔줘야 한다.
+            // Project Structure - Modules - Lang 8 로 변경
+            try(Connection connection = DriveManager.getConnection(url, username, password)){
+                System.out.println("Connection created: " + connection);
+                // 커넥션을 잘 받았는지 확인해보기
+            }
+        }
+    }
+
+Run Application!
+    잘 돌아가면 데이터베이스에 잘 접속할 수 있다는 것을 확인 한 것!
+
+SQL의 종류
+    DDL: definition, 정의, 테이블이나 시퀀서를 만드는 류의 sql
+    DML: manipulate CRUD, 데이터를 넣는 sql
+
+Account Table 만들기
+    try(Connection connection = DriveManager.getConnection(url, username, password)){
+        System.out.println("Connection created: " + connection);
+
+        String sql = "CREATE TABLE ACCOUNT (id int, username varchar(255), password varchar(255));";
+        try(PreparedStatement statement = connection.prepareStatement(sql)){
+            statement.execute();
+        }
+    }
+
+    try with resource:
+        자동으로 자원들을 정리해주는 역할을 해준다(close 가 필요하는 경우 등)
+
+    테이블이 잘 만들어지는지 확인해보자
+    터미널에서 \dt 확인해서 테이블이 추가되었는지 확인
+
+        springdata=# \dt
+                 List of relations
+         Schema |  Name   | Type  | Owner
+        --------+---------+-------+--------
+         public | account | table | keesun
+        (1 row)
+
+    account 라는 테이블이 생성되었음을 볼 수 있다.
+
+이젠 데이터를 넣어보자
+    try(Connection connection = DriveManager.getConnection(url, username, password)){
+        System.out.println("Connection created: " + connection);
+
+        String sql = "INSERT INTO ACCOUNT VALUES(1, 'keesun', 'pass');"
+        try(PreparedStatement statement = connection.prepareStatement(sql)){
+            statement.execute();
+        }
+    }
+
+    실행 후 터미널에서 select * from account;
+    검색해보면 데이터가 들어가 있는 걸 볼 수 있다.
+
+        springdata=# select * from account;
+         id | username | password
+        ----+----------+----------
+          1 | keesun   | pass
+        (1 row)
+

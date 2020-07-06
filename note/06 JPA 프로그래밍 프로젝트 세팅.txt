@@ -1,0 +1,194 @@
+6.JPA 프로그래밍: 프로젝트 세팅
+
+New Project - Spring initializer - No dependencies
+demospringjpa 프로젝트 생성
+
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter</artifactId>
+    </dependency>
+
+spring-boot-starter 의존성이 들어옴
+terminal 에서 docker ps 로 데이터베이스 확인.
+
+데이터베이스 실행
+    ● PostgreSQL 도커 컨테이너 재사용
+    ● docker start postgres_boot
+
+    컨테이너가 자동으로 떠있지 않은 경우가 있을 수도 있는데
+    그 경우에는 컨테이너를 삭제하지 않은 상황이라면
+    docker ps -a : stop 상태인 컨테이너도 표시하기
+    명령어 사용시 보일 것이다.
+
+    docker start postgres_boot
+    docker exec -i -t postgres_boot bash
+    su - postgres
+    psql --username keesun --dbname springdata 사용.
+    \dt
+    select * from account;
+
+
+스프링 부트
+    ● 스프링 부트 v2.*
+    ● 스프링 프레임워크 v5.*
+    // 스프링 부트를 쓰게 되면 자동으로 생기는 의존성
+
+
+스프링 부트 스타터 JPA
+    ● JPA 프로그래밍에 필요한 의존성 추가
+        ○ JPA v2.*
+        ○ Hibernate v5.*
+        // spring-boot-starter-data-jpa
+        // Maven - dependencies 에서 확인 가능
+
+        // JPA 기반, Hibernate 기반 둘 다 사용 가능
+        // 스프링 데이터 JPA 를 사용하기 때문에
+        // 대부분 상황에서 우리는 직접적으로 사용하는일은 없음
+
+    ● 자동 설정: HibernateJpaAutoConfiguration
+        ○ 컨테이너가 관리하는 EntityManager (프록시) 빈 설정
+        ○ PlatformTransactionManager 빈 설정
+
+JDBC 설정
+    ● jdbc:postgresql://localhost:5432/springdata
+    ● keesun
+    ● pass
+
+application.properties
+    (src/main/resources/application.properties)
+
+    우리가 사용하는 데이터 베이스에 접근할 수 있는 정보를 주자.
+    JDBC 풀 관련 자동 설정에 의해 데이터 소스를 수정해준다.
+    spring.datasource.url=jdbc:postgresql://localhost:5432/springdata
+    spring.datasource.username=keesun
+    spring.datasource.password=pass
+    // 도커에 postgres 컨테이너를 만들 때 들어간 정보가 들어간다.
+
+    spring.jpa.hibernate.ddl-auto=create
+    // Hibernate 관련 정보
+    // [create]: 개발할 때만 유용. 어플리케이션이 구동 될때마다 새로 스키마를 생성하겠다.
+    // [validate]: 이미 스키마는 만들아져 있다는 가정 하에, 우리가 매핑할 데이터가 데이터베이스에 잘 매핑되었는지 검증하겠다!
+    // 잘 매핑이 안되는 경우 애플리케이션 구동시에 에러가 난다.
+    // [update]
+
+
+도메인 클래스 생성
+    id, username, password가 있는 Account 클래스 생성
+
+    import javax.persistence.Entity;
+    import javax.persistence.GeneratedValue;
+    import javax.persistence.Id;
+
+    @Entity // 이 클래스가 데이터베이스에 있는 Account 라는 테이블에 매핑되어지는 엔티티이다.
+    public class Account {
+        @Id // 주키
+        @GeneratedValue // 자동으로 생성되는 값을 사용하겠다.
+        private Long id;
+
+        private String username;
+
+        private String password;
+
+        // getter, setter
+    }
+    // username, password도 @Entity 덕에 테이블에 매핑된다.
+    // 사실상 @Column 이라는 annotation 이 각 변수마다 생략되어있는 것과 마찬가지
+
+    application.properties를 참조해서 datasource라는 타입의 빈을 만들거고
+    Hibernate 의존성이 들어와있기 때문에
+    HibernateJpaAutoConfiguration 자동설정이 들어온다. (스프링 부트 mvc 강의 참고)
+
+        @Configuration(
+            proxyBeanMethods = false
+        )
+        @ConditionalOnClass({LocalContainerEntityManagerFactoryBean.class, EntityManager.class, SessionImplementor.class})
+        @EnableConfigurationProperties({JpaProperties.class})
+        @AutoConfigureAfter({DataSourceAutoConfiguration.class})
+        @Import({HibernateJpaConfiguration.class})
+        public class HibernateJpaAutoConfiguration
+
+    (ConditionalOnClass) - 이러한 빈들이 클래스패쓰에 있어서 Condition을 만족할 때
+    HibernateJpaConfiguration 설정파일을 Import 해서 빈을 설정하게 되어있다.
+
+    해당 설정파일에는 JPA 핵심인 EntityManagerFactoryBean 이 등록되어 있고
+    따라서 엔티티 매니져를 빈으로 주입받아 사용할 수 있다.
+    트랜잭션 매니져도 빈으로 등록되어 있다.
+
+이게 도통 무슨말이냐?
+
+    pom.xml 에 data-jpa 의존성을 추가하고
+    application.properties 에 데이터 소스 관련 값들을 설정하면
+    JPA를 사용하는데 필요한 모든 빈들이 자동으로 등록이 된다!
+
+
+Account 객체를 데이터베이스에 저장하는 Runner를 만들어보자
+
+    @Component
+    @Transactional
+    public class JpaRunner implements ApplicationRunner {
+
+        // JPA 의 핵심!
+        @PersistenceContext
+        EntityManager entityManager;
+
+        @Override
+        public void run(ApplicationArguments args) throws Exception {
+            Account account = new Account();
+            account.serUsername("keesun");
+            account.setPassword("jpa");
+
+            entityManager.persist(account);
+            // 데이터베이스에 저장한다.
+            // 엔티티 매니져에 관련된 모든 오퍼레이션은 한 트랜잭션 안에서 일어나야 한다.
+            // 트랜잭션 매니져의 기능을 사용하기 위해 @Transactional 을 클래스에 붙여 모든 메소드에 적용할 수 있고
+            // 특정 메소드 위에서 붙일수도 있다.
+        }
+    }
+
+
+Run
+    데이터베이스에 접근해서 데이터를 최종적으로는 저장하게 된다.
+    으악 에러
+
+
+드라이버 추가해주기
+    pom.xml
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+    </dependency>
+
+
+application.properties
+    ● spring.jpa.properties.hibernate.jdbc.lob.non_contextual_creation=true
+    // 추가한 postgresql 드라이버가 createClob() 이라는 메소드를 구현하지 않아서
+    // 해당 워닝을 없애려면 위의 값을 적어줘야 한다.
+    ● spring.jpa.hibernate.ddl-auto=create
+
+
+JPA가 Hibernate를 사용하기 때문에 실질적으로는 Hibernate API를 사용할 수 있다.
+EntityManager를 빈으로 주입받은 뒤 Session을 꺼내서 쓸 수 있다.
+세션으로 저장할 수가 있다.
+
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
+        Account account = new Account();
+        account.serUsername("keesun");
+        account.setPassword("hibernate");
+
+        Session session = entityManager.unwrap(Session.class);
+        session.save(account);
+    }
+    // 데이터를 확인하면 hibernate 데이터가 들어가있는걸 볼 수 있다.
+    // 스키마는 앱 구동시마다 새로만들어지기 때문에 예전 데이터가 날라간다.
+    // create 대신 앱 설정값을 update 로 두면
+    // 계속 누적되서 업데이트 할 수 있다.
+    // 단 이 때, Account 에 email 필드를 하나 만들면 데이터베이스에 칼럼이 하나 자동으로 증가
+    // 그런데 다시 email 필드를 지우고 실행하더라도 데이터베이스에서 지워지지 않는다.
+    // -> 스키마가 지저분해질수도 있다.
+
+
+
+참고
+    https://suhwan.dev/2019/02/24/jpa-vs-hibernate-vs-spring-data-jpa/
+    (JPA, Hibernate, Sprinig Data JPA)

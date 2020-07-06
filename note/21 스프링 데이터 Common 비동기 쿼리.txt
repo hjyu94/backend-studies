@@ -1,0 +1,62 @@
+21. 스프링 데이터 Common: 비동기 쿼리 
+
+
+비동기 쿼리
+    @Async Future<User> findByFirstname(String firstname);
+    @Async CompletableFuture<User> findOneByFirstname(String firstname);
+    @Async ListenableFuture<User> findOneByLastname(String lastname);
+
+    ● 해당 메소드를 스프링 TaskExecutor에 전달해서 별도의 쓰레드에서 실행함.
+    ● Reactive랑은 다른 것임
+
+
+권장하지 않는 이유
+    ● 테스트 코드 작성이 어려움.
+    ● 코드 복잡도 증가.
+    ● 성능상 이득이 없음.
+        ○ DB 부하는 결국 같고.
+        ○ 메인 쓰레드 대신 백드라운드 쓰레드가 일하는 정도의 차이.
+        ○ 단, 백그라운드로 실행하고 결과를 받을 필요가 없는 작업이라면 @Async를 사용해서 응답 속도를 향상 시킬 수는 있다.
+
+
+[실습]
+    @Async: 스프링 프레임웤이 제공하는 스케쥴링 기능 사용.
+    백그라운드에서 동작하는 스레드풀에 이 메소드를 실행하는 작업을 위임하는 것.
+    이 메소드 호출을 다른 스레드에서 동작시키는 것
+    논블로킹으로 만들기 위해서 Future 로 리턴타입을 감싼다.
+
+    interface CommentRepository extends JpaRepository<Comment, Long> {}
+    -> commentRepository.flush(); // 바로 쿼리 보내기!
+
+    @SpringBootApplication
+    @EnableAsync // @Async public method를 백그라운드 쓰레드풀에 넣어서 실행할 수 있어진다.
+    class Application {}
+
+    @Test
+    public void crud_Asyc_Query() throws ExecutionException, InterruptedException {
+        this.createComment("AAA");
+        this.createComment("BBB");
+
+        PageRequest pageRequest = PageRequest.of(0, 10, Sort.by(Sort.DEFAULT_DIRECTION));
+
+        Future<List<Comment>> future = commentRepository.findByCommentContainsIgnoreCase("Spring", pageRequest);
+        System.out.println("============================");
+        System.out.println("is done? " + future.isDone());
+
+        future.addCallBack(new ListenableFutureCallback<List<Comment>>(){
+            @Override
+            public void onSuccess(List<Comment> comments) {
+                System.out.println("===================");
+                comments.forEach(System.out::println);
+            }
+            @Override
+            public void onFailure(Throwable throwable) {
+                System.out.println(throwable);
+            }
+        });
+    }
+
+    crud를 실행하는 쓰레드에서 코멘트 2개를 저장했는데
+    비동기 쿼리를 날리는 쓰레드에서는 (다른 쓰레드에서 만든) DB 변화를 감지하지 못하고
+    result.size() 가 0이 나옴.
+

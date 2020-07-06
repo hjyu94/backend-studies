@@ -1,0 +1,100 @@
+8.JPA 프로그래밍: Value 타입 맵핑
+
+엔티티 타입과 Value 타입 구분
+    ● 식별자가 있어야 하는가. (식별자가 있으면 엔티티 타입)
+    ● 독립적으로 존재해야 하는가. (다른 객체가 생성되거나 사라지는것과 무관한가)
+
+Value 타입 종류
+    ● 기본 타입 (String, Date, Boolean, ...)
+    ● Composite Value 타입
+    ● Collection Value 타입
+        ○ 기본 타입의 콜렉션
+        ○ 컴포짓 타입의 콜렉션
+
+Composite Value 타입 맵핑
+    ● @Embeddable
+    ● @Embedded
+    ● @AttributeOverrides
+    ● @AttributeOverride
+
+
+
+Value 타입 이란?
+    Entity 타입은 고유한 식별자가 있다 (Account의 경우는 id가 식별자)
+    다른 엔티티에서 Account를 독립적으로 참조하는 경우가 생김
+    그러나 username 이나 password 같은 컬럼의 경우는 반드시 Account 를 통해서만 접근하며
+    Account가 만들어지면 생기고 Account가 사라지면 같이 사라져야 하는 값이다.
+    -> 얘들을 value 타입이라고 한다. (id값을 제외한 타입)
+    이 중에 컴포짓한 value 타입을 살펴보자
+
+
+
+실습)
+
+    Account가 주소를 가지고 있을 때
+    주소를 엔티티라고 하기에는 애매함.
+    위치 정보를 다루는 Application이라고 하면 주소도 엔티티가 될 수도 있다
+    (주소 자체가 독립적으로 레퍼런스가 되어야만 하는 상황)
+
+    허나 여기 예제에서 가정하는것은 Account에 속한 데이터 중 하나로 주소를 취급하는 상황.
+    Address의 생명주기는 Entity에 속해있음
+    (Entity가 만들어지면 거기에 속한 Address도 만들어지고, Account가 삭제되면 삭제되고)
+
+    컴포짓한 밸류타입
+        @Entity
+        public class Account {
+            ...
+            Address address;
+        }
+
+        @Embeddable // 각 변수에 @Column 이 들어있는 것과 마찬가지
+        public class Address {
+            private String street;
+            private String city;
+            private String state;
+            private String zipCode;
+        }
+
+    테스트!
+    결과?
+    ->
+
+        springdata=# select * from account;
+         id | city | state | string | zip_code |         created         | password | username
+        ----+------+-------+--------+----------+-------------------------+----------+----------
+          1 |      |       |        |          | 2020-04-27 14:29:20.829 | jpa      | hjeong
+        (1 row)
+
+
+    (이전에는
+
+        springdata=# select * from account;
+         id | password | username
+        ----+----------+----------
+          1 | jpa      | hjeong
+        (1 row)
+
+    였는데 city, state, string, zip_code 컬럼이 추가됨)
+
+
+    @Entity
+    public class Account {
+        @Embedded
+        @AttributeOverrides({
+            @AttributeOverride(name = "street", column = @Column(name = "home_street")
+        })
+        Address homeAddress;
+    }
+    테스트!
+    결과?
+    ->
+        springdata=# select * from account;
+         id | city | state | home_street | zip_code |         created         | password | username
+        ----+------+-------+-------------+----------+-------------------------+----------+----------
+          1 |      |       |             |          | 2020-04-27 14:33:58.503 | jpa      | hjeong
+        (1 row)
+
+
+
+
+

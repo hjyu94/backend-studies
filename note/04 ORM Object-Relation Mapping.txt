@@ -1,0 +1,54 @@
+ORM Object-Relation Mapping
+
+[1] JDBC를 직접 사용 하는 경우
+    try(Connection connection = DriverManager.getConnection(url, username, password)) {
+        System.out.println("Connection created: " + connection);
+        String sql = "INSERT INTO ACCOUNT VALUES(1, 'keesun', 'pass');";
+        try(PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.execute();
+        }
+    }
+
+[2] 도메인 모델 사용 <- 우리의 목표!
+    Account account = new Account(“keesun”, “pass”);
+    accountRepository.save(account);
+
+JDBC 대신 도메인 모델 사용하려는 이유?
+    ● 객체 지향 프로그래밍의 장점을 활용하기 좋으니까.
+    ● 각종 디자인 패턴을 사용할 수 있다.
+    ● 코드 재사용하기 쉽다.
+    ● 비즈니스 로직 구현 및 테스트 편함.
+
+ORM은 / 애플리케이션의 클래스와 / SQL 데이터베이스의 테이블 사이의 / 맵핑 정보를 기술한 메타데이터를 / 사용하여,
+자바 애플리케이션의 객체를 SQL 데이터베이스의 테이블에 자동으로 (또 깨끗하게) 영속화 해주는 기술입니다.
+
+자바 앱 객체 <--> 데이터베이스 테이블
+
+자동으로 = 깨끗하게 = 비침투적으로
+
+매핑 정보를 기술한 메타데이터 (매핑 정보)
+    도메인 모델에 있는 어떠한 멤버 변수들이 테이블의 어떤 컬럼으로 매핑되는가
+    어떤 클래스가 어떤 테이블에 매핑되는가 하는 정보
+    이 정보를 우리가 제공해야 한다.
+    이 데이터를 기반으로 Hibernate 데이터베이스는 그러한 객체를 DB 테이블에 자동으로 영속화
+
+In a nutshell, object/relational mapping is the automated (and transparent) persistence of objects
+in a Java application to the tables in an SQL database
+, using metadata that describes the mapping between the classes of the application and the schema of the SQL database.
+- Java Persistence with Hibernate, Second Edition
+
+ORM 툴을 사용했을 때 장단점
+    장점
+        생산성 (데이터를 넣고 빼는게 쉬워짐)
+        유지보수성 (테스트 코드 짜기도 쉽고, 코드가 간결해진다)
+        성능 (성능 최적화를 위한 여러가지 방법을 제공해준다)
+        밴더 독립성
+            어떤 데이터베이스 종류의 sql 을 작성하는지 염두해야 한다.
+            벤더마다 sql 문법이 다르다.
+            그러나 하이버네이트를 쓰는 경우에 어떤 벤더로 변경되어야 하는지만 알려주면
+            하이버네이트는 그 다이렉트에 맞는 sql 을 생성해서 사용한다.
+            따라서 데이터베이스를 변경하더라도 우리의 소스코드의 sql 문이 바뀌지 않는다
+            벤더와 상관없이 소스코드를 작성할 수 있다.
+    단점
+        학습비용
+        (우리가 잘 알아야 커스터마이징 해서 사용할 줄 아는 거지!)

@@ -1,0 +1,61 @@
+17. 스프링 데이터 Common: Repository 인터페이스 정의하기
+
+
+Repository 인터페이스로 공개할 메소드를 직접 일일히 정의하고 싶다면
+
+
+특정 리포지토리 당
+    ● @RepositoryDefinition
+
+    @RepositoryDefinition(domainClass = Comment.class, idClass = Long.class)
+    public interface CommentRepository {
+        Comment save(Comment comment);
+        List<Comment> findAll();
+    }
+
+    메소드에 해당하는 기능을 스프링 데이터 JPA 가 구현할 수 있다면 기본적으로 구현해서 제공해준다.
+    save, findAll -> 이 정도는 스프링 데이터 JPA 가 구현해 줄 수 있다.
+    다른 기능은 없이 save, findAll 의 기능만을 가진 레파지토리가 된다.
+    또한 해당 레파지토리도 자동으로 빈으로 등록된다.
+
+    단 모든 메소드를 테스트 해봐야 한다.
+
+    @RunWith(SpringRunner.class)
+    @DataJpaTest
+    public class CommentRepositoryTest {
+        @Autowired
+        CommentRepository commentRepository;
+
+        @Test
+        public void curd() {
+            Comment comment = new Comment();
+            comment.setComment("Hello Comment");
+            commentRepository.save(comment);
+
+            List<Comment> all = commentRepository.findAll();
+            assertThat(all.size()).isEqalTo(1);
+        }
+    }
+
+
+공통 인터페이스 정의
+    ● @NoRepositoryBean
+
+    각 엔티티에 필요한 레파지토리마다 공통적으로 save, findAll 을 넣고 싶을 때
+    각 레파지토리마다 코드를 짜지 말고
+    공통적으로 사용하는 레파지토리 인터페이스를 만들면 된다.
+
+    @NoRepositoryBean
+    public interface MyRepository<T, ID extends Serializable>
+                extends Repository<T, ID> {
+
+        <E extends T> E save(E entity);
+        List<T> findAll();
+
+    }
+
+    그 후 각 레파지토리에서 이 인터페이스를 상속하도록 만들면 된다.
+
+    @RepositoryDefinition(domainClass = Comment.class, idClass = Long.class)
+    public interface CommentRepository implements MyRepository{
+    }

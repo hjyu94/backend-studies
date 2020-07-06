@@ -1,0 +1,63 @@
+18. 스프링 데이터 Common: Null 처리하기
+
+스프링 데이터 2.0 부터 자바 8의 Optional 지원.
+    ● Optional<Post> findById(Long id);
+
+콜렉션은 Null을 리턴하지 않고, 비어있는 콜렉션을 리턴합니다.
+
+스프링 데이터 JPA가 지원하는 레파지토리의 컬렉션 타입들은 결코 null 이 되지 않음.
+비어있는 컬렉션을 리턴해준다. -> isEmpty() 로 체크해야 한다.
+
+스프링 프레임워크 5.0부터 지원하는 Null 애노테이션 지원.
+    ● @NonNullApi, @NonNull, @Nullable.
+    ● 런타임 체크 지원 함.
+    ● JSR 305 애노테이션을 메타 애노테이션으로 가지고 있음. (IDE 및 빌드 툴 지원)
+
+인텔리J 설정
+    ● Build, Execution, Deployment
+        ○ Compiler
+            ■ Add runtime assertion for notnull-annotated methods and parameters
+
+
+
+
+[실습]
+
+우리가 만든 레파지토리의 리턴값이 한개인 경우에
+
+[1]
+    @NoRepositoryBean
+    public interface MyRepository<T, ID extends Serializable> extends Repository<T, ID> {
+        <E extends T> Optional<E> findById(Id id);
+        ...
+    }
+
+    @Test
+    public void crud(){
+        Optional<Comment> byId = commentRepository.findById(100l);
+        assertThat(byId).isEmpty(); // optional을 체크, 실제로는 안이 비어있는가 체크
+        Comment comment = byId.orElse(new Comment());
+        // 값이 있으면(null이 아니면) byId를 가지고 오고, 없으면 새로운 코멘트를 만들어 리턴한다
+    }
+
+[2] Optional 사용 안하고 똑같이 하려면
+    @NoRepositoryBean
+    public interface MyRepository<T, ID extends Serializable> extends Repository<T, ID> {
+        <E extends T> E findById(id);
+        ...
+    }
+
+    @Test
+    public void crud(){
+        Optional<Comment> byId = commentRepository.findById(100l);
+        assertThat(byId).isNull();
+    }
+
+
+# Null annotation
+    public interface MyRepository ... {
+        <E extends T> E save(@NonNull E entity);
+
+        @Nullable
+        <E extends T> E findById(id);
+    }

@@ -1,0 +1,163 @@
+13. 스프링 데이터 JPA 소개 및 원리
+
+
+JpaRepository<Entity, Id> 인터페이스
+    ● 매직 인터페이스
+    ● @Repository가 없어도 빈으로 등록해 줌.
+
+@EnableJpaRepositories
+    ● 매직의 시작은 여기서 부터
+
+    스프링 부트를 쓰지 않았더라면
+    @EnableJpaRepositories 라는 어노테이션을
+    @Configuration 클래스에 붙여야 한다
+
+
+매직은 어떻게 이뤄지나?
+    도대체 어떻게 빈으로 등록이되며 빈으로 주입받은건가?
+    ● 시작은 @Import(​JpaRepositoriesRegistrar.class​)
+    ● 핵심은 ​ImportBeanDefinitionRegistrar​ 인터페이스
+
+
+[실습]
+
+여태껏 배운걸 토대로 데이터액세스 오브젝트 역할을 하는 Repository를 만들 수 있다.
+
+    @Repository // 스프링의 빈으로 등록되어야 하므로
+    @Transactional
+    public class PostRepository {
+
+        // @Autowired // 스프링 코드는 최대한 숨기는게 좋으므로 JPA 사용할 때는 Autowired 지양, 최대한 비침투적인 코드로 사용하자
+        @PersistenceContext // JPA에 대한 어노테이션을 사용함 (JPA 코드 위주로만 사용)
+        EntityManger entitymanager; // Entitymanager를 사용하여 persist를 할 수 있다.
+
+        public Post add(Post post) {
+            entityManager.persist(post);
+            return post;
+        }
+
+        public void delete(Post post) {
+            entityManager.remove(post);
+        }
+
+        public List<Post> findAll() {
+            return entityManager.createQuery("SELECT p FROM post As p", Post.class); //JPQL
+                    .get ResultList();
+        }
+    }
+    얘는 코드도 일일히 써야하고 Test 코드도 써야한다.
+
+    -->
+
+    public interface PostRepository extends JpaRepository<Post, Long> { }
+
+    <Entity, id data type> 순으로 들어간다
+    개발생산성, 유지보수 굿
+    (JpaRepository 에서 이미 테스트 해서 안정적으로 제공하는 코드임)
+
+
+JpaRunner
+
+    @Autowired
+    PostRepository postRepository;
+    // 이제 바로 쓸 수 있어짐
+
+    public void run ... {
+        postRepository.findAll().forEach(System.out::println);
+        // postRepository.delete(), findAll(), ... // 여러가지 CRUD 메소드가 있다.
+    }
+
+
+
+PostRepository는 어떻게 빈이 되었나?
+
+    스프링 부트를 쓰지 않았더라면
+    @EnableJpaRepositories 라는 어노테이션을
+    @Configuration가 있는 클래스에 붙여야 한다
+
+    @SpringBootApplication
+    @EnableJpaRepositories
+    public class Application {
+        ...
+    }
+    // 위 처럼! (@SpringBootApplication에 @Configuration 들어 있다)
+
+    @EnableJpaRepositories를 가보면
+
+        @Import({JpaRepositoriesRegistrar.class})
+        public @interface EnableJpaRepositories {
+            ...
+        }
+
+    JpaRepositoriesRegistrar.class를 Import하게 되는데
+    얘를 타고 타고 가면 결국에 ImportBeanDefinitionRegistrar를 구현하는 구현체다.
+
+    ImportBeanDefinitionRegistrar?
+    빈데퍼니션을 정의할 수 있는 특수한 형태의 인터페이스
+    (스프링 프레임웤의 기능임)
+
+    JpaRepository 인터페이스만 상속받으면 왜 빈으로 등록이 되는가?
+    @EnableJpaRepositories -> @Import(...) -> ImportBeanDefinitionRegistrar
+    : 스프링 프레임웍이 제공해주는 인터페이스
+    : 구현체도 굉장히 많다.
+
+    빈을 프로그래밍을 통해 등록할 수 있게 해준다.
+    프로그래밍을 통해 JpaRepository(자식 객체들 포함) 타입의 빈을 찾아서 빈으로 등록
+
+    따라서 PostRepository가 JpaRepository를 상속받기 때문에
+    PostRepository도 빈이 되어 사용할 수 있다.
+
+
+가령 예를들어
+
+    public class Keesun {
+        private String name;
+        // getter, setter
+    }
+
+Keesun 클래스 자체를 빈으로 등록하지 않았지만
+프로그래밍 적으로 빈으로 등록해보자
+
+    public class KeesunRegistrar implements ImportBeanDefinitionRegistrar {
+
+        @Override
+        public void registerBeanDefinitions(...) {
+            GenericBeanDefinition beanDefinition = new GenericBeanDefinition();
+            beanDefinition.setBeanClass(Keesun.class);
+            beanDefinition.getPropertyValues().add("name", "property-value");
+
+            registry.registerBeanDefinition("keesun", beanDefinition);
+        }
+    }
+
+어떠한 인터페이스를 상속받는 클래스를 모두 찾아서
+그 클래스들에 대한 빈 데퍼니션을 만들고
+최종적으로는 그 클래스 이름에 해당하는 빈 데펴니션을 등록해주는 것.
+
+    @SpringBootApplication
+    @Import(KeesunRegistrar.class)
+    public class Application {
+
+        public static void main(String[] args) {
+            SpringApplication.run(Application.class, args);
+        }
+
+    }
+
+Import할 것이라는걸 @Configuration 이 붙은 곳에서 알려줘야 한다.
+이런 방식으로 PostRepository를 등록해서 사용하는 것.
+
+Runner
+    public class JpaRunner implements ApplicationRunner {
+
+        @Autowired
+        Keesun keesun;
+
+        @Override
+        public void run(ApplicationArguments args) throws Exception {
+            postRepository.findAll().forEach(System.out::println);
+            System.out.println(keesun.getName());
+        }
+    }
+
+이런식으로 Keesun 빈을 사용할 수 있다.

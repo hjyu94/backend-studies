@@ -1,0 +1,58 @@
+12. JPA 프로그래밍: Query
+
+Hibernate, JPA 를 이용해서 데이터베이스에 있는 데이터를 가지고 오는(쿼리하는) 방법
+여태가지는 session.get() 를 이용해서 가지고 왔다.
+
+session 은 Hibernate에 있는 API.
+EntityManager가 Hibernate 구현체(JPA 인터페이스를 구현한)를 쓰고 있기 때문에
+EntityManager가 밑단에 있는 Sesison 을 unwrap이란 메소드를 사용해서
+JPA가 감싸고 있는 Hibernate API 에 접속해서 사용한 것
+이를 entityManager.find(), persist(), flush() 등등 으로 사용할 수도 있다.
+
+이외에도 쿼리하는 여러가지 방법!
+
+
+[1] JPQL (HQL)
+    ● Java Persistence Query Language / Hibernate Query Language
+    ● 데이터베이스 테이블이 아닌, 엔티티 객체 모델 기반으로 쿼리 작성.
+    ● JPA 또는 하이버네이트가 해당 쿼리를 SQL로 변환해서 실행함.
+    ● https://docs.jboss.org/hibernate/orm/5.2/userguide/html_single/Hibernate_User_Guid e.html#hql
+
+        TypedQuery<Post> query = entityManager.createQuery("SELECT p FROM Post As p", Post.class);
+        // FROM [엔티티 이름]
+        // 테이블 이름이 사용되지 않는다.
+        // 이렇게 작성한 JPQL 은 데이터베이스에 독립적이다.
+        // JPA or 하이버네이트가 사용하는 데이터베이스 SQL로 변환해줄거니까
+
+        List<Post> posts = query.getResultList();
+
+        posts.forEach(System.out::println);
+        // method reference 사용해서 toString() 메소드 호출해보자
+
+    이 때 toString() 에서 comment 불러오면 쿼리 또 날아가니 조심!
+    자동완성 쓰지 말고 title만 toString() 으로 보여주자.
+
+
+[2] Criteria
+    ● 타입 세이프 쿼리
+    (문자열이 하나도 안 들어감)
+    (cf. JPQL은 자동완성해주지 않기 때문에 오타가 언제던 발생할 수 있음)
+    (사용하는 데이터베이스 SQL 에 맞게 변환되어 사용된다)
+    ● https://docs.jboss.org/hibernate/orm/5.2/userguide/html_single/Hibernate_User_Guid e.html#criteria
+
+    CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+    CriteriaQuery<Post> query = builder.createQuery(Post.class);
+    Root<Post> root = query.from(Post.class);
+    query.select(root);
+
+    List<Post> posts = entityManager.createQuery(query).getResultList();
+    posts.forEach(System.out::println);
+
+
+[3] Native Query
+    ● SQL 쿼리 실행하기
+    ● https://docs.jboss.org/hibernate/orm/5.2/userguide/html_single/Hibernate_User_Guid e.html#sql
+
+    List<Post> posts = entityManager.createNativeQuery("SELECT * FROM Post", Post.class).getResultList();
+    posts.forEach(System.out::println);
+

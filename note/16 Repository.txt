@@ -1,0 +1,90 @@
+16. 스프링 데이터 Common: Repository
+
+[스프링 데이터 Common]
+                    Repository
+                        |
+                    CrudRepository
+                        |
+            PagingAndSortingRepository
+                        |
+[스프링 데이터 JPA]
+                    JpaRepository
+
+
+[실습]
+
+    <dependency>
+        <groupId>com.h2database</groupId>
+        <artifactId>h2</artifactId>
+        <scope>test</scope>
+    </dependency>
+
+Create Test - JUnit4
+
+@RunWith(SpringRunner.class) // 테스트를 만들기 위함
+@DataJpaTest
+// 슬라이싱 테스트, 즉 데이터 액세스 레이어만 테스트 하겠다는 정보
+// 리파지토리 등의 빈만 등록이 된다.
+// 테스트 scope로 h2 의존성을 추가해 뒀기 때문에
+// 테스트에서는 postgres를 사용하지 않고 메모리 db인 h2를 사용하게 된다.
+// 애플리케이션이 진짜 사용하는 데이터에 영향을 끼치지 않는다.
+
+public class PostRepositoryTest {
+    @Autowired
+    PostRepository postRepository;
+
+    @Test
+    // @Rollback(false)
+    public void curdRepository() {
+        // Given
+        Post post = new Post();
+        post.setTitle("hello spring boot common");
+        assertThat(post.getId()).isNull();
+
+        // When
+        Post newPost = postRepository.save(post);
+
+        // Then
+        assertThat(newPost.getId()).isNotNull();
+
+        // When
+        List<Post> posts = postRepository.findAll();
+
+        // Then
+        assertThat(posts.size()).isEqualTo(1);
+        assertThat(posts).contains(newPost);
+
+        // When
+        Page<Post> page = postRepository.findAll(PageRequest.of(0, 10));
+
+        // Then
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getNumber()).isEqualTo(0);
+        assertThat(page.getSize()).isEqalTo(1);
+        assertThat(page.getNumberOfElements()).isEqualTo(1);
+
+        // When
+        page = postRepository.findByTitleContains("spring", PageRequest.of(0,10));
+
+        // Then
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getNumber()).isEqualTo(0);
+        assertThat(page.getSize()).isEqalTo(1);
+        assertThat(page.getNumberOfElements()).isEqualTo(1);
+
+    }
+}
+
+public interface PostRepository ... {
+    Page<Post> findByTitleContains(String title, Pageable pageable);
+}
+
+테스트 실행!
+
+기본적으로 스프링에 있는 데이터 테스트들은 @Transactional 이 붙어있고
+이 어노테이션에 따라서 모든 트랜잭션을 롤백한다.
+
+하이버네이트는 필요할때만 실제 데이터베이스에 싱크한다.
+하이버네이트가 이거 어짜피 롤백할 쿼리인데 뭐하러 데이터에 insert하냐 해서 안함.
+그래서 insert쿼리가 아예 안 날아감.
+따라서 메소드에 @Rollback(false) 추가해서 insert쿼리가 날아가도록 하자.

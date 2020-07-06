@@ -1,0 +1,72 @@
+7.JPA 프로그래밍: 엔티티 맵핑
+
+@Entity
+    ● “엔티티”는 객체 세상에서 부르는 이름.
+    ● 보통 클래스와 같은 이름을 사용하기 때문에 값을 변경하지 않음.
+    ● 엔티티의 이름은 JQL에서 쓰임.
+
+@Table
+    ● “릴레이션" 세상에서 부르는 이름.
+    ● @Entity의 이름이 기본값.
+    ● 테이블의 이름은 SQL에서 쓰임.
+
+@Id
+    ● 엔티티의 주키를 맵핑할 때 사용.
+    ● 자바의 모든 primitive 타입과 그 랩퍼 타입을 사용할 수 있음
+        ○ Date랑 BigDecimal, BigInteger도 사용 가능.
+    ● 복합키를 만드는 맵핑하는 방법도 있지만 그건 논외로..
+
+@GeneratedValue
+    ● 주키의 생성 방법을 맵핑하는 애노테이션
+    ● 생성 전략과 생성기를 설정할 수 있다.
+        ○ 기본 전략은 AUTO: 사용하는 DB에 따라 적절한 전략 선택
+        ○ TABLE, SEQUENCE, IDENTITY 중 하나.
+
+@Column
+    ● unique
+    ● nullable
+    ● length
+    ● columnDefinition
+    ● ...
+
+@Temporal
+    ● 현재 JPA 2.1까지는 Date와 Calendar만 지원.
+
+@Transient
+    ● 컬럼으로 맵핑하고 싶지 않은 멤버 변수에 사용.
+
+application.properties
+    ● spring.jpa.show-sql=true
+    ● spring.jpa.properties.hibernate.format_sql=true
+
+
+실습)
+    javax.persistence 패키지에 있는 어노테이션 사용해야함
+
+    @Temporal(TemporalType.DATE)
+    private Date created = new Date();
+
+    TemporalType? DATE, TIME, TIMESTAMP
+
+    클래스에 @Entity 가 붙어 있기 때문에
+    자동으로 @Column이 붙지만 @Transient 를 쓰면 컬럼 매핑을 시켜주지 않는다.
+
+        private String yes;
+
+        @Transient
+        private String no;
+
+        yes 만 컬럼이 된다.
+
+    getter, setter 가 없더라도 컬럼으로 매핑이 된다.
+
+    unique = true, 테이블에 해당 컬럼과 동일한 값을 갖는 레코드가 또 있으면 안됨
+
+    이 값을 수정했다가 update로 놓고 실행하면 매핑을 바꿨는데도 적용이 안되는 문제가 있음
+    매핑을 변경하기 전에 컬럼이 만들어지면 생기는 문제
+    -> create로 놓고 쓰면 편함
+
+    매번 테이블을 들어가서 봐야하냐 (\dt)
+    application.properties
+        spring.jpa.show-sql=true // log 남기기
+        spring.jpa.properties.hibernate.format_sql=true // log를 좀 더 읽기 편하게 들여쓰기 해줌

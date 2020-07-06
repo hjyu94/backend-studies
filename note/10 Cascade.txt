@@ -1,0 +1,206 @@
+10. JPA 프로그래밍: Cascade
+
+JPA, Hibernate에서 가장 중요한 엔티티의 상태와
+엔티티의 상태 변화를 전파시키는 Cascade 옵션 살펴보기
+
+엔티티의 상태​가 뭐지?
+    ● Transient: JPA가 모르는 상태
+    ● Persistent: JPA가 관리중인 상태 (1차 캐시, Dirty Checking, Write Behind, ...)
+    ● Detached: JPA가 더이상 관리하지 않는 상태.
+    ● Removed: JPA가 관리하긴 하지만 삭제하기로 한 상태
+
+
+cascade 옵션 값
+    @OneToMany(cascade = XXX)
+    @ManyToOne(cascade = XXX)
+    이런식으로 cascade 옵션을 줄 수 있다.
+
+    Study의 상태가 변할 때 Account 상태도 변함을 알려주고 싶다!
+    이럴 때 cascade 값을 줘야 함
+
+    class Study
+        @ManyToOne(cascade = XXX)
+        Account owner;
+
+    기본적으로 cascade 상태는 아무것도 없음
+
+
+엔티티의 상태?
+    (1) Transient
+        public void run (...) ... {
+            new Account();
+            new Study();
+        }
+        -> 이 때 account와 study는 Transient 상태
+        JPA, Hibernate 가 전혀 모름.
+        새로 만든 두 객체는 데이터베이스에 매핑되어있는 레코드가 전혀 없다
+        객체들은 이 자체로 데이터베이스에 들어갈지 안들어갈지도 모르는 상태
+        DB에 save 안하면 가비지 컬렉터가 될 수도 있다.
+
+    (2) persistent
+        public void run(...) ... {
+            ...
+            session.save(account);
+            session.save(study);
+            // JPA 가 아는 상태가 됨
+        }
+
+        save를 했다고 해서 바로 DB에 이 객체에 대한 데이터가 들어가는건 아님
+
+        hibernate가 두 객체를 transient 상태로 관리하다가
+        해당 객체들이 이쯤 되면 데이터베이스에 sync up 되어야 겠다.
+        디비에 들어가야겠다라고 판단 할 때쯤에 쿼리가 실행되어 Insert 된다.
+        (save가 되었다고 해서 직후에 insert query가 실행되는게 아님)
+
+        save를 호출하면 hibernate, jpa 가 알고 있는, 관리하고 있는 persistent 상태가 된다.
+        이 상태에서는 1차 캐시, dirty checking, write begind 등의 일을 해준다.
+
+        session을 persistent context라고 하는데
+        이런 persistent context에 잠시 데이터를 캐싱한다.
+
+        public void run (...) {
+            ...
+            Account keesun = session.load(Account.class, account.getId());
+            System.out.println(keesun.getUsername());
+        }
+        실행!
+
+        db에 들어가기 전에
+        이러면 select 쿼리로 디비에서 꺼내주는게 아니라
+        그냥 세션이 캐싱하고 있는 데이터를 바로 준다.
+        printout이 먼저 찍히고 그 다음 insert query가 실행 된다.
+
+        객체의 변경상태를 계속해서 모니터링하고 있다는 것.
+        객체의 변경사항이 일어나면 객체의 변경사항을 반영해준다.
+
+        public void run (...) {
+            ...
+            Account keesun = session.load(Account.class, account.getId());
+            keesun.setUsername("whiteship");
+            System.out.println(keesun.getUsername());
+        }
+        실행!
+        sql 기반으로 jdbc 코딩이라면 이미 save 할때 insert / load 할때 select / setusername 할때 update가 일어날텐데
+        여기서는 select는 필요 없고 insert, update 만 일어남.
+
+        update 쿼리를 사용하지 않아도 객체만 변경했더니 알아서 업데이트 해준다
+        (dirty checking, write behind 덕분!)
+
+        public void run (...) {
+            ...
+            Account keesun = session.load(Account.class, account.getId());
+            // 원래 이름은 keesun2
+            keesun.setUsername("whiteship");
+            keesun.setUsername("keesun");
+            keesun.setUsername("keesun2");
+            System.out.println(keesun.getUsername());
+        }
+        실행!
+
+        update가 3번 일어날까?
+        update 쿼리가 아예 안일어난다.
+        객체 상태가 처음이랑 똑같으니까!!
+
+        dirty check: 객체의 변경사항을 감지
+        write behind: 객체의 변경사항을 최대한 늦게, 필요한 순간까지 미루다가 쿼리 명령을 날리겠다는 개념
+
+        이런 면에서 JPA가 성능적인 장점이 있다고 한다.
+
+    (3) Detached
+        persistent 상태에 있다가 어느순간 detached 상태로 변한다
+        트랜잭션이 끝나서 sesison 밖으로 나갔을 때
+
+        서비스가 데이터 요청 -> 리파지토리 객체 return -> 서비스가 받아서 사용하는 상황에서
+        서비스에서 return으로 받은 객체를 쓸 때는 그 인스턴스는 이미 db에 들어갔었으므로
+        JPA 가 관리했던 객체이고 DB에 관리하던 레코드가 있긴 하지만
+        서비스가 객체를 받은 현재 그 상태에서는 JPA/Hibernate가 관리하지 않는다.
+        이미 세션이 끝났기 때문에 이 상태에서는 1차 캐시, 더티 체크, 라이트 비하인드, 레이지 로딩 등이 발생하지 않는다.
+
+        그러한 장점을 다시 이용하고 싶으면 JPA/Hibernate가 다시 관리 해 줄수 있도록 reattach 해야 한다.
+        (update(), merge(), saveOrUpdate() 등을 이용)
+
+    (4) Removed
+        세션에 있던 데이터를 삭제하면 removed 가 됨
+        실제 커밋이 삭제될 때 삭제가 된다.
+
+    cascade는 이러한 상태 변화를 전이시키는 것!
+
+
+
+예제)
+    도메인 관계가 parent, child 관계에 있는 도메인에 적용시킬 수 있다.
+    (Account가 삭제되더라도 그 Account가 만들었던 Study는 존재해야 되는데
+    이러한 Study와 Account와의 관계는 1:다 관게지만 부모 자식관계는 아님)
+
+    new class: Post, Comment
+
+    @Entity
+    public class Post{
+        @id @GeneratedValue
+        private Long id;
+
+        private String title
+
+        @OneToMany(mappedBy = "post")
+        private Set<Comment> comments = new HashSet<>();
+
+        public void addComment(Comment comment) {
+            this.getComments().add(comment);
+            comment.setPost(this);
+        }
+
+        // getter, setter
+    }
+
+    @Entity
+    public class Comment {
+        @Id @GeneratedValue
+        private Long id;
+
+        private String comment;
+
+        @ManyToOne
+        private Post post;
+
+        // getter, setter
+    }
+
+    어떤 게시글이 있고 이 게시글이 코멘트가 달려 있는데
+    게시글을 삭제하면 코멘트도 같이 삭제해야 하는 상황
+
+    public void run(...) ... {
+        Post post = new Post();
+        post.setTitle("Spring Data JPA 언제보나...");
+
+        Commnet commnet = new Comment();
+        commnet.setComment("...");
+        post.addComment(comment);
+
+        Commnet commnet1 = new Comment ();
+        commnet1.setComment("...");
+        post.addComment(comment1);
+
+        Session session = entityManager.unwrap(Session.class);
+        session.save(post);
+    }
+
+    실행!
+        post를 저장하면 post 만 저장이 된다.
+        post를 저장할 때 comment 가 같이 저장되도록 하고 싶다!
+
+    @Entity
+    public class Post{
+        ...
+        @OneToMany(mappedBy = "post", cascade = CascadeType.PERSIST)
+        private Set<Comment> comments = new HashSet<>();
+        // Post를 저장할 때 PERSIST 상태로의 상태 변화를 comments에도 전파해주세요.
+    }
+
+    public void run (...) ... {
+        Session session = ...
+        Post post = session.get(Post.class, 1l);
+        session.delete(post);
+    }
+    이러면 id 1인 post가 지워질때 comment도 같이 지워짐
+
+    cascade 값을 다 합쳐서 CascadeType.ALL을 써도 된다.
