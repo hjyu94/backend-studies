@@ -29,3 +29,5 @@
 
 ### VS Code ###
 **/.vscode/
+
+**/application-secret.properties
