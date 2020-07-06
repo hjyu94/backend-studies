@@ -1,6 +1,6 @@
 package me.hjeong.springjpa.post;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import me.hjeong.springjpa.MyRepository;
 
-public interface PostRepository extends JpaRepository<Post, Long>, PostCustomRepository<Post> {
+public interface PostRepository extends PostCustomRepository<Post>, MyRepository<Post, Long> {
 }
