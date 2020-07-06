@@ -5,6 +5,7 @@ import lombok.Setter;
 import org.springframework.data.domain.AbstractAggregateRoot;
 
 import javax.persistence.*;
+import java.time.LocalDateTime;
 import java.util.Date;
 
 @Entity
@@ -19,8 +20,7 @@ public class Post extends AbstractAggregateRoot<Post> {
     @Lob // 255 자가 넘는 String 의 경우
     private String content;
 
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date created;
+    private LocalDateTime created;
 
     public Post publish() {
         this.registerEvent(new PostPublishedEvent(this));
