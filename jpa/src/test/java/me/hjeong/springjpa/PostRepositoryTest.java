@@ -1,21 +1,23 @@
 package me.hjeong.springjpa;
 
 import me.hjeong.springjpa.post.Post;
+import me.hjeong.springjpa.post.PostPublishedEvent;
 import me.hjeong.springjpa.post.PostRepository;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-
-import java.util.List;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Import;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
+@Import(PostRepositoryTestConfig.class) // 해당 설정파일을 Import 한다 (그 안에 정의된 빈들이 만들어진다.)
 class PostRepositoryTest {
 
     @Autowired PostRepository postRepository;
+    @Autowired ApplicationContext applicationContext;
 
     @Test
     public void crud() {
@@ -58,5 +60,15 @@ class PostRepositoryTest {
         postRepository.save(post);
 
         assertThat(postRepository.contains(post)).isTrue(); // persistent state
+    }
+
+    @Test
+    @DisplayName("이벤트 발생시키고 이를 처리하는 핸들러 테스트")
+    public void event() {
+        Post post = new Post();
+        post.setTitle("event");
+        PostPublishedEvent event = new PostPublishedEvent(post);
+
+        applicationContext.publishEvent(event); // 던짐
     }
 }
