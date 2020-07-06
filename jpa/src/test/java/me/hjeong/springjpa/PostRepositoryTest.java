@@ -9,6 +9,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
@@ -45,5 +46,17 @@ class PostRepositoryTest {
         postRepository.findMyPost();
         postRepository.delete(post); // flush() 가 호출되므로 delete 쿼리 날아간다
         postRepository.flush();
+    }
+
+    @Test
+    public void customizing_base_repository() {
+        Post post = new Post();
+        post.setTitle("hibernate");
+
+        assertThat(postRepository.contains(post)).isFalse(); // transient state
+
+        postRepository.save(post);
+
+        assertThat(postRepository.contains(post)).isTrue(); // persistent state
     }
 }
