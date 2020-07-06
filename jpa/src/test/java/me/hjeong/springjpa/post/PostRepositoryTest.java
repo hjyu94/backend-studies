@@ -1,8 +1,5 @@
-package me.hjeong.springjpa;
+package me.hjeong.springjpa.post;
 
-import me.hjeong.springjpa.post.Post;
-import me.hjeong.springjpa.post.PostPublishedEvent;
-import me.hjeong.springjpa.post.PostRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

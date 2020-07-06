@@ -1,4 +1,4 @@
-package me.hjeong.springjpa;
+package me.hjeong.springjpa.post;
 
 import me.hjeong.springjpa.post.PostListener;
 import org.springframework.context.annotation.Bean;
