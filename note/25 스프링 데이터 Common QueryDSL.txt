@@ -1,0 +1,91 @@
+25. 스프링 데이터 Common: QueryDSL
+
+findByFirstNameIngoreCaseAndLastNameStartsWithIgnoreCase(String firstName, String lastName)
+이게 이게 뭐냐... @_@ 어지러우시죠?? 이 정도 되면 그냥 한글로 주석을 달아 두시는게...
+조건이 많아질수록 이름이 굉장히 길어지는데 QueryDSL를 사욯아면 이런 조건에 해당하는 쿼리를 타입세이프하게 만들 수 있다.
+ 
+QueryDSL이 제공하는 여러 쿼리 메소드는 대부분 두 가지 중 하나.
+    ● Optional<T> findOne(​Predicate​):​이런 저런 조건​으로 무언가 하나를 찾는다.
+    ● List<T>|Page<T>|.. findAll(​Predicate​): 이런 저런 조건​으로 무언가 여러개를 찾는다.
+    ● QuerydslPredicateExecutor 인터페이스
+ 
+QueryDSL
+    ● http://www.querydsl.com/
+    ● 타입 세이프한 쿼리 만들 수 있게 도와주는 라이브러리
+    ● JPA, SQL, MongoDB, JDO, Lucene, Collection 지원
+    ● QueryDSL JPA 연동 가이드
+ 
+스프링 데이터 JPA + QueryDSL
+    ● 인터페이스: QuerydslPredicateExecutor<T>
+    ● 구현체: QuerydslPredicateExecutor<T>
+ 
+연동 방법
+    ● 기본 리포지토리 커스터마이징 안 했을 때. (쉬움)
+    ● 기본 리포지토리 커스타마이징 했을 때. (해맬 수 있으나... 제가 있잖습니까)
+ 
+의존성 추가 
+    <dependency>
+        <groupId>com.querydsl</groupId>
+        <artifactId>querydsl-apt</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>com.querydsl</groupId>
+        <artifactId>querydsl-jpa</artifactId>
+    </dependency>
+
+    <plugin>
+        <groupId>com.mysema.maven</groupId>
+        <artifactId>apt-maven-plugin</artifactId>
+        <version>1.1.3</version>
+        <executions>
+            <execution>
+                <goals>
+                    <goal>process</goal>
+                </goals>
+                <configuration>
+                    <outputDirectory>target/generated-sources/java</outputDirectory>
+                    <processor>com.querydsl.apt.jpa.JPAAnnotationProcessor</processor>
+                </configuration>
+            </execution>
+        </executions>
+    </plugin>
+
+레파지토리
+    public interface AccountRepository extends JpaRepository<Account, Long>, QuerydslPredicateExecutor<Account>​{ }
+
+----------------------------------------------------------------------------------------------------
+
+* 새 프로젝트 - QueryDsl
+
+* 도메인, 리포지토리 추가
+
+    @Entity
+    @Getter @Setter
+    public class Account {
+        @Id @GeneratedValue
+        private Long id;
+        private String username;
+        private String firstName;
+        private String lastName;
+    }
+
+    public interface AccountRepository extends JpaRepository<Account, Long> {}
+
+* 의존성 추가
+
+* QueryDSL 적용
+
+    public interface AccountRepository extends JpaRepository<Account, Long>, QuerydslPredicateExecutor<Account> {}
+
+    @DataJpaTest
+    class AccountRepositoryTest {
+        @Test
+        void crud() {
+            QAccount account = QAccount.account;
+            Predicate predicate = account.firstName.containsIgnoreCase("hjeong")
+                    .and(account.lastName.startsWithIgnoreCase("Yu"));
+            Optional<Account> foundAccount = accountRepository.findOne(predicate);
+            assertThat(foundAccount).isEmpty();
+        }
+    }
+
