@@ -1,7 +1,6 @@
 package me.hjeong.springjpa.post;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.domain.AbstractAggregateRoot;
 
 import javax.persistence.*;
@@ -10,6 +9,7 @@ import java.util.Date;
 
 @Entity
 @Getter @Setter
+@Builder @NoArgsConstructor @AllArgsConstructor
 public class Post extends AbstractAggregateRoot<Post> {
 
     @Id @GeneratedValue

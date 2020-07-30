@@ -1,0 +1,79 @@
+32. 스프링 데이터 JPA: 엔티티 저장하기
+
+JpaRepository의 save()는 단순히 새 엔티티를 추가하는 메소드가 아닙니다.
+    ● Transient 상태의 객체라면 EntityManager.persist()
+    ● Detached 상태의 객체라면 EntityManager.merge()
+
+    // SimpleJpaRepository.class
+    @Transactional
+    public <S extends T> S save(S entity) {
+        if (this.entityInformation.isNew(entity)) {
+            this.em.persist(entity);
+            return entity;
+        } else {
+            return this.em.merge(entity);
+        }
+    }
+
+엔티티의 상태​가 뭐지?
+    ● Transient: JPA가 모르는 상태 (DB에 해당하는 객체의 레코드가 전혀 없는 상태)
+    ● Persistent: JPA가 관리중인 상태 (1차 캐시, Dirty Checking, Write Behind, ...)
+    ● Detached: JPA가 더이상 관리하지 않는 상태.
+    ● Removed: JPA가 관리하긴 하지만 삭제하기로 한 상태
+
+Transient인지 Detached 인지 어떻게 판단 하는가?
+    ● 엔티티의 @Id 프로퍼티를 찾는다. 해당 프로퍼티가 null이면 Transient 상태로 판단하고 id가 null이 아니면 Detached 상태로 판단한다.
+    ● 엔티티가 Persistable 인터페이스를 구현하고 있다면 isNew() 메소드에 위임한다.
+    ● JpaRepositoryFactory를 상속받는 클래스를 만들고 getEntityInfomration()을 오버라이딩해서 자신이 원하는 판단 로직을 구현할 수도 있습니다.
+
+EntityManager.persist()
+    ● https://docs.oracle.com/javaee/6/api/javax/persistence/EntityManager.html#persist(ja va.lang.Object)
+    ● Persist() 메소드에 넘긴 *그 엔티티 객체*를 Persistent 상태로 변경합니다.
+
+EntityManager.merge()
+    ● https://docs.oracle.com/javaee/6/api/javax/persistence/EntityManager.html#merge(ja va.lang.Object)
+    ● Merge() 메소드에 넘긴 그 엔티티의 *복사본*을 만들고, *그 복사본*을 다시 Persistent 상태로 변경하고 그 *복사본*을 반환합니다.
+
+    @Test
+    @DisplayName("save() 기능 1. insert 2. update")
+    public void testSaveFunction() {
+        Post post = Post.builder()
+                .title("jpa")
+                .build();
+        Post savedPost = postRepository.save(post);
+        // post 의 id가 없기 때문에 Transient 상태라고 판단한다
+        // 따라서 save() 시에 EntityManager.persist() 가 실행된다.
+        // 여기서는 insert 가 일어나지만
+
+        assertThat(entityManager.contains(post)).isTrue(); // 영속화 되어 있는가?
+        assertThat(entityManager.contains(savedPost)).isTrue();
+        // 또한 save() 결과값으로 항상 영속화 된 상태의 객체를 리턴한다.
+        assertThat(savedPost == post);
+
+        Post postUpdate = Post.builder()
+                .id(post.getId())
+                .title("hibernate")
+                .build();
+        Post savedPostUpdate = postRepository.save(postUpdate);
+        // postUpdate 는 id 값이 있기 때문에 Detached 상태라고 판단한다.
+        // 따라서 save() 시에 EntityManager.merge() 가 실행된다.
+        // 여기서는 update 가 일어난다.
+
+        assertThat(entityManager.contains(postUpdate)).isFalse();
+        assertThat(entityManager.contains(savedPostUpdate)).isTrue();
+        assertThat(savedPostUpdate == postUpdate).isFalse();
+
+        postUpdate.setTitle("changed title");
+        // postUpdate는 persistent 상태가 아니라서 상태 변화를 감지하지 못한다.
+        // 따라서 저장 후에는 반환하는 리턴 값을 사용해서 상태를 변화시켜야 한다
+        // savedPostUpdate.setTitle("changed title"); (O)
+
+        List<Post> all = postRepository.findAll();
+        assertThat(all.size()).isEqualTo(1);
+    }
+    // persistent 상태의 객체를 사용하면 객체 상태 변화를 추적하고, 객체 변화 상태가 필요한 경우에 반영이 된다.
+    // select 해서 확인 할 때 이전의 상태 변화 들이 update 쿼리로 날아감.
+    // 객체를 가지고 오려 그러네? 오 빨리 싱크해야 겠다. 그래야 최신 상태의 데이터를 제대로 가져 올 수 있으니까!
+
+결론!
+    save() 의 내부적으로 persist() 인지 merge() 인지 구분해서 영속성 상태를 따지지 말고, save() 가 리턴한 값을 사용하자!
