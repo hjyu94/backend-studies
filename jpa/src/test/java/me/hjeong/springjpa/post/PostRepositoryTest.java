@@ -114,4 +114,17 @@ class PostRepositoryTest {
     // persistent 상태의 객체를 사용하면 객체 상태 변화를 추적하고, 객체 변화 상태가 필요한 경우에 반영이 된다.
     // select 해서 확인 할 때 이전의 상태 변화 들이 update 쿼리로 날아감.
     // 객체를 가지고 오려 그러네? 오 빨리 싱크해야 겠다. 그래야 최신 상태의 데이터를 제대로 가져 올 수 있으니까!
+
+    @Test
+    @DisplayName("쿼리 생성 테스트 StartsWith")
+    public void findByTitleStartsWith() {
+        Post post = Post.builder()
+                .title("Spring Data Jpa")
+                .build();
+        postRepository.save(post);
+
+        List<Post> all = postRepository.findByTitleStartsWith("Spr");
+        assertThat(all.size()).isEqualTo(1);
+    }
+
 }

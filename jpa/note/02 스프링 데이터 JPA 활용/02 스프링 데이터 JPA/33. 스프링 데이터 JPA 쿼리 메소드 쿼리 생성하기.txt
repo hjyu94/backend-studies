@@ -1,0 +1,58 @@
+33. 스프링 데이터 JPA: 쿼리 메소드
+
+쿼리 생성하기
+    ● https://docs.spring.io/spring-data/jpa/docs/current/reference/html/#jpa.query-methods.query-creation
+    ● And, Or
+    ● Is, Equals
+    ● LessThan, LessThanEqual, GreaterThan, GreaterThanEqual
+    ● After, Before
+    ● IsNull, IsNotNull, NotNull
+    ● Like, NotLike
+    ● StartingWith, EndingWith, Containing
+    ● OrderBy
+    ● Not, In, NotIn
+    ● True, False
+    ● IgnoreCase
+
+쿼리 찾아쓰기
+    ● 엔티티에 정의한 쿼리 찾아 사용하기 JPA Named 쿼리
+        ○ @NamedQuery
+        ○ @NamedNativeQuery
+        : xml, java에 미리 JQL or Native query 를 정의해놓고 그 쿼리를 정의할 때 사용한 name을 lookup 해서 사용하는 방식
+
+    ● 리포지토리 메소드에 정의한 쿼리 사용하기
+        ○ @Query
+        ○ @Query(nativeQuery=true)
+
+
+(ex) @NamedQuery
+
+    1. Entity 에서 @NamedQuery 어노테이션 작성
+
+        @Entity
+        @NamedQuery(
+                name = "Post.findByTitle"
+                , query = "SELECT p FROM Post AS p WHERE p.title = ?1" // JPQL
+        )
+        @NamedNativeQuery() // Native Query
+        public class Post {
+            // ...
+        }
+
+    2. Repository 메소드 추가
+
+        public interface PostRepository extends PostCustomRepository<Post>, MyRepository<Post, Long> {
+            List<Post> findByTitle(String title);
+        }
+
+    단점: 도메인 엔티티 클래스 소스가 지저분해진다.
+
+
+(ex) @Query
+
+    public interface PostRepository extends PostCustomRepository<Post>, MyRepository<Post, Long> {
+        @Query(value = "SELECT p FROM Post AS p WHERE p.content = ?1")
+        List<Post> findByContent(String content);
+    }
+
+    장점: 도메인 엔티티 클래스 소스를 수정할 필요가 없다.
