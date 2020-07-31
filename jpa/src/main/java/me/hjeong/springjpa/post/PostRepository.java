@@ -1,6 +1,7 @@
 package me.hjeong.springjpa.post;
 
 import me.hjeong.springjpa.MyRepository;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
@@ -11,7 +12,7 @@ public interface PostRepository extends PostCustomRepository<Post>, MyRepository
 
     List<Post> findByTitle(String title);
 
-    @Query(value = "SELECT p FROM Post AS p WHERE p.content = ?1")
-    List<Post> findByContent(String content);
+    @Query(value = "SELECT p, p.title AS pTitle FROM Post AS p WHERE p.content = ?1")
+    List<Post> findByContent(String content, Sort sort);
 
 }

@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.JpaSort;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -150,7 +152,25 @@ class PostRepositoryTest {
                 .build();
         postRepository.save(post);
 
-        List<Post> all = postRepository.findByContent(content);
+        // PROPERTY
+        List<Post> all = postRepository.findByContent(content, Sort.by("title"));
         assertThat(all.size()).isEqualTo(1);
+
+        // ALIAS
+        List<Post> all2 = postRepository.findByContent(content, Sort.by("pTitle"));
+        assertThat(all2.size()).isEqualTo(1);
+
+    /*
+        // ERROR
+        // org.springframework.dao.InvalidDataAccessApiUsageException
+        // : Sort expression 'LENGTH(title): ASC' must only contain property references or aliases used in the select clause.
+        // If you really want to use something other than that for sorting, please use JpaSort.unsafe(…)!
+        List<Post> all3 = postRepository.findByContent(content, Sort.by("LENGTH(title)"));
+        assertThat(all3.size()).isEqualTo(1);
+    */
+
+        // SOLUTION
+        List<Post> all4 = postRepository.findByContent(content, JpaSort.unsafe("LENGTH(title)"));
+        assertThat(all4.size()).isEqualTo(1);
     }
 }
