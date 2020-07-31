@@ -12,6 +12,7 @@ import org.springframework.data.jpa.domain.JpaSort;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -172,5 +173,48 @@ class PostRepositoryTest {
         // SOLUTION
         List<Post> all4 = postRepository.findByContent(content, JpaSort.unsafe("LENGTH(title)"));
         assertThat(all4.size()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("Update 쿼리 메소드 테스트 - 비추천")
+    public void updateTitle_unrecommend() {
+        Post post = Post.builder()
+                .title("Spring")
+                .build();
+        Post savedPost = postRepository.save(post);
+
+        String newTitle = "hibernate";
+        int update = postRepository.updateTitle(newTitle, savedPost.getId());
+        assertThat(update).isEqualTo(1);
+
+        // [ERROR]
+        // update 후 find 할 때 select 쿼리를 날리지 않기 때문
+        // savedPost 는 persistent 상태임. 아직 트랜잭션이 끝나지 않았기 때문에 이 캐시가 그대로 유지됨
+        // persistent context가 비워지지 않았기 때문에 savedPost 는 그대로 persistent 인 것.
+        // 1차 캐시 (persistent context)가 관리 중인데 이 상태서 find 할 시에는
+        // DB 에서 데이터를 가져오는 쿼리를 날리는게 아니라, 캐시에서 찾아오게 된다.
+        //
+        // @Modifying(clearAutomatically = true)
+        // clearAutomatically: 업데이트 쿼리를 실행했을 때 실행 후 persistent 객체를 clear 해주는 옵션을 걸어줘야 에러가 발생하지 않는다.
+        Optional<Post> byId = postRepository.findById(savedPost.getId());
+        assertThat(byId.get().getTitle()).isEqualTo(newTitle);
+    }
+
+    @Test
+    @DisplayName("Update 쿼리 메소드 테스트 - 추천")
+    public void updateTitle_recommend() {
+        Post post = Post.builder()
+                .title("Spring")
+                .build();
+        Post savedPost = postRepository.save(post);
+
+        String newTitle = "hibernate";
+        savedPost.setTitle(newTitle);
+
+        // 명시적으로 update 쿼리를 날리진 않았지만
+        // find 하기 전에 DB 에 persistent 상태의 객체의 싱크를 맞춰줘야 하기 때문에
+        // find 전에 변경된 데이터를 데이터 베이스에 반영을 해준다 -> update 쿼리가 날아감
+        Optional<Post> byId = postRepository.findById(savedPost.getId());
+        assertThat(byId.get().getTitle()).isEqualTo(newTitle);
     }
 }
