@@ -127,4 +127,16 @@ class PostRepositoryTest {
         assertThat(all.size()).isEqualTo(1);
     }
 
+    @Test
+    @DisplayName("쿼리 찾기 테스트 @NamedQuery")
+    public void findByNamedQueryAnnotaion() {
+        Post post = Post.builder()
+                .title("Spring")
+                .build();
+        postRepository.save(post);
+
+        List<Post> all = postRepository.findByTitle("Spring");
+        assertThat(all.size()).isEqualTo(1);
+    }
+
 }
