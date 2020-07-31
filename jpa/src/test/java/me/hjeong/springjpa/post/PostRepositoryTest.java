@@ -139,4 +139,18 @@ class PostRepositoryTest {
         assertThat(all.size()).isEqualTo(1);
     }
 
+    @Test
+    @DisplayName("쿼리 찾기 테스트 @Query")
+    public void findByQueryAnnotation() {
+        String content = "This is content";
+
+        Post post = Post.builder()
+                .title("Spring")
+                .content(content)
+                .build();
+        postRepository.save(post);
+
+        List<Post> all = postRepository.findByContent(content);
+        assertThat(all.size()).isEqualTo(1);
+    }
 }
