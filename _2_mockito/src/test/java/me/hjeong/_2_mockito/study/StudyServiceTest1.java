@@ -35,6 +35,11 @@ class StudyServiceTest1 {
             public Member findById(Long memberId) throws MemberNotFoundException {
                 return null;
             }
+
+            @Override
+            public Optional<Member> findByEmail(String email) throws MemberNotFoundException {
+                return Optional.empty();
+            }
         };
 
         StudyRepository repository = new StudyRepository() {
