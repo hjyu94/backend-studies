@@ -9,7 +9,10 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -20,6 +23,7 @@ class StubbingProblem {
 
     @Test
     void test() {
+        // [Given]
         StudyService studyService = new StudyService(memberService, studyRepository);
         Study study = new Study(10, "테스트");
 
@@ -28,9 +32,11 @@ class StubbingProblem {
         when(memberService.findById(1L)).thenReturn(member);
         when(studyRepository.save(study)).thenReturn(study);
 
+        // [When]
         // createNewStudy() 내에서 구현체가 없이 인터페이스만 이용해서 함수들을 호출하고 있다.
         studyService.createNewStudy(1L, study);
 
+        // [Then]
         assertNotNull(study.getOwner());
         assertEquals(member, study.getOwner());
 
@@ -45,4 +51,28 @@ class StubbingProblem {
         inOrder.verify(memberService).notify(member);
 
     }
+
+    @Test
+    void bdd_style_test() {
+        // [Given]
+        StudyService studyService = new StudyService(memberService, studyRepository);
+        Study study = new Study(10, "테스트");
+
+        Member member = new Member();
+
+        given(memberService.findById(1L)).willReturn(member); // when() 대신에
+        given(studyRepository.save(study)).willReturn(study);
+
+        // [When]
+        studyService.createNewStudy(1L, study);
+
+        // [Then]
+        assertNotNull(study.getOwner());
+        assertEquals(member, study.getOwner());
+
+        then(memberService).should(times(1)).notify(study); // verify(memberService, times(1)).notify(study);
+        then(memberService).should(times(1)).notify(member); // verify(memberService, times(1)).notify(member);
+        then(memberService).shouldHaveNoInteractions(); // verify(memberService, never()).validate(any());
+    }
+
 }
