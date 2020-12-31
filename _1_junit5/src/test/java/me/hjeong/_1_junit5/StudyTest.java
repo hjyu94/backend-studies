@@ -158,11 +158,13 @@ class StudyTest {
         // ...
     }
 
-    @Test
-    @Tag("slow")
+//    @Test
+//    @Tag("slow")
+    @SlowTest
     void slow_test() {}
 
-    @Test
-    @Tag("fast")
+//    @Test
+//    @Tag("fast")
+    @FastTest
     void fast_test() {}
 }
