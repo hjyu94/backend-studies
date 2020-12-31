@@ -40,6 +40,16 @@ class StudyServiceTest1 {
             public Optional<Member> findByEmail(String email) throws MemberNotFoundException {
                 return Optional.empty();
             }
+
+            @Override
+            public void notify(Study newstudy) {
+
+            }
+
+            @Override
+            public void notify(Member member) {
+
+            }
         };
 
         StudyRepository repository = new StudyRepository() {

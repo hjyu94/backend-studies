@@ -5,11 +5,12 @@ import me.hjeong._2_mockito.domain.Study;
 import me.hjeong._2_mockito.member.MemberService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class StubbingProblem {
@@ -32,5 +33,16 @@ class StubbingProblem {
 
         assertNotNull(study.getOwner());
         assertEquals(member, study.getOwner());
+
+        verify(memberService, times(1)).notify(study);
+//        verifyNoMoreInteractions(memberService); // 어떤 액션 이후에 더 이상 mock 을 사용하면 안된다 테스트
+        verify(memberService, times(1)).notify(member);
+        verify(memberService, never()).validate(any());
+
+        // notify()  호출된 순서 확인해보기
+        InOrder inOrder = inOrder(memberService);
+        inOrder.verify(memberService).notify(study);
+        inOrder.verify(memberService).notify(member);
+
     }
 }
