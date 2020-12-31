@@ -1,0 +1,14 @@
+JUnit 5: 테스트 순서
+
+실행할 테스트 메소드 특정한 순서에 의해 실행되지만 어떻게 그 순서를 정하는지는 의도적으로 분명히 하지 않는다.
+(테스트 인스턴스를 테스트 마다 새로 만드는 것과 같은 이유)
+
+경우에 따라, 특정 순서대로 테스트를 실행하고 싶을 때도 있다.
+그 경우에는 테스트 메소드를 원하는 순서에 따라 실행하도록
+@TestInstance(Lifecycle.PER_CLASS)와 함께 @TestMethodOrder를 사용할 수 있다. (-> 이렇게 쓰는 일이 많을 거라고 추측...)
+
+MethodOrderer 구현체를 설정한다.
+기본 구현체
+Alphanumeric
+OrderAnnoation
+Random
