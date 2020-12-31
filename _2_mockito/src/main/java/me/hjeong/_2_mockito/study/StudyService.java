@@ -11,6 +11,8 @@ public class StudyService {
     private final StudyRepository repository;
 
     public StudyService(MemberService memberService, StudyRepository repository) {
+        assert memberService != null;
+        assert repository != null;
         this.memberService = memberService;
         this.repository = repository;
     }
