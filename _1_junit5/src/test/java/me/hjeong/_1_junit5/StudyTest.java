@@ -4,6 +4,7 @@ import org.junit.jupiter.api.*;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class StudyTest {
 
     @BeforeAll
@@ -27,19 +28,20 @@ class StudyTest {
     }
 
     @Test
-    void create() {
+    void create_new_study() {
         Study study = new Study();
         assertNotNull(study);
         System.out.println("create");
     }
 
     @Test
-    void create1() {
+    void create_new_study_again() {
         System.out.println("create1");
     }
 
     @Test
     @Disabled
+    @DisplayName("스터디 만들기")
     void create2() {
         System.out.println("create2");
     }
