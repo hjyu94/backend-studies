@@ -1,11 +1,14 @@
 package me.hjeong._1_junit5;
 
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.*;
 
 import java.time.Duration;
 import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assumptions.assumingThat;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class StudyTest {
@@ -98,5 +101,60 @@ class StudyTest {
             new Study(10);
             Thread.sleep(300);
         });
+    }
+
+    @Test
+    @DisplayName("시스템 환경변수값이 LOCAL일 때만 아래 코드를 실행하는 테스트 - @Disabled 와 비슷")
+    void assume_true() {
+        String test_env = System.getenv("TEST_ENV");
+        System.out.println("test_env = " + test_env);
+        assumeTrue("LOCAL".equalsIgnoreCase(test_env));
+
+        Study study = new Study(10);
+        assertNull(study);
+    }
+
+    @Test
+    void assuming_that() {
+        String test_env = System.getenv("TEST_ENV");
+        assumingThat("LOCAL".equalsIgnoreCase(test_env), () -> {
+            Study study = new Study(10);
+            // ...
+        });
+        assumingThat("hjeong".equalsIgnoreCase(test_env), () -> {
+            Study study = new Study(20);
+            // ...
+        });
+    }
+
+    @Test
+    @DisabledOnOs({OS.MAC, OS.LINUX})
+    void test_is_disabled_if_os_is_mac_or_linux() {
+        System.out.println("DisabledOnOs: MAC, LINUX");
+
+        Study study = new Study(10);
+        assertNull(study);
+    }
+
+    @Test
+    @EnabledOnOs(OS.MAC)
+    void test_is_enabled_if_os_is_ma() {
+        System.out.println("EnabledOnOs: MAC");
+
+        Study study = new Study(10);
+        assertNull(study);
+    }
+
+    @Test
+    @EnabledOnJre(JRE.JAVA_8)
+    void test_is_enabled_on_java_8() {
+        System.out.println("java 8 !");
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "TEST_ENV", matches = "LOCAL")
+    // matches = 정규표현식 값
+    void if_environment_var() {
+        // ...
     }
 }
