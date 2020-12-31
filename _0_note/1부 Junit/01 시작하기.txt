@@ -1,0 +1,21 @@
+JUnit 5: 시작하기
+스프링 부트 프로젝트 만들기
+2.2+ 버전의 스프링 부트 프로젝트를 만든다면 기본으로 JUnit 5 의존성 추가 됨.
+
+스프링 부트 프로젝트 사용하지 않는다면?
+<dependency>
+    <groupId>org.junit.jupiter</groupId>
+    <artifactId>junit-jupiter-engine</artifactId>
+    <version>5.5.2</version>
+    <scope>test</scope>
+</dependency>
+
+기본 애노테이션
+@Test
+@BeforeAll / @AfterAll
+@BeforeEach / @AfterEach
+@Disabled
+
+JUnit5 부터 테스트 클래스나 테스트 메소드가 public 이지 않아도 된다. - 자바 리플렉션 덕분
+@BeforeAll 는 반드시 static, private X default O, return type X 인 메소드에만 사용 가능. static void 가 붙는다고 알고 있으면 됨.
+@Disabled 사용해서 전체 테스트 코드가 실행 될 때 실행되지 않도록 할 수 있다.
