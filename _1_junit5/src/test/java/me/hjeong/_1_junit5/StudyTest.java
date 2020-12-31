@@ -157,4 +157,12 @@ class StudyTest {
     void if_environment_var() {
         // ...
     }
+
+    @Test
+    @Tag("slow")
+    void slow_test() {}
+
+    @Test
+    @Tag("fast")
+    void fast_test() {}
 }
