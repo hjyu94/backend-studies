@@ -21,12 +21,14 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.testcontainers.containers.DockerComposeContainer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.io.File;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -80,22 +82,21 @@ class StudyServiceTest {
     @Value("${container.port}") int port;
 
     @Container
-    static GenericContainer postgreSQLContainer = new GenericContainer("postgres:latest")
-            .withExposedPorts(5432) // host 에 매핑되는 port 는 랜덤. -p <host-random-port>:5432
-            .withEnv("POSTGRES_DB", "studytest");
+    static DockerComposeContainer composeContainer =
+            new DockerComposeContainer(new File("src/test/resources/docker-compose.yml"))
+                    .withExposedService("study-db", 5432);
+//    static GenericContainer postgreSQLContainer = new GenericContainer("postgres:latest")
+//            .withExposedPorts(5432) // host 에 매핑되는 port 는 랜덤. -p <host-random-port>:5432
+//            .withEnv("POSTGRES_DB", "studytest");
 
     @BeforeAll
     static void beforeAll() {
         Slf4jLogConsumer logConsumer = new Slf4jLogConsumer(LOGGER);
-        postgreSQLContainer.followOutput(logConsumer);
     }
 
     @BeforeEach
     void beforeEach() {
-        Integer mappedPort = postgreSQLContainer.getMappedPort(5432);
         String property = environment.getProperty("container.port");
-        String logs = postgreSQLContainer.getLogs();
-
         studyRepository.deleteAll();
     }
 
@@ -103,7 +104,7 @@ class StudyServiceTest {
         @Override
         public void initialize(ConfigurableApplicationContext applicationContext) {
             TestPropertyValues.of(
-                    "container.port=" + postgreSQLContainer.getMappedPort(5432)
+                    "container.port=" + composeContainer.getServicePort("study-db", 5432)
             ).applyTo((applicationContext.getEnvironment()));
         }
     }
