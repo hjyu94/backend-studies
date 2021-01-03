@@ -7,8 +7,10 @@
         <processorPath useClasspath="false">
           <entry name="$USER_HOME$/.gradle/caches/modules-2/files-2.1/org.projectlombok/lombok/1.18.16/6dc192c7f93ec1853f70d59d8a6dcf94eb42866/lombok-1.18.16.jar" />
         </processorPath>
-        <module name="ksb-junit5._2_mockito.test" />
+        <module name="ksb-junit5._3_test_containers.test" />
         <module name="ksb-junit5._2_mockito.main" />
+        <module name="ksb-junit5._3_test_containers.main" />
+        <module name="ksb-junit5._2_mockito.test" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel target="11" />

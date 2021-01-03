@@ -6,4 +6,5 @@ pluginManagement {
 rootProject.name = 'ksb-junit5'
 include '_1_junit5'
 include '_2_mockito'
+include '_3_test_containers'
 
