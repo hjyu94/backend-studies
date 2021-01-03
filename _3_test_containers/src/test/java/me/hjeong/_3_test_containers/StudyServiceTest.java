@@ -6,16 +6,18 @@ import me.hjeong._3_test_containers.member.MemberService;
 import me.hjeong._3_test_containers.study.StudyRepository;
 import me.hjeong._3_test_containers.study.StudyService;
 import me.hjeong._3_test_containers.study.StudyStatus;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -26,22 +28,62 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.times;
 
+/*
+    @SpringBootTest
+    @ExtendWith(MockitoExtension.class)
+    @ActiveProfiles("test")
+    @Testcontainers
+    class StudyServiceTest {
+
+        // @Autowired, @Mock
+
+        static PostgreSQLContainer postgreSQLContainer = new PostgreSQLContainer("postgres:latest")
+                .withDatabaseName("studytest"); // static 으로 만들어야 여러 테스트에서 공용으로 이 컨테이너를 사용한다.
+
+        @BeforeAll
+        static void beforeAll() {
+            postgreSQLContainer.start();
+        }
+
+        @AfterAll
+        static void fterAll() {
+            postgreSQLContainer.stop();
+        }
+
+    }
+
+    위 코드의 @BeforeAll, @AfterAll 에서 컨테이너를 시작했다가 중지했다가 하는 일 대신에
+    @Testcontainers, @Container 로 대신할 수 있다.
+*/
+
 @SpringBootTest
 @ExtendWith(MockitoExtension.class)
 @ActiveProfiles("test")
 @Testcontainers
 class StudyServiceTest {
 
+    static Logger LOGGER = LoggerFactory.getLogger(StudyServiceTest.class); // Lombok annotation - Slf4j
+
     @Mock MemberService memberService;
 
     @Autowired StudyRepository studyRepository;
 
     @Container
-    static PostgreSQLContainer postgreSQLContainer = new PostgreSQLContainer("postgres:latest")
-            .withDatabaseName("studytest"); // static 으로 만들어야 여러 테스트에서 공용으로 이 컨테이너를 사용한다.
+    static GenericContainer postgreSQLContainer = new GenericContainer("postgres:latest")
+            .withExposedPorts(5432) // host 에 매핑되는 port 는 랜덤. -p <host-random-port>:5432
+            .withEnv("POSTGRES_DB", "studytest");
+
+    @BeforeAll
+    static void beforeAll() {
+        Slf4jLogConsumer logConsumer = new Slf4jLogConsumer(LOGGER);
+        postgreSQLContainer.followOutput(logConsumer);
+    }
 
     @BeforeEach
     void beforeEach() {
+        Integer mappedPort = postgreSQLContainer.getMappedPort(5432);
+        String logs = postgreSQLContainer.getLogs();
+
         studyRepository.deleteAll();
     }
 
