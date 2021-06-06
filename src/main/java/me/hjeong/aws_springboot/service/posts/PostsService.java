@@ -3,6 +3,7 @@ package me.hjeong.aws_springboot.service.posts;
 import lombok.RequiredArgsConstructor;
 import me.hjeong.aws_springboot.domain.posts.Posts;
 import me.hjeong.aws_springboot.domain.posts.PostsRepository;
+import me.hjeong.aws_springboot.web.dto.PostsResponseDto;
 import me.hjeong.aws_springboot.web.dto.PostsSaveRequestDto;
 import me.hjeong.aws_springboot.web.dto.PostsUpdateRequestDto;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,13 @@ public class PostsService {
         );
         posts.update(requestDto.getTitle(), requestDto.getContent());
         return id;
+    }
+
+    public PostsResponseDto findById(Long id) {
+        Posts entity = postsRepository.findById(id).orElseThrow(
+                () -> new IllegalArgumentException("해당 게시글이 없습니다. id=" + id)
+        );
+        return new PostsResponseDto(entity);
     }
 
 }
