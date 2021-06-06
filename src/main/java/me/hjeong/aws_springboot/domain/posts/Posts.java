@@ -3,13 +3,14 @@ package me.hjeong.aws_springboot.domain.posts;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import me.hjeong.aws_springboot.domain.BaseTimeEntity;
 
 import javax.persistence.*;
 
 @Getter // 6
 @NoArgsConstructor // 5
 @Entity // 1
-public class Posts {
+public class Posts extends BaseTimeEntity {
 
     @Id // 2
     @GeneratedValue(strategy = GenerationType.IDENTITY) // 3
