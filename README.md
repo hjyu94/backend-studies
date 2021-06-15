@@ -55,4 +55,16 @@
 
 `test/ksb-junit5` [더 자바, 애플리케이션을 테스트하는 다양한 방법 - 백기선](https://inf.run/qycF)
 
+---
 
+## TODO
+
+`개발방법론` [도메인 주도 설계 철저 입문 : 코드와 패턴으로 밑바닥부터 이해하는 DDD](http://book.interpark.com/product/BookDisplay.do?_method=detail&sc.prdNo=339744139&gclid=CjwKCAjwn6GGBhADEiwAruUcKv46nD_0Ry6ugitwfIKx3nVd1TuARjqaWmkeJpW0qexlDXgRBGNDgxoC5pwQAvD_BwE)
+
+`개발방법론` [Clean Code 클린 코드 애자일 소프트웨어 장인 정신](http://www.yes24.com/Product/Goods/11681152)
+
+`DB` [데이터베이스 첫걸음 완전 초보의 데이터베이스 따라잡기](http://www.yes24.com/Product/Goods/32613394)
+
+`Java` [개발자가 반드시 알아야 할 자바 성능 튜닝 이야기](http://www.kyobobook.co.kr/product/detailViewKor.laf?mallGb=KOR&ejkGb=KOR&barcode=9788966260928)
+
+`WEB` [그림으로 배우는 HTTP & Network Basic 재미있게 배워보는 웹과 네트워크 입문](http://www.kyobobook.co.kr/product/detailViewKor.laf?mallGb=KOR&ejkGb=KOR&barcode=9788931447897)
