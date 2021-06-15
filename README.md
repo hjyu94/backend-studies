@@ -68,3 +68,5 @@
 `Java` [개발자가 반드시 알아야 할 자바 성능 튜닝 이야기](http://www.kyobobook.co.kr/product/detailViewKor.laf?mallGb=KOR&ejkGb=KOR&barcode=9788966260928)
 
 `WEB` [그림으로 배우는 HTTP & Network Basic 재미있게 배워보는 웹과 네트워크 입문](http://www.kyobobook.co.kr/product/detailViewKor.laf?mallGb=KOR&ejkGb=KOR&barcode=9788931447897)
+
+`개발방법론` [객체지향의 사실과 오해 역할, 책임, 협력 관점에서 본 객체지향](http://www.kyobobook.co.kr/product/detailViewKor.laf?mallGb=KOR&ejkGb=KOR&barcode=9788998139766)
