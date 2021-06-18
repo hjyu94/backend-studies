@@ -2,7 +2,7 @@ package me.hjeong.aws_springboot.config.auth;
 
 import lombok.RequiredArgsConstructor;
 import me.hjeong.aws_springboot.config.auth.dto.OAuthAttributes;
-import me.hjeong.aws_springboot.config.auth.dto.SesionUser;
+import me.hjeong.aws_springboot.config.auth.dto.SessionUser;
 import me.hjeong.aws_springboot.domain.user.User;
 import me.hjeong.aws_springboot.domain.user.UserRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -54,7 +54,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             예를 들어 @OneToMany, @ManyToMany 등 자식 엔티티를 갖고 있다면 직렬화 대상에 자식들까지 포함되니 성능이슈, 부수효과가 발생할 확률이 높기에
             차라리 User 를 직렬화 시키기보단 직렬화 기능을 가진 또다른 Dto 를 하나 추가로 만드는 것이 이후 운영 및 유지보수 때 도움이 된다.
         */
-        httpSession.setAttribute("user", new SesionUser(user));
+        httpSession.setAttribute("user", new SessionUser(user));
 
         return new DefaultOAuth2User(Collections.singleton(
                 new SimpleGrantedAuthority(user.getRoleKey())), attributes.getAttributes(), attributes.getNameAttributeKey()
