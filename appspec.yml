@@ -1,0 +1,6 @@
+version: 0.0 # code deploy version
+os: linux
+files:
+  - source: / # code deploy 에 전달해 준 파일 중 destination 으로 이동시킬 대상, /: 전체 파일
+    destination: /home/ec2-user/app/step2/zip/ # source 에서 지정된 파일을 받을 위치, 이후 jar 를 실행하는 등은 destination 에서 옮긴 파일들로 진행
+    overwrite: yes # 기존 파일들이 있다면 덮어쓸지 여부

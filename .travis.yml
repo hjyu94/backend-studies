@@ -29,14 +29,27 @@ deploy:
   - provider: s3
     access_key_id: $AWS_ACCESS_KEY # Travis repo settings environment variables
     secret_access_key: $AWS_SECRET_KEY # Travis repo settings environment variables
-    bucket: book-aws-springboot-build
+    bucket: book-aws-springboot-build # s3 bucket
     region: ap-northeast-2
     skip_cleanup: true
     on:
       branch: spring/aws-spring-boot
     acl: private # zip 파일 접근을 private 으로 설정
     local_dir: deploy # before_deploy 에서 생성한 디렉토리, 해당 위치의 파일들만 S3 로 전송합니
-    wait-until-deployed: true
+    wait_until_deployed: true
+
+  - provider: codedeploy
+    access_key_id: $AWS_ACCESS_KEY # Travis repo settings environment variables
+    secret_access_key: $AWS_SECRET_KEY # Travis repo settings environment variables
+    bucket: book-aws-springboot-build # s3 bucket
+    key: aws-springboot.zip # 빌드 파일을 압축해서 전달
+    bundle_type: zip # 압축 확장자
+    application: aws-springboot # code deploy application in aws console
+    deployment_group: aws-springboot-group # code deploy deployment groups in aws console
+    region: ap-northeast-2
+    wait_until_deployed: true
+    on:
+      branch: spring/aws-spring-boot
 
 # CI 실행 완료 시 메일로 알람
 notifications:
