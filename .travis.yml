@@ -17,8 +17,28 @@ cache:
 # 설정한 브랜치에 푸쉬가 될 때 수행하는 명령어
 script: "./gradlew clean build"
 
+# deploy 명령어가 실행되기 전에 수행됩니다
+# CodeDeploy 는 Jar 파일은 인식하지 못하므로 Jar+ 기타 설정 파일들을 모아 압축합니다.
+before_deploy:
+  - zip -r aws-springboot * # 현재 위치의 모든 파일을 aws-springboot 라는 이름으로 압축합니다
+  - mkdir -p deploy # deploy 라는 디렉토리를 Travis CI 가 실행중인 위치에서 생성합니다.
+  - mv aws-springboot.zip deploy/aws-springboot.zip
+
+# S3 로 파일 업로드 혹은 CodeDeploy 로 배포 등 외부 서비스와 연동될 행위들을 선언합니다.
+deploy:
+  - provider: s3
+    access_key_id: $AWS_ACCESS_KEY # Travis repo settings environment variables
+    secret_access_key: $AWS_SECRET_KEY # Travis repo settings environment variables
+    bucket: book-aws-springboot-build
+    region: ap-northeast-2
+    skip_cleanup: true
+    acl: private # zip 파일 접근을 private 으로 설정
+    local_dir: deploy # before_deploy 에서 생성한 디렉토리, 해당 위치의 파일들만 S3 로 전송합니
+    wait-until-deployed: true
+
 # CI 실행 완료 시 메일로 알람
 notifications:
   email:
     recipients:
       - hjeong.you@gmail.com
+
