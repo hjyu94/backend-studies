@@ -2,13 +2,10 @@ package me.hjeong.aws_springboot;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 // 스프링 부트 자동 설정, 스프링 Bean 읽기와 생성 모두 자동으로 설정
 // 해당 클래스가 있는 곳이 Scan시의 Base package가 되기 때문에 프로젝트 최상단에 존재해야 한다
 @SpringBootApplication
-// JPA Auditing 활성화
-@EnableJpaAuditing
 public class Application {
 
     public static void main(String[] args) {

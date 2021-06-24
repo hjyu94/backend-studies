@@ -1,10 +1,14 @@
 package me.hjeong.aws_springboot;
 
+import me.hjeong.aws_springboot.config.auth.SecurityConfig;
 import me.hjeong.aws_springboot.web.HelloController;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -29,7 +33,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
     수동으로 브라우저나 Postman을 켜서 테스트하지 않고 그 전에 테스트 코드를 작성해서 돌려보는 습관이 중요합니다.
  */
-@WebMvcTest(controllers = HelloController.class)
+@WebMvcTest(controllers = HelloController.class,
+    /*
+        WebMvcTest 가 WebSecurityConfigurerAdapter 는 읽지만 Service 는 읽지 않는다.
+        SecurityConfig 는 읽었지만 SecurityConfig 를 생성하기 위해 필요한 CustomOAuth2UserService 는 읽을 수가 없을 때 에러 발생한다.
+        따라서 스캔 대상에서 SecurityConfig 를 제거한다.
+     */
+    excludeFilters = {
+        @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = SecurityConfig.class)
+    }
+)
 public class HelloControllerTest {
 
     /*
@@ -44,6 +57,7 @@ public class HelloControllerTest {
     private MockMvc mvc;
 
     @Test
+    @WithMockUser(roles = "USER")
     public void hello가_리턴된다() throws Exception {
         String hello = "hello";
 
@@ -53,6 +67,7 @@ public class HelloControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "USER")
     public void helloDto가_리턴된다() throws Exception {
         String name = "hello";
         int amount = 1000;
