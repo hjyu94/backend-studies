@@ -38,6 +38,8 @@ dependencies {
     // spring-security-oauth2-client 와 spring-security-oauth2-jose 를 기본으로 관리해준다.
     compile('org.springframework.boot:spring-boot-starter-oauth2-client')
     compile('org.springframework.session:spring-session-jdbc')
+    // https://mvnrepository.com/artifact/org.postgresql/postgresql
+    compile('org.postgresql:postgresql:42.1.4')
     testCompile('org.springframework.boot:spring-boot-starter-test')
     testCompile('org.springframework.security:spring-security-test')
 }
