@@ -1,5 +1,5 @@
 server:
-  port: 8082
+  port: 0 # (1) 유레카 대시보드는 yml 파일에 기록된 0번 포트 인스턴스 1번밖에 안 떠서
 
 spring:
   application:
@@ -11,3 +11,5 @@ eureka:
     fetch-registry: true
     service-url:
       defaultZone: http://localhost:8761/eureka
+  instance:
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}} # (2) 유레카 대시보드 식별 가능케
