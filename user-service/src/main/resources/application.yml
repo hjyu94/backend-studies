@@ -7,7 +7,7 @@ spring:
 
 eureka:
   instance:
-    instance-id: ${spring.cloud.client.hostname}:${spring.application.instance.id:${random.value}}
+    instance-id: ${spring.application.name}:${spring.application.instance.id:${random.value}}
   client:
     register-with-eureka: true # 유레카 클라이언트로 등록하겠다는 설정
     fetch-registry: true # 외부에서 검색 가능하도록
