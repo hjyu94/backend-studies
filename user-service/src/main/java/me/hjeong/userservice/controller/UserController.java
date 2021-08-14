@@ -7,20 +7,22 @@ import me.hjeong.userservice.vo.RequestUser;
 import me.hjeong.userservice.vo.ResponseUser;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/")
+@RequestMapping("/user-service")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
+    private final Environment env;
 
     @GetMapping("/health_check")
     public String status() {
-        return "It's working in User Service";
+        return String.format("It's working in User Service on PORT %s", env.getProperty("local.server.port"));
     }
 
     @PostMapping("/users")
