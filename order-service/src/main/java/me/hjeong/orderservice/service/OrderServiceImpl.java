@@ -18,7 +18,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderDto createOrder(OrderDto orderDto) {
-        orderDto.setUserId(UUID.randomUUID().toString());
+        orderDto.setOrderId(UUID.randomUUID().toString());
         orderDto.setTotalPrice(orderDto.getQty() * orderDto.getUnitPrice());
 
         ModelMapper mapper = new ModelMapper();
@@ -38,7 +38,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Iterable<OrderEntity> getOrdersByUserId(String userId) {
-        return orderRepository.findByUserId(userId);
+        return orderRepository.findAllByUserId(userId);
     }
 
 }

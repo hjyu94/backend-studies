@@ -30,7 +30,6 @@ public class OrderEntity {
     @Column(nullable = false)
     private String userId;
 
-    @Column(nullable = false)
     private String orderId;
 
     @Column(nullable = false, updatable = false, insertable = false)
