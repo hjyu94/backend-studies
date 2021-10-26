@@ -39,6 +39,17 @@ spring:
             - RewritePath=/user-service/(?<segment>/?.*), /$\{segment}
 
         - id: user-service
+          uri: lb://USER-SERVICE
+          # GET, POST /user-service/actuator/** 로 들어온 요청을 라우팅 한다
+          redicates:
+            - Path=/user-service/actuator/**
+            - Method=GET,POST
+          filters:
+            - RemoveRequestHeader=Cookie
+            - RewritePath=/user-service/(?<segment>/?.*), /$\{segment}
+            - AuthorizationHeaderFilter
+
+        - id: user-service
           uri: lb://USER-SERVICE # eureka console
           predicates:
             - Path=/user-service/**
@@ -81,5 +92,11 @@ spring:
                 preLogger: true
                 postLogger: true
 
-token:
-  secret: user_token
+#token:
+#  secret: user_token
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh, health, beans, httptrace
