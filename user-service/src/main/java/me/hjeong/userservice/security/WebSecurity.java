@@ -22,8 +22,9 @@ public class WebSecurity extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.csrf().disable();
+        http.authorizeRequests().antMatchers("/actuator/**").permitAll();
         http.authorizeRequests().antMatchers("/**")
-                .hasIpAddress("192.168.35.6")
+                .hasIpAddress("192.168.35.6") // IP 는 매번 변경할 것
                 .and()
                 .addFilter(getAuthenticationFilter());
         http.headers().frameOptions().disable(); // h2 console is in frame
