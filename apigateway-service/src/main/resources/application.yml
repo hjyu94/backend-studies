@@ -41,7 +41,7 @@ spring:
         - id: user-service
           uri: lb://USER-SERVICE
           # GET, POST /user-service/actuator/** 로 들어온 요청을 라우팅 한다
-          redicates:
+          predicates:
             - Path=/user-service/actuator/**
             - Method=GET,POST
           filters:
