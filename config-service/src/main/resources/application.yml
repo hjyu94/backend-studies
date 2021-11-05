@@ -7,8 +7,12 @@ spring:
   cloud:
     config:
       server:
+        native:
+          search-locations: /Users/hyojeongyu/Desktop/study/backend-studies/msa-with-spring-cloud/native-file-repo
         git:
+#         1)
           uri: file:///Users/hyojeongyu/Desktop/study/backend-studies/msa-with-spring-cloud/git-local-repo
+#         2)
 #          uri: https://github.com/hjyu94/backend-studies
 #          username: xx
 #          password: xx
