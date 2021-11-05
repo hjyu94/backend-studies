@@ -9,3 +9,6 @@ spring:
       server:
         git:
           uri: file:///Users/hyojeongyu/Desktop/study/backend-studies/msa-with-spring-cloud/git-local-repo
+#          uri: https://github.com/hjyu94/backend-studies
+#          username: xx
+#          password: xx
