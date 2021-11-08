@@ -10,6 +10,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import static org.springframework.http.HttpMethod.POST;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -22,11 +24,11 @@ public class WebSecurity extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.csrf().disable();
-        http.authorizeRequests().antMatchers("/actuator/**").permitAll();
-        http.authorizeRequests().antMatchers("/**")
-                .hasIpAddress("192.168.35.6") // IP 는 매번 변경할 것
-                .and()
-                .addFilter(getAuthenticationFilter());
+        http.authorizeRequests()
+                .antMatchers("/health_check", "/actuator/**", "/h2-console").permitAll()
+                .antMatchers(POST, "/users").permitAll()
+                .antMatchers(POST, "/login").permitAll();
+        http.addFilter(getAuthenticationFilter());
         http.headers().frameOptions().disable(); // h2 console is in frame
     }
 

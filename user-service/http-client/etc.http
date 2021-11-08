@@ -1,0 +1,8 @@
+GET 127.0.0.1:{{gateway-port}}/user-service/health_check
+Authorization: Bearer {{token}}
+
+
+### config update
+
+POST 127.0.0.1:{{gateway-port}}/user-service/actuator/busrefresh
+Authorization: Bearer {{token}}

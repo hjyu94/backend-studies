@@ -1,0 +1,20 @@
+### create user
+
+POST 127.0.0.1:{{gateway-port}}/user-service/users
+Content-Type: application/json
+
+{
+    "email": "hjeong@test.com",
+    "name": "hjeong",
+    "pwd": "passwordpasword"
+}
+
+### Login
+
+POST 127.0.0.1:{{gateway-port}}/user-service/login
+Content-Type: application/json
+
+{
+  "email": "hjeong@test.com",
+  "password": "passwordpasword"
+}
