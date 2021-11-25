@@ -35,3 +35,70 @@
 config server에 /busrefresh 요청이 들어오면
 rabbitmq 에 요청사항을 받았음을 통보
 rabbitmq 에 연결된 다른 마이크로 서비스에 푸쉬
+
+### 설정 정보의 암호화 처리
+
+#### 대칭키를 이용한 암호화
+
+user service 프로젝트의 application.yml 에 있던 키 값들을
+(database url, username, password, ...)
+config service 의 user-service.yml 로 이동시키고
+보안에 중요한 데이터는 암호화, 복호화 방식을 상요할 예정
+
+database password 는 노출되면 보안에 위험할 수 있기 때문에
+대칭키로 암호화하여 저장 {cipher}a99...
+사용할때는 이를 다시 복호화하여 사용한다.
+
+cofig server 의 bootstrap.yml 을 아래와 같이 수정
+```yml
+encrypt:
+  key: abcdefghijklmnopqrstuvwxyz0123456789
+```
+
+http://{config server}/user-service/default 로 들어가보면
+실제 사용되는 데이터들이 보여지는데
+여기서는 암호화된 문자열이 복호화되어 사용되고 있음을 볼 수 있다.
+
+POST http://{config-service-server}/encrypt
+body: 변환할 문자열
+-> 200 변환된 문자열
+반대로는 decrypt 로 볼 수 있다.
+
+config service 가 읽는 yml 파일 위치는
+
+spring
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: /Users/hyojeongyu/Desktop/study/backend-studies/msa-with-spring-cloud/native-file-repo
+
+여기서 확인할 수 있다.
+
+해당 디렉토리 위치에 user-service.yml 을 만들어 놓고
+config server 에서 yml 을 읽어오는 서버들이 user-service.yml 을
+찾아가 읽을 수 있도록 하면 된다.
+
+각 서비스의 bootstrap.yml 을 수정한다
+```yml
+spring:
+  cloud:
+    config:
+      uri: http://127.0.0.1:8888 # config server
+      name: user-service # yml file name
+```
+
+1234 를 config server 의 키로 encrypt 해보면
+0c7649b1698b8df8337716a26eafba4a90499ea5df3eff8d8492abfe0fff978a
+가 나온다.
+user-service.yml 에서 db password 를 '{cipher}0c7649...' 로 수정한다.
+
+config server 를 가동시키고
+http://localhost:8888/user-service/default
+로 들어가서 확인해보면
+
+우리가 저장한 user-service.yml 에는 암호화된 문자열이 들어가있지만
+spring.datasource.password 값이 1234 로 복호화된 평문이 들어가 있는 걸 볼 수 있다.
+
+유저 서비스와 eureka 서버 config server 를 띄우고
+user service 의 /h2-console 로 들어가서 DB 패스워드로 1234 값을 정상적으로 사용하고 있는지 확인해보면 된다!
