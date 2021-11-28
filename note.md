@@ -102,3 +102,22 @@ spring.datasource.password 값이 1234 로 복호화된 평문이 들어가 있�
 
 유저 서비스와 eureka 서버 config server 를 띄우고
 user service 의 /h2-console 로 들어가서 DB 패스워드로 1234 값을 정상적으로 사용하고 있는지 확인해보면 된다!
+
+### REST TEMPLATE
+
+config service 에 order_service 의 url 을 등록하여
+user_service 에서 rest template 을 이용한 데이터 송수신에 사용할 예정.
+
+user_service.yml
+```yml
+order_service:
+  url: http://localhost:8000/order_service/$s/orders
+```
+
+유레카에 등록된 서비스 명으로도 서버를 찾아갈 수 있다.
+
+user_service.yml
+```yml
+order_service:
+  url: http://ORDER_SERVICE/order_service/%s/orders
+```
