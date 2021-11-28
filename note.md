@@ -121,3 +121,30 @@ user_service.yml
 order_service:
   url: http://ORDER_SERVICE/order_service/%s/orders
 ```
+
+### Feign Client
+
+user-service 에 spring-cloud-starter-openfeign 라이브러리 추가
+
+- 로깅
+```java
+    @Bean
+    public Logger.Level feignLoggerLevel() {
+        return Logger.Level.FULL;
+    }
+```
+```
+11:32:11 GMT}{Keep-Alive: timeout=60}{Connection: keep-alive}
+2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] <--- HTTP/1.1 404 (331ms)
+2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] connection: keep-alive
+2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] content-type: application/json
+2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] date: Sun, 28 Nov 2021 11:32:11 GMT
+2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] keep-alive: timeout=60
+2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] transfer-encoding: chunked
+2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] vary: Access-Control-Request-Headers
+2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] vary: Access-Control-Request-Method
+2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] vary: Origin
+2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] 
+2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] {"timestamp":"2021-11-28T11:32:11.699+00:00","status":404,"error":"Not Found","message":"No message available","path":"/order-service/83cbfd15-6fd9-4588-a77f-96de61fd44d9/orders_ng"}
+2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] <--- END HTTP (182-byte body)
+```

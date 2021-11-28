@@ -30,6 +30,7 @@ eureka:
 
 logging:
   level:
+    root: DEBUG
     me.hjeong.userservice: DEBUG
 
 #token:
