@@ -1,6 +1,8 @@
 package me.hjeong.userservice.service;
 
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.hjeong.userservice.client.OrderServiceClient;
 import me.hjeong.userservice.dto.UserDto;
 import me.hjeong.userservice.repository.UserEntity;
@@ -26,6 +28,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -76,7 +79,13 @@ public class UserServiceImpl implements UserService {
 //        List<ResponseOrder> orders = orderListResponse.getBody();
 
         // 2. Feign Client
-        List<ResponseOrder> orders = orderServiceClient.getOrders(userId);
+        // + Feign Error Decoder 를 이용해서 전역으로 예외 처리
+        List<ResponseOrder> orders = null;
+//        try {
+            orders = orderServiceClient.getOrders(userId);
+//        } catch (FeignException exception) {
+//            log.error(exception.getMessage());
+//        }
         userDto.setOrders(orders);
 
         return userDto;

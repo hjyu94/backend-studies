@@ -148,3 +148,6 @@ user-service 에 spring-cloud-starter-openfeign 라이브러리 추가
 2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] {"timestamp":"2021-11-28T11:32:11.699+00:00","status":404,"error":"Not Found","message":"No message available","path":"/order-service/83cbfd15-6fd9-4588-a77f-96de61fd44d9/orders_ng"}
 2021-11-28 20:32:11.706 DEBUG 12255 --- [o-auto-1-exec-3] m.h.u.client.OrderServiceClient          : [OrderServiceClient#getOrders] <--- END HTTP (182-byte body)
 ```
+
+- 전역 예외 처리
+  - Feign Error Decoder 를 빈으로 주입시킴으로써 예외처리를 전역으로 할 수 있다.
