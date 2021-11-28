@@ -1,0 +1,4 @@
+POST 127.0.0.1:{{gateway-port}}/user-service/actuator/refresh
+
+### health check
+GET 127.0.0.1:{{gateway-port}}/user-service/health_check

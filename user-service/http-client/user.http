@@ -9,6 +9,11 @@ Content-Type: application/json
     "pwd": "passwordpasword"
 }
 
+### user info
+
+GET 127.0.0.1:{{gateway-port}}/user-service/user/{{user-id}}
+Authorization: Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiIyOTJlNDhhMy1kN2Y5LTQ4YmItOTRlOS1lZTdmNzA5NTRjZGQiLCJleHAiOjE2MzgxNzkzNzF9.y7E8XkHAbQNufBCwuVr-FOJcPcy7iP_Ha4Yrhry0k1zlOM7KYKBGSiflWn-TRkdCtU8b2VrXDo_IpbM0eV68gg
+
 ### Login
 
 POST 127.0.0.1:{{gateway-port}}/user-service/login

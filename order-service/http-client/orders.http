@@ -1,0 +1,15 @@
+### create order
+
+POST 127.0.0.1:{{gateway-port}}/order-service/{{user-id}}/orders
+Content-Type: application/json
+
+{
+  "productId": "CATALOG-003",
+  "qty": 5,
+  "unitPrice": 700
+}
+
+### order info
+
+GET 127.0.0.1:{{gateway-port}}/order-service/{{user-id}}/orders
+Content-Type: application/json
