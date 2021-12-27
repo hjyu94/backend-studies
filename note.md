@@ -396,3 +396,64 @@ create table users(
 (실습)
 - 주키퍼, 카프카, 유레카, api gateway service, configuration service, order service, catalog service 실행
 - Order 생성시, Order service 에서 메세지 큐에 토픽을 생성하고, Catalog 서비스에서 생성된 토픽을 받아서 수량을 업데이트한다
+
+
+### Multi Orders Microservice 사용에 대한 데이터 동기화 문제
+
+- Orders Service 2개 기동
+  - Users 요청 분산 처리
+  - Orders 데이터도 분산 저장 -> 동기화 문제
+
+- Orders Service 에 요청된 주문 정보를 DB 가 아니라 Kafka topic 으로 전송
+- Kafka topic 에 설정된 Kafka Sink Connect 를 사용해 단일 DB 에 저장 -> 데이터 동기화
+
+(실습)
+
+```
+create table orders
+(
+    id          int auto_increment primary key,
+    user_id     varchar(50) not null,
+    product_id  varchar(20) not null,
+    order_id    varchar(50) not null,
+    qty         int      default 0,
+    unit_price  int      default 0,
+    total_price int      default 0,
+    created_at  datetime default now()
+);
+```
+
+- order service 가 maria db 를 사용하도록 수정
+
+- order service 가 바로 DB 에 데이터를 저장하지 않고 create order 시 카프카에게 전송하며 카프카가 단일 DB 에 데이터를 저장
+  - order controller, POST /{userId}/orders 에서 orders 라는 토픽으로 dto 를 json 직렬화하여 던진다.
+  - ```
+  {"schema":{"type":"struct","fields":[{"type":"int32","optional":false,"field":"id"},{"type":"string","optional":true,"field":"user_id"},{"type":"string","optional":true,"field":"pwd"},{"type":"string","optional":true,"field":"name"},{"type":"int64","optional":true,"name":"org.apache.kafka.connect.data.Timestamp","version":1,"field":"created_at"}],"optional":false,"name":"users"},"payload":{"id":1,"user_id":"user1","pwd":"test1111","name":"user name","created_at":1640918280000}}
+  ```
+  - sink connect 생성
+  ```
+{
+   "name":"my-order-sink-connect",
+   "config":{
+      "connector.class":"io.confluent.connect.jdbc.JdbcSinkConnector",
+      "connection.url":"jdbc:mysql://localhost:3306/mydb",
+      "connection.user":"root",
+      "connection.password":"${db-password}",
+      "auto.create":"true", // topic 과 같은 이름의 테이블을 생성하겠다.
+      "auto.evolve":"true",
+      "delete.enabled":"false",
+      "tasks.max":"1",
+      "topics":"orders"
+   }
+}
+```
+
+(테스트)
+
+- 주키퍼, 카프카, 카프카 커넥트 서버 구동
+- eureka, api gateway, catalog service, user service 구동
+- order service 서버는 2개 구동
+- 주문 생성 API 를 여러번 호출 시 번갈아가면서 order service 가 카프카로 메세지를 전달함
+- 카프카 메세지가 날아 올 때마다 orders 테이블에 데이터를 추가함
+- 단일 DB 를 쓰고 있기 때문에 예전에 한 유저의 오더를 검색했을 때 검색할 때마다 오더 정보가 달라지던 이슈가 해결됨.
+

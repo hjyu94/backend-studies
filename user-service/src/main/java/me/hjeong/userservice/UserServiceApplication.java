@@ -25,16 +25,16 @@ public class UserServiceApplication {
         return new BCryptPasswordEncoder();
     }
 
-//    @Bean
-//    @LoadBalanced
-//    public RestTemplate getRestTemplate() {
-//        return new RestTemplate();
-//    }
-
     @Bean
-    public Logger.Level feignLoggerLevel() {
-        return Logger.Level.FULL;
+    @LoadBalanced
+    public RestTemplate getRestTemplate() {
+        return new RestTemplate();
     }
+
+//    @Bean
+//    public Logger.Level feignLoggerLevel() {
+//        return Logger.Level.FULL;
+//    }
 
 //    @Bean
 //    public FeignErrorDecoder feignErrorDecoder() {
