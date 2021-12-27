@@ -379,3 +379,20 @@ create table users(
 ```
 - 싱크 커넥트에 연결된 데이터베이스 테이블에 (my_topic_users 테이블) 데이터가 추가되었음을 확인
 
+### Orders 서비스와 Catalogs 서비스에서 Kafka topic 의 적용
+
+1. 유저 -> 카탈로그 서비스: 상품 조회
+2. 유저 -> 유저 서비스: 사용자 조회
+3. 유저 -> 오더 서비스: 상품 주문
+4. 오더 서비스 -> Kafka message queue service -> 카탈로그 서비스: 상품 수량 업데이트
+5. 유저 -> 유저 서비스: 주문 확인
+6. 유저 서비스 -> 오더 서비스: 주문 조회
+
+- Orders Service 에 요청된 주문의 수량 정보를 Catalogs service 에 반영
+- Orders Service 에서 DB 를 업데이트 하여 Kafka topic 으로 메세지 전송 (Producer)
+- 이를 카탈로그 서비스에서 재고를 계산하기 위해 Kafka topic 에 전송된 메세지를 취득 (Consumer)
+- 각 서비스에서 한 DB 를 사용하면 메세지 큐를 쓸 필요는 없겠지만 각 서비스의 DB를 독립적으로 사용하기 위함임
+
+(실습)
+- 주키퍼, 카프카, 유레카, api gateway service, configuration service, order service, catalog service 실행
+- Order 생성시, Order service 에서 메세지 큐에 토픽을 생성하고, Catalog 서비스에서 생성된 토픽을 받아서 수량을 업데이트한다
