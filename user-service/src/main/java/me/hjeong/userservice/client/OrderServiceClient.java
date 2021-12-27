@@ -10,7 +10,7 @@ import java.util.List;
 @FeignClient(name = "order-service") // 유레카에 등록된 서비스 명
 public interface OrderServiceClient {
 
-    @GetMapping("/order-service/{userId}/orders_ng")
+    @GetMapping("/order-service/{userId}/orders")
     List<ResponseOrder> getOrders(@PathVariable String userId);
 
 }
