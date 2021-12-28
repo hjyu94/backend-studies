@@ -28,10 +28,10 @@ eureka:
     service-url:
       defaultZone: http://localhost:8761/eureka
 
-#logging:
-#  level:
-#    root: DEBUG
-#    me.hjeong.userservice: DEBUG
+logging:
+  level:
+    root: DEBUG
+    me.hjeong.userservice: DEBUG
 
 #token:
 #  expiration_time: 86400000
