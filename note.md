@@ -457,3 +457,58 @@ create table orders
 - 카프카 메세지가 날아 올 때마다 orders 테이블에 데이터를 추가함
 - 단일 DB 를 쓰고 있기 때문에 예전에 한 유저의 오더를 검색했을 때 검색할 때마다 오더 정보가 달라지던 이슈가 해결됨.
 
+
+## 장애 처리와 Microservice 분산 추적
+
+### CircuitBreaker 와 Resilience4J 의 사용
+
+- 연쇄 통신시 발생할 수 있는 문제
+  - 유저 서비스 -> 오더 서비스 -> 카탈로그 서비스 로 연쇄 통신을 하는 경우 유저 서비스의 문제가 아닌데도 500 에러가. 발생하는 경우가 있다. (오더 서비스나, 카탈로그 서비스에서 에러가 발생하는 경우)
+  - 이 경우 에러가 발생하는생했을 때 디폴트 값이나, 우회하는 방식이나, 정상적인 데이터 처럼 보이는 방식이 유저 서비스에 준비가 되어 있어야 한다.
+  - 카탈로그 서비스나 오더 서비스가 문제가 있더라도 유저 서비스는 문제가 없기 때문에
+
+- CircuitBreaker
+  - 장애(timeout, ...)가 발생하는 서비스에 반복적인 호출이 되지 못하게 차단
+  - 특정 서비스가 정상적으로 동작하지 않을 경우 다른 기능으로 대체 수행 -> 장애 회피
+  - open: 서킷 브레이커를 여는 것
+    - 유저 서비스에서 오더 서비스를 사용함에 있어서 접속이 안된다거나 타임아웃이 여러번 발생했을 때 서킷 브레이커가 오픈 상태가 되고 오픈이 되면 클라이언트의 요청을 최종적인 마이크로 서비스에게 전달하지 않고 서킷 브레이커에서 기본값이나 우회할 수 있는 값을 리턴하는 것을 이야기함
+  - closed: 서킷 브레이커를 닫는 것
+    - 정상적으로 다른 서비스를 사용할 수 있다.
+
+- 스프링 부트에서 CircuitBreaker 사용법 (이전의 방법, 현재는 maintained)
+  - Spring cloud netflix hystrix
+  - @EnableCurcuitBreaker
+  - feign.hystrix.enabled = true
+
+- 따라서 대체제
+  - Hystirx -> Resilience4j
+  - Hystrix Dashboard / Turbine -> Micrometer + Monitoring System
+  - Ribbon -> ...
+
+- Resilience4j
+  - fault tolerance
+    - 에러가 발생하더라도 정상적으로 가용할 수 있도록 하는 성질
+  - spring-cloud-starter-circuitbreaker-resilience4j library
+  - 유저 서비스에서 order 라는 서비스로부터 order 리스트를 받아올 때 오더 서비스가 기동하지 않는 경우 (timeout, ...) 서킷 브레이커를 열고 빈 배열을 응답하도록
+  - CircuitBreakerFacty -> Resilience4JCircuitBreakeerFactory 커스터마이징
+  - failureRateThreshold: 서킷 브레이커를 열지 결정하는 failure rate threshold % (default 50)
+  - waitDurationInOpenState: 서킷 브레이커를 오픈한 상태에서 유지하는 시간
+  - slidingWindowType: 써킷 브레이커가 닫힐 때 통화 결과를 기록하는데 사용되는 슬라이딩 창의 유형 (카운트 기반 Or 시간 기반)
+  - slidingWindowSize: 써킷 브레이커가 닫힐 때 호출 결과를 기록하는데 사용되는 슬라이딩 창의 크기를 구성
+
+(실습)
+
+- 유레카, rabbitmq 서버 실행
+  - mvn spring-boot:run
+  - brew services start rabbitmq
+- api gateway 서버 실행
+- 오더 서비스는 구동 시키지 않고 유저 서비스만 구동 시킨 뒤
+- 유저 생성
+- 유저 정보 얻기
+  - 여기서 getOrders() 부분에서 오더 서비스가 띄워져 있지 않아서
+  - 유저 서비스는 500 에러를 반환한다.
+- circuit breaker 추가
+  - 오더 서비스의 API 를 호출하는 코드를 circuit breaker 의 toRun 파라미터로 넘기고 해당 코드를 실행 중 오류가 발생할 경우 실행되는 fallback 파라미터로 빈 배열을 넘긴다
+  - 오더 서비스가 띄워져 있지 않은 경우 유저 정보를 조회하면 orders 는 빈 배열이 나오게 된다.
+  - 따라서 유저 서비스는 잘 동작하는 것 처럼 보이고 더 이상 500 에러를 반환하지 않는다.
+
