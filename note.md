@@ -220,7 +220,7 @@ user-service 에 spring-cloud-starter-openfeign 라이브러리 추가
 
 - Maria DB 설치
   - `$ brew install mariadb`
-  - `$ mysql server start, mysql.server stop, mysql.server status`
+  - `$ mysql.server start, mysql.server stop, mysql.server status`
   - `$ mysql -uroot`
   - `mysql> create database mydb;`
 
@@ -512,3 +512,42 @@ create table orders
   - 오더 서비스가 띄워져 있지 않은 경우 유저 정보를 조회하면 orders 는 빈 배열이 나오게 된다.
   - 따라서 유저 서비스는 잘 동작하는 것 처럼 보이고 더 이상 500 에러를 반환하지 않는다.
 
+
+### 분산 추적의 개요 Zipkin 서버 설치
+
+- 마이크로서비스가 연쇄적으로 여러개의 서비스가 실행될 때, 그 과정에서 해당하는 요청 정보가 어떻게 실행되고 어느 단게를 거쳐서 어떤 마이크로서비스로 이동이 되는지를 추적할 수 있는 방법을 살펴보자.
+- 마이크로 서비스의 분산 추적이라고 하고
+- tracing 정보를 저장하기 위한 서비스가 필요하고 이를 집킨을 사용할 것
+
+- Zipkin
+  - 트위터에서 사용하는 분산 환경의 타이밍 데이터 수집, 추적 시스템을 오픈소스로 만든 것
+  - Google Drapper 에서 발전하였으며 분산환경에서의 시스템 병목 현상을 파악
+  - 하나의 서비스가 시작되고 끝날 때까지 다양한 마이크로 서비스가 연결될 수 있기 때문에 사용자 요청이 누구를 거쳐 어디를 거쳐 누가 문제가 있는지 시각적으로 표시 + 로그로 표시할 수 있다.
+  - Collector, Query Service, Database WebUI 로 구성
+  - 마이크로 서비스 내의 데이터를 집킨에게 모두 전달하고, 한 마이크로서비스에서 다른 마이크로서비스를 호출했을 때 그 데이터 역시 집킨에게 전송한다.
+  - Span
+    - 한 요청에 사용되는 작업의 단위
+    - 64 bit unique ID
+  - Trace
+    - 트리 구조로 이루어진 span set
+    - 하나의 요청에 대한 같은 Trace ID 발급
+  - 사용자가 요청을 하면 trace id 가 만들어지고, 그 요청이 여러 서비스를 돌아다닐 때 각 서비스에서 span id 가 만들어지고 한 요청에 대한 span set 은 trace 로 구성된다.
+
+- Spring Cloud Sleuth
+  - 스프링 부트 애플리케이션을 Zipkin 과 연동
+  - 요청 값에 따른 Trace ID, Span ID 부여
+  - Trace와 Span Id 를 이용해서 로그에 추가하는 기능을 할 수 있다.
+    - servlet filter
+    - rest template
+    - scheduled actions
+    - message channels
+    - feign client
+
+- Spring Cloud Sleuth 을 이용해서 Zipkin 을 연동시키는 것임
+- 마이크로 서비스는 여러개의 쪼개져 있는 서비스간 데이터 통신을 계속하기 때문에 중간에 문제가 생기면 작동하지 않는 서비스가 있을 수 있다. 서킷 브레이커를 이용해서 우회하는 방식도 있고, 그런 마이크로 서비스가 연결된 상태값을 추적해서 누가 누구를 호출했고 시간이 얼마가 걸리며 정상 상태인지 비정상 상태인지를 시각화해주는 툴이 Sleuth 와 Zipkin 인 것
+
+- zipkin 설치
+  - curl -sSL https://zipkin.io/quickstart.sh | bash -s
+- zipkin 실행
+  - java -jar zipkin.jar
+  - localhost:9411

@@ -81,9 +81,11 @@ public class UserServiceImpl implements UserService {
 
         // 2. Feign Client
         // + Feign Error Decoder 를 이용해서 전역으로 예외 처리
+        log.info("Before call orders microservice");
         CircuitBreaker circuitbreaker = circuitBreakerFactory.create("circuitbreaker");
         List<ResponseOrder> orders = circuitbreaker.run(() -> orderServiceClient.getOrders(userId), throwable -> new ArrayList<>());
         userDto.setOrders(orders);
+        log.info("After called orders microservice");
 
         return userDto;
     }
