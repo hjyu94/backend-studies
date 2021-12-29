@@ -611,3 +611,56 @@ users_status_seconds_max{method="GET",uri="/health_check",} 0.0
 users_status_seconds_active_count{method="GET",uri="/health_check",} 0.0
 users_status_seconds_duration_sum{method="GET",uri="/health_check",} 0.0
 ```
+
+### Prometheus + Grafana
+
+- MSA 에서 각각의 엔티티는 자동화된 문제에 대해서 감지를 하고, 경고 하고, 필요하면 디버깅, 상태분석 등 적절한 서비스를 생성해줘야 한다. 이러한 서비스는 시스템 분석을 위해 health check 라던가 metrics, end to end's tracing 등의 정보를 수집할 수 있는 구조여야 한다. -> 그 중 대표적으로 많이 사용되는 오픈소스인 프로메테우스를 사용해보자
+
+- Prometheus
+  - 모니터링 도구
+  - Metrics 를 수집하고 모니터링 및 알람에 사용되는 오픈소스 머플리케이션
+  - 2016 년부터 CNCF 에서 관리되는 2번째 공식 프로젝트
+    - 첫번째는 쿠버네티스 라는 컨테이너 기반의 오케스트레이션 도구가 공식 프로젝트고
+    - 두번째가 프로메테우스
+    - 초창기에는 Level DB 를 사용하다가 Time Series Database 로 변경됨
+    - 각종 지표가 시간 순서대로 남는다
+  - Pull 방식의 구조와 다양한 Metric Exporter 를 제공함
+  - 시계열 데이터베이스로 Metrics 를 저장하고 이를 조회하는 쿼리를 같이 제공한다.
+  - 프로메테우스에서 스프링 클라우드 어플리케이션에서 /actuator/prometheus 정보를 수집해서 도식화하기 위해 사용한다
+
+- Grafana
+  - 데이터 시각화, 모니터링 및 분석을 위한 오픈소스 애플리케이션
+  - 시계열 데이터를 시각화하기 위한 대쉬보드 제공
+
+- Prometheus 다운로드
+  - https://prometheus.io/download/
+
+- Grafana 다운로드
+  - https://grafana.com/grafana/download
+
+
+(실습)
+- ./prometheus --config.file=prometheus.yml
+- prometheus.yml 수정
+```
+ - job_name: 'user-service'
+    scrape_interval: 15s
+    metrics_path: '/user-service/actuator/prometheus'
+    static_configs:
+    - targets: ['localhost:8000']
+  - job_name: 'order-service'
+    scrape_interval: 15s
+    metrics_path: '/order-service/actuator/prometheus'
+    static_configs:
+    - targets: ['localhost:8000']
+  - job_name: 'apigateway-service'
+    scrape_interval: 15s
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+    - targets: ['localhost:8000']
+```
+- localhost:9090
+
+- ./bin/grafana-server
+- localhost:3000
+- admin, admin login
