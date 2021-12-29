@@ -551,3 +551,63 @@ create table orders
 - zipkin 실행
   - java -jar zipkin.jar
   - localhost:9411
+
+ 
+## Microservice 모니터링
+
+### Micrometer 개요
+
+- 이전 버전의 스프링 부트와 스프링 클라우드에서는 각종 마이크로 서비스에서 발생하는 상황, 성능, 모니터링을 하기 위해서 히스트릭스나 터빈 서버 같은것을 구성해서 사용했었음
+  - 터빈 서버? 마이크로서비스에서 발생하는 각종 로그라던가 결과값들을 히스트릭스 클라이언트 스트림을 통해 전송하게 되면, 전송되어진 내용을 모아서 로그파일처럼 저장하고 있다가 히스트릭스 대쉬보드나 모니터링 보드에 전달하는 역할을 한다.
+  - 마이크로서비스에서 생성되는 스트림의 메세지를 수집하고 있는 용도로써 터빈서버를 사용하는게 일반적이었음.
+  - 터빈 서버의 설정파일에 어떤 서비스에서 로그를 수집하고 싶은지 설정하면 해당 서비스의 정보를 수집할 수 있었음.
+
+- 수집해뒀던 로그는 히스트릭스 대쉬보드라는 어플리케이션을 통해서 각종 지표로 화면에 보여줄 수 있다.
+- 히스트릭스 대쉬보드는 웹 대쉬보드 역할을 한다
+- 터빈 서버에서 회원, 상품, 배송 정보와 같은 것들의 지표나 로그정보를 히스트릭스 서버에 불러오기 위해서 해당 데이터를 터빈 서버가 저장하고 있는 것.
+- 히스트릭스 대쉬보드에 액션을 취하게 되면, 대쉬보드 서버에서 터빈 서버가 가지고 있던 정보를 다시 읽어들여서 화면에 도식화해서 보여주는 역할을 하게 된다.
+
+- 히스트릭스 대쉬보드
+  - 읽어오고자 하는 터빈서버의 정보를 입력하면 지표, 데이터를 보여준다.
+  - 현재 작동중인 마이크로 서비스나, 마이크로 서비스의 함수 등을 보여준다.
+  - 마이크로 서비스가 가진 메소드들의 성공 횟수, 실패 횟수나 서킷 브레이커가 열려 있는지 닫혀 있는지 등등의 정보를 표시
+
+그러나 최근 스프링 클라우드 버전에서는 기존에 사용했던 개념들 대신에 새롭게 변경된 솔루션과 라이브러리를 소개한다.
+히스트릭스 대쉬보드나 터빈 서버는 Micrometer 나 Monitoring system 을 이용해 대신한다.
+
+- Micrometer
+  - 자바 기반의 애플리케이션의 모니터링을 위한 각종 자료를 수집하는 목적으로 사용된다.
+  - 모니터링? 현재 cpu의 사용량, 메소드의 사용량, 발생하고 사용된 네트워크 트래픽 량, 사용자 요청이 몇번 호출 됐는지, ...
+  - 모니터링 도구를 연동해 줌으로써 현재 운영되는 서버라던가 시스템이 갖고 있는 부하나 문제가 생겼던 시점을 파악할 수 있다.
+  - 스프링 클라우드를 이용해서 마이크로 서비스를 개발하는데 마이크로 서비스 자체가 하나의 어플리케이션 자체가 아니라 분산되어 있는 여러개의 소프트웨어로 구성되어 있기 때문에 각종 서버의 기능이 잘 동작하는지, 문제가 생기진 않았는지, 병목 현상은 없는지를 보면서 자원을 재할당해주는 것이 필요하다.
+  - 스프링 프레임워크 5, 스프링 부트 2 부터 스프링의 Metrics 자료를 Micrometer 를 사용해서 보여준다
+  - Prometheus 등의 다양한 모니터링 시스템과 연동 될 수 있기 때문에 시각화를 할 때 상당히 유용하게 작용된다.
+
+- Timer
+  - 마이크로 미터를 사용할 때 짧은 지연 시간, 이벤트 사용 빈도 등을 등록하고 체크하기 위해서 사용되는 클래스 Timer
+  - 시계열로 이벤트의 시간, 호출 빈도등을 제공
+  - @Timed 를 사용하면 자주 사용되는 메소드나 특정 클래스가 호출되는 시간이나 빈도를 체크 가능
+
+(실습)
+- 유저 서비스, 오더 서비스, 게이트웨이 서버에 prometheus 추가
+- 유저 서비스의 health_check, welcome 메소드에 @Timed 추가 후 호출
+- 유저서비스/actuator/metrics 에 해당 지표가 추가되었음을 확인
+- 유저서비스/actuator/prometheus 에서 아래 데이터 확인
+```
+# HELP users_welcome_seconds_max  
+# TYPE users_welcome_seconds_max gauge
+users_welcome_seconds_max{method="GET",uri="/welcome",} 0.0
+# HELP users_welcome_seconds  
+# TYPE users_welcome_seconds summary
+users_welcome_seconds_active_count{method="GET",uri="/welcome",} 0.0
+users_welcome_seconds_duration_sum{method="GET",uri="/welcome",} 0.0
+```
+```
+# HELP users_status_seconds_max  
+# TYPE users_status_seconds_max gauge
+users_status_seconds_max{method="GET",uri="/health_check",} 0.0
+# HELP users_status_seconds  
+# TYPE users_status_seconds summary
+users_status_seconds_active_count{method="GET",uri="/health_check",} 0.0
+users_status_seconds_duration_sum{method="GET",uri="/health_check",} 0.0
+```

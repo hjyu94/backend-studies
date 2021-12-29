@@ -1,5 +1,6 @@
 package me.hjeong.userservice.controller;
 
+import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import me.hjeong.userservice.dto.UserDto;
 import me.hjeong.userservice.repository.UserEntity;
@@ -25,12 +26,19 @@ public class UserController {
     private final Environment env;
 
     @GetMapping("/health_check")
+    @Timed(value = "users.status", longTask = true)
     public String status() {
         return "It's working in User Service"
                 + ", port(local.server.port) = " + env.getProperty("local.server.port")
                 + ", port(server.port) = " + env.getProperty("server.port")
                 + ", token secret = " + env.getProperty("token.secret")
                 + ", token expiration time = " + env.getProperty("token.expiration_time");
+    }
+
+    @GetMapping("/welcome")
+    @Timed(value = "users.welcome", longTask = true)
+    public String welcome() {
+        return "welcome!";
     }
 
     @PostMapping("/users")
