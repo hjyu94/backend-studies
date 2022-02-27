@@ -5,10 +5,10 @@ import { CreateBoardDto } from './dto/create-board.dto';
 
 @Injectable()
 export class BoardsService {
-  private borads: Board[] = [];
+  private boards: Board[] = [];
 
   getAllBoards(): Board[] {
-    return this.borads;
+    return this.boards;
   }
 
   createBoard(createBoardDto: CreateBoardDto) {
@@ -19,15 +19,15 @@ export class BoardsService {
       status: BoardStatus.PUBLIC,
     };
 
-    this.borads.push(board);
+    this.boards.push(board);
     return board;
   }
 
   getBoardById(id: string): Board {
-    return this.borads.find((board) => board.id === id);
+    return this.boards.find((board) => board.id === id);
   }
 
   deleteBoard(id: string): void {
-    this.borads = this.borads.filter((board) => board.id !== id);
+    this.boards = this.boards.filter((board) => board.id !== id);
   }
 }
