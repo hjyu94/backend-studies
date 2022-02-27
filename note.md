@@ -92,3 +92,15 @@ nest g controller boards --no-spec
   nest g service boards --no-spec
   ```
 
+## Create Board Model
+
+- Interface
+  - 변수와 타입만을 체크한다.
+- Class
+
+  - 변수의 타입도 체크하고, 인스턴스 또한 생성할 수가 있다.
+
+- ID 처리?
+  - ID 는 unique한 값을 사용해야 한다.
+  - `npm install uuid --save`
+  - `import { v1 as uuid } from 'uuid';`
