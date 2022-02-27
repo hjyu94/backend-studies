@@ -64,3 +64,31 @@ nest g module boards
 - g: generate
 - module: schematic that I want to create
 - boards: name of the schematic
+
+
+## Create controller
+
+```shell
+nest g controller boards --no-spec
+```
+
+- nest: using nestcli
+- g: generate
+- controller: controller schematic
+- boards: name of the schematic
+- --no-spec: 테스트를 위한 소스 코드 생성 X
+
+
+## Create providers, service
+
+- Provider 란?
+  - 프로바이더는 Nest 의 기본 개념입니다.
+  - 대부분 기본 Nest 클래스는 서비스, 레포지토리, 팩토리, 헬퍼 등 프로바이더로 취급될 수 있다.
+  - 프로바이더의 주요 아이디어는 종속적으로 주입할 수 있다는 것인데
+  - 객체는 서로 다양한 관계를 만들 수 있으며 객체의 인스턴스를 연결하는 기능은 대부분 Nest 런타임 시스템에 위임될 수 있다.
+
+- 서비스 생성
+  ```shell
+  nest g service boards --no-spec
+  ```
+
