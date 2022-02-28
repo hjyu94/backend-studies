@@ -57,7 +57,19 @@
 
 ---
 
+## 4. Design
+
 `msa-with-spring-cloud` [Spring Cloud로 개발하는 마이크로서비스 애플리케이션(MSA)](https://inf.run/ThGc)
+
+`branch 아직 정리 안함` [DDD Start! : 도메인 주도 설계 구현과 핵심 개념 익히기](https://book.interpark.com/product/BookDisplay.do?_method=detail&sc.shopNo=0000400000&sc.prdNo=254096728&sc.saNo=003002001&bid1=search&bid2=product&bid3=title&bid4=001)
+
+---
+
+## 5. Database
+
+`branch 아직 정리 안함` [데이터베이스 첫걸음 완전 초보의 데이터베이스 따라잡기](http://www.yes24.com/Product/Goods/32613394)
+
+`밋코더 스터디` [개발자를 위한 SQL 튜닝 입문서 친절한 SQL 튜닝](https://book.interpark.com/product/BookDisplay.do?_method=detail&sc.shopNo=0000400000&sc.prdNo=284503185&sc.saNo=003002001&bid1=search&bid2=product&bid3=title&bid4=001) / https://github.com/Meet-Coder-Study/nice-sql-tuning
 
 ---
 
@@ -66,8 +78,6 @@
 `개발방법론` [도메인 주도 설계 철저 입문 : 코드와 패턴으로 밑바닥부터 이해하는 DDD](http://book.interpark.com/product/BookDisplay.do?_method=detail&sc.prdNo=339744139&gclid=CjwKCAjwn6GGBhADEiwAruUcKv46nD_0Ry6ugitwfIKx3nVd1TuARjqaWmkeJpW0qexlDXgRBGNDgxoC5pwQAvD_BwE)
 
 `개발방법론` [Clean Code 클린 코드 애자일 소프트웨어 장인 정신](http://www.yes24.com/Product/Goods/11681152)
-
-`DB` [데이터베이스 첫걸음 완전 초보의 데이터베이스 따라잡기](http://www.yes24.com/Product/Goods/32613394)
 
 `Java` [개발자가 반드시 알아야 할 자바 성능 튜닝 이야기](http://www.kyobobook.co.kr/product/detailViewKor.laf?mallGb=KOR&ejkGb=KOR&barcode=9788966260928)
 
