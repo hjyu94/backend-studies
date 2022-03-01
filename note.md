@@ -131,3 +131,11 @@ nest g controller boards --no-spec
 - Pipe 를 사용한 validation
 - `npm install class-validator class-transformer --save`
 
+## Create custom pipe
+
+- It should implement PipeTransform interface.
+- transform()
+  - value: 처리가 된 인자의 값
+  - metadata: 인자에 대한 메타 데이터를 포함한 객체
+  - return 값은 Route handler 로 전달되고, 예외가 발생하면 바로 클라이언트에게 응답
+
