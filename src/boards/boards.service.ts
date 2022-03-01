@@ -16,18 +16,17 @@ export class BoardsService {
   // getAllBoards(): Board[] {
   //   return this.boards;
   // }
-  //
-  // createBoard(createBoardDto: CreateBoardDto) {
-  //   const board: Board = {
-  //     id: uuid(),
-  //     title: createBoardDto.title,
-  //     description: createBoardDto.description,
-  //     status: BoardStatus.PUBLIC,
-  //   };
-  //
-  //   this.boards.push(board);
-  //   return board;
-  // }
+
+  async createBoard(createBoardDto: CreateBoardDto): Promise<Board> {
+    const board = this.boardsRepository.create({
+      title: createBoardDto.title,
+      description: createBoardDto.description,
+      status: BoardStatus.PUBLIC,
+    });
+
+    await this.boardsRepository.save(board);
+    return board;
+  }
 
   async getBoardById(id: number): Promise<Board> {
     const found = await this.boardsRepository.findOne(id);
