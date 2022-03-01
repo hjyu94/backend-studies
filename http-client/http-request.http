@@ -18,13 +18,13 @@ GET http://localhost:3000/boards/ddd
 
 ### Delete board by ID
 
-DELETE http://localhost:3000/boards/ddd
+DELETE http://localhost:3000/boards/1
 
 ### Update board's status
 
-PATCH http://localhost:3000/boards/14927af0-9920-11ec-9ddc-6b4dda9c3cc0/status
+PATCH http://localhost:3000/boards/2/status
 Content-Type: application/json
 
 {
-  "status": "xxxxx"
+  "status": "PRIVATE"
 }
