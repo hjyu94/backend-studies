@@ -160,3 +160,8 @@ nest g controller boards --no-spec
   $ npm install pg typeorm @nestjs/typeorm --save
   ```
 - https://docs.nestjs.com/techniques/database
+
+### Remove vs Delete
+
+- Remove: 지우려는 아이템이 존재하지 않으면 404 Error
+- Delete: 만약 아이템이 존재하지 않으면 지우고 존재하지 않아도 아무런 에러가 발생하지 않는다.
