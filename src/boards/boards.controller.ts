@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -32,7 +33,7 @@ export class BoardsController {
     return this.boardsService.getBoardById(id);
   }
 
-  @Post('/:id')
+  @Delete('/:id')
   deleteBoard(@Param('id') id: string): void {
     this.boardsService.deleteBoard(id);
   }
