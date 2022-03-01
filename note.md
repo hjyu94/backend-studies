@@ -139,3 +139,24 @@ nest g controller boards --no-spec
   - metadata: 인자에 대한 메타 데이터를 포함한 객체
   - return 값은 Route handler 로 전달되고, 예외가 발생하면 바로 클라이언트에게 응답
 
+## Postgres
+
+- start a postgres docker container
+  ```shell
+  docker run --name nestjs-board-db \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=nestjs-board-db \
+  -p 5432:5432 \
+  -d postgres
+  ```
+
+## TypeORM
+
+- node.js
+- Typescript
+- object relational mapping
+- install necessary modules
+  ```shell
+  $ npm install pg typeorm @nestjs/typeorm --save
+  ```
+- https://docs.nestjs.com/techniques/database
